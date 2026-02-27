@@ -1,0 +1,58 @@
+import type { Workstation } from '../shared/types/workstation';
+
+export const workstationList: Workstation[] = [
+  {
+    id: 'WS-001',
+    name: '电机总成质检作业台',
+    factory: '一号工厂',
+    inspectionStationCount: 4,
+    location: 'A栋-1层-东区',
+    stationList: ['A1-01', 'A1-02', 'A1-03', 'A1-04'],
+    status: '运行中',
+  },
+  {
+    id: 'WS-002',
+    name: '减速器质检作业台',
+    factory: '一号工厂',
+    inspectionStationCount: 3,
+    location: 'A栋-1层-西区',
+    stationList: ['A1-11', 'A1-12', 'A1-13'],
+    status: '维护中',
+  },
+  {
+    id: 'WS-003',
+    name: '底盘装配质检作业台',
+    factory: '二号工厂',
+    inspectionStationCount: 5,
+    location: 'B栋-2层-北区',
+    stationList: ['B2-01', 'B2-02', 'B2-03', 'B2-04', 'B2-05'],
+    status: '运行中',
+  },
+  {
+    id: 'WS-004',
+    name: '末端执行器质检作业台',
+    factory: '二号工厂',
+    inspectionStationCount: 2,
+    location: 'B栋-2层-南区',
+    stationList: ['B2-21', 'B2-22'],
+    status: '空闲',
+  },
+  {
+    id: 'WS-005',
+    name: '控制柜质检作业台',
+    factory: '三号工厂',
+    inspectionStationCount: 4,
+    location: 'C栋-1层-中区',
+    stationList: ['C1-01', 'C1-02', 'C1-03', 'C1-04'],
+    status: '运行中',
+  },
+  {
+    id: 'WS-006',
+    name: '传感器模组质检作业台',
+    factory: '三号工厂',
+    inspectionStationCount: 3,
+    location: 'C栋-2层-西区',
+    stationList: ['C2-08', 'C2-09', 'C2-10'],
+    status: '维护中',
+  },
+];

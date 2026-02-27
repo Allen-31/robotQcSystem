@@ -7,9 +7,12 @@ import { HomeDashboardPage } from '../../ui/pages/HomeDashboardPage';
 import { NotFoundPage } from '../../ui/pages/NotFoundPage';
 import { OperationMonitoringPage } from '../../ui/pages/OperationMonitoringPage';
 import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
+import { WorkstationManagePage } from '../../ui/pages/WorkstationManagePage';
 
 const allRoutes = collectRoutes(menuList);
 const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
+const workstationManagePath = '/qualityInspection/workstationManage';
+const placeholderRoutes = subsystemRoutes.filter((route) => route.path !== workstationManagePath);
 
 export function AppRouter() {
   return (
@@ -36,8 +39,9 @@ export function AppRouter() {
               element={<Navigate to={findFirstLeafPathByCode(menuList, 'dataStatistics')} replace />}
             />
             <Route path="/operationMonitoring" element={<OperationMonitoringPage />} />
+            <Route path={workstationManagePath} element={<WorkstationManagePage />} />
 
-            {subsystemRoutes.map((route) => (
+            {placeholderRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={<PlaceholderPage route={route} />} />
             ))}
           </Route>

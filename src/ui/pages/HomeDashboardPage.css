@@ -11,273 +11,131 @@
 .home-bg-mask {
   position: absolute;
   inset: 0;
-  background: radial-gradient(1200px 600px at 20% 20%, rgba(50, 118, 255, 0.22), transparent 60%),
-    linear-gradient(180deg, rgba(5, 15, 42, 0.5), rgba(4, 12, 32, 0.82));
-}
-
-.bg-orb {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(60px);
-  pointer-events: none;
-}
-
-.orb-a {
-  width: 240px;
-  height: 240px;
-  right: 18%;
-  top: 16%;
-  background: rgba(46, 201, 255, 0.28);
-}
-
-.orb-b {
-  width: 220px;
-  height: 220px;
-  left: 14%;
-  bottom: 12%;
-  background: rgba(76, 141, 255, 0.24);
+  background: linear-gradient(180deg, rgba(6, 18, 50, 0.46), rgba(6, 16, 42, 0.82));
 }
 
 .home-shell {
   position: relative;
   z-index: 1;
-  margin-top: 104px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  margin-top: 92px;
 }
 
-.top-grid,
-.bottom-grid {
+.quad-grid {
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    'quality spacer'
+    'device operation';
   gap: 16px;
 }
 
-.top-grid {
-  grid-template-columns: 1fr;
+.quality-card {
+  grid-area: quality;
 }
 
-.bottom-grid {
-  grid-template-columns: 1fr 1.4fr;
+.device-card {
+  grid-area: device;
+}
+
+.operation-card {
+  grid-area: operation;
+}
+
+.quad-spacer {
+  grid-area: spacer;
 }
 
 .tech-card {
   border-radius: 14px;
-  border: 1px solid rgba(142, 185, 255, 0.28);
-  background: linear-gradient(180deg, rgba(7, 22, 59, 0.78), rgba(4, 14, 39, 0.86));
-  box-shadow: 0 14px 32px rgba(3, 10, 28, 0.38);
+  border: 1px solid rgba(139, 184, 255, 0.16);
+  background: linear-gradient(180deg, rgba(8, 26, 70, 0.8), rgba(6, 18, 50, 0.88));
+  box-shadow: 0 14px 30px rgba(2, 10, 26, 0.35);
 }
 
 .tech-card .ant-card-head {
-  border-bottom-color: rgba(117, 160, 236, 0.2);
+  border-bottom-color: rgba(126, 167, 238, 0.2);
 }
 
-.tech-card .ant-card-head-title,
-.tech-card .ant-typography,
-.tech-card .ant-statistic-title,
-.tech-card .ant-statistic-content,
-.tech-card .ant-descriptions-item-label,
-.tech-card .ant-descriptions-item-content,
-.tech-card .ant-tabs-tab-btn {
-  color: #d9e8ff;
-}
-
-.panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.panel-head.compact {
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.home-title {
-  margin: 0 !important;
-  color: #f3f8ff !important;
-  font-size: 34px !important;
-  line-height: 1.1 !important;
-}
-
-.panel-sub {
-  color: #8eb8ff;
-  font-size: 12px;
-}
-
-.card-title {
-  margin: 0 !important;
-  color: #e8f2ff !important;
-}
-
-.kpi-card {
-  border-radius: 10px;
-  border: 1px solid rgba(128, 175, 255, 0.26);
-  background: linear-gradient(180deg, rgba(12, 33, 84, 0.78), rgba(8, 24, 63, 0.9));
-}
-
-.kpi-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  color: #97b8f2;
-  font-size: 13px;
-}
-
-.kpi-title-icon {
-  color: #76a6ff;
-}
-
-.kpi-card .ant-statistic-content {
-  color: #f3f8ff;
-  font-size: 32px;
-  font-weight: 700;
-}
-
-.kpi-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.flow-strip {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 14px;
-}
-
-.flow-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  color: #9fbef2;
-}
-
-.situation-rings {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.ring-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #9fbef2;
-}
-
-.trend-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid rgba(114, 162, 255, 0.2);
-  border-radius: 10px;
-  background: rgba(9, 29, 77, 0.46);
-}
-
-.trend-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #d7e7ff;
-}
-
-.trend-up {
-  color: #25d287;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.trend-down {
-  color: #ff7e7e;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.mini-kpis {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.mini-kpi {
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(119, 168, 255, 0.24);
-  background: rgba(9, 28, 75, 0.56);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mini-kpi span {
-  color: #93b5ef;
-  font-size: 12px;
-}
-
-.mini-kpi strong {
-  color: #e6f2ff;
-  font-size: 22px;
-}
-
-.device-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #9dbdf1;
-}
-
-.overview-descriptions .ant-descriptions-item-label {
-  width: 220px;
-}
-
-.overview-descriptions .ant-descriptions-item-content {
-  color: #edf5ff;
+.tech-card .ant-card-head-title {
+  color: #eaf3ff;
+  font-size: 18px;
   font-weight: 600;
 }
 
-.operation-summary {
+.section-sub-title {
+  color: #a8c5f3;
+  font-size: 13px;
+}
+
+.metric-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid rgba(113, 161, 250, 0.22);
   border-radius: 10px;
-  background: rgba(9, 29, 77, 0.46);
+  background: rgba(12, 33, 86, 0.52);
+  padding: 12px;
+  box-shadow: inset 0 0 0 1px rgba(125, 171, 245, 0.06);
 }
 
-.op-stat {
-  min-width: 104px;
-  display: flex;
-  flex-direction: column;
+.metric-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #79a9ff;
+  background: rgba(121, 169, 255, 0.24);
+  font-size: 16px;
 }
 
-.op-stat span {
-  color: #95b7f0;
+.metric-label {
+  color: #a5c3f2;
   font-size: 12px;
 }
 
-.op-stat strong {
-  color: #f1f7ff;
-  font-size: 24px;
+.metric-value {
+  color: #e8f2ff;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.split-line {
+  border-color: rgba(126, 167, 238, 0.14) !important;
+  margin: 12px 0 !important;
+}
+
+.operation-head {
+  margin-bottom: 12px;
+}
+
+.mini-stat-card {
+  border-radius: 10px;
+  border: none;
+  background: rgba(12, 33, 86, 0.52);
+  box-shadow: inset 0 0 0 1px rgba(125, 171, 245, 0.06);
+}
+
+.mini-stat-card .ant-typography {
+  color: #c6dcff;
+  margin: 0;
+}
+
+.mini-stat-card .ant-typography.ant-typography-h3 {
+  margin-top: 6px;
+  color: #f0f6ff;
 }
 
 .flat-table .ant-table {
-  background: rgba(10, 29, 74, 0.52);
+  background: rgba(10, 29, 74, 0.48);
 }
 
 .flat-table .ant-table-thead > tr > th {
@@ -287,36 +145,38 @@
 }
 
 .flat-table .ant-table-tbody > tr > td {
-  color: #e3efff;
+  color: #e5f0ff;
   border-bottom-color: rgba(110, 157, 238, 0.16);
-  background: rgba(10, 29, 74, 0.38);
+  background: rgba(10, 29, 74, 0.35);
 }
 
 .flat-table .ant-table-tbody > tr:hover > td {
-  background: rgba(23, 54, 121, 0.58) !important;
+  background: rgba(22, 52, 118, 0.58) !important;
 }
 
-.tech-card .ant-segmented {
-  background: rgba(11, 32, 78, 0.72);
+.operation-card .ant-tabs-tab-btn,
+.operation-card .ant-progress-text,
+.operation-card .ant-progress-inner,
+.operation-card .ant-progress-outer {
+  color: #d6e8ff;
 }
 
-.tech-card .ant-segmented-item-selected {
-  background: rgba(84, 138, 255, 0.28) !important;
-  color: #e9f3ff;
-}
-
-@media (max-width: 1280px) {
+@media (max-width: 1200px) {
   .home-shell {
-    margin-top: 82px;
+    margin-top: 74px;
   }
 
-  .top-grid,
-  .bottom-grid {
+  .quad-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'quality'
+      'device'
+      'operation';
   }
 
-  .home-title {
-    font-size: 28px !important;
+  .quad-spacer {
+    display: none;
   }
 }
 
@@ -326,32 +186,10 @@
   }
 
   .home-shell {
-    margin-top: 62px;
-    gap: 12px;
+    margin-top: 60px;
   }
 
-  .panel-head {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .kpi-card .ant-statistic-content {
-    font-size: 26px;
-  }
-
-  .flow-strip {
+  .metric-grid {
     grid-template-columns: 1fr;
-  }
-
-  .situation-rings,
-  .mini-kpis,
-  .operation-summary {
-    flex-wrap: wrap;
-    grid-template-columns: 1fr;
-    justify-content: flex-start;
-  }
-
-  .overview-descriptions .ant-descriptions-item-label {
-    width: 170px;
   }
 }
