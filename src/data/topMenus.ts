@@ -5,6 +5,7 @@
 }
 
 export const topMenus: TopMenuItem[] = [
+  { key: 'home', name: '首页', basePath: '/' },
   { key: 'qualityInspection', name: '质检业务', basePath: '/qualityInspection' },
   { key: 'deployConfig', name: '部署配置', basePath: '/deployConfig' },
   { key: 'operationMonitoring', name: '运行监控', basePath: '/operationMonitoring' },

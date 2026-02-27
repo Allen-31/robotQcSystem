@@ -8,7 +8,12 @@ export function TopNavigation() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  const selectedKey = topMenus.find((item) => pathname === item.basePath || pathname.startsWith(`${item.basePath}/`))?.key;
+  const selectedKey =
+    pathname === '/'
+      ? 'home'
+      : topMenus
+          .filter((item) => item.key !== 'home')
+          .find((item) => pathname === item.basePath || pathname.startsWith(`${item.basePath}/`))?.key;
 
   return (
     <div
@@ -21,7 +26,11 @@ export function TopNavigation() {
         background: '#0B1F52',
       }}
     >
-      <Typography.Title level={4} style={{ color: '#fff', margin: 0 }}>
+      <Typography.Title
+        level={4}
+        style={{ color: '#fff', margin: 0, cursor: 'pointer' }}
+        onClick={() => navigate('/')}
+      >
         机器人质检管理后台
       </Typography.Title>
       <Menu
@@ -35,6 +44,11 @@ export function TopNavigation() {
             return;
           }
 
+          if (key === 'home') {
+            navigate('/');
+            return;
+          }
+
           if (key === 'operationMonitoring') {
             navigate('/operationMonitoring');
             return;
@@ -43,7 +57,7 @@ export function TopNavigation() {
           const firstLeafPath = findFirstLeafPathByCode(menuList, String(key));
           navigate(firstLeafPath === '/' ? target.basePath : firstLeafPath);
         }}
-        style={{ minWidth: 520, background: 'transparent' }}
+        style={{ minWidth: 620, background: 'transparent' }}
       />
     </div>
   );
