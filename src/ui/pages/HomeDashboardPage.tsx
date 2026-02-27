@@ -10,9 +10,10 @@
   ToolOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import { Card, Col, Descriptions, Divider, Progress, Row, Space, Table, Tabs, Tag, Typography } from 'antd';
+import { Button, Card, Col, Descriptions, Divider, Progress, Row, Space, Table, Tabs, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './HomeDashboardPage.css';
 
 type ExceptionItem = {
@@ -86,9 +87,9 @@ const serviceExceptions: ExceptionItem[] = [
 
 function ServiceStatusTag({ status }: { status?: string }) {
   if (status === '运行中') {
-    return <Tag color="success">运行中</Tag>;
+    return <span style={{ color: '#9ce08f', fontWeight: 600 }}>运行中</span>;
   }
-  return <Tag color="error">异常</Tag>;
+  return <span style={{ color: '#ff9c9c', fontWeight: 600 }}>异常</span>;
 }
 
 function MetricGrid({ data }: { data: MetricItem[] }) {
@@ -108,10 +109,23 @@ function MetricGrid({ data }: { data: MetricItem[] }) {
 }
 
 export function HomeDashboardPage() {
+  const navigate = useNavigate();
+
   const taskColumns: ColumnsType<ExceptionItem> = [
     { title: '编号', dataIndex: 'code', key: 'code', width: 190, align: 'center' },
     { title: '类型', dataIndex: 'type', key: 'type', width: 130, align: 'center' },
     { title: '异常描述', dataIndex: 'description', key: 'description', align: 'center' },
+    {
+      title: '操作',
+      key: 'action',
+      width: 130,
+      align: 'center',
+      render: () => (
+        <Button size="small" type="primary" ghost onClick={() => navigate('/operationMaintenance/notification/exceptionNotification')}>
+          异常处理
+        </Button>
+      ),
+    },
   ];
 
   const serviceColumns: ColumnsType<ExceptionItem> = [
@@ -128,13 +142,17 @@ export function HomeDashboardPage() {
     {
       title: '操作',
       key: 'action',
-      width: 170,
+      width: 220,
       align: 'center',
       render: () => (
-        <Space size={12}>
-          <a>运行</a>
-          <a>重启</a>
-          <a>关闭</a>
+        <Space size={8}>
+          <Button size="small" type="primary">
+            运行
+          </Button>
+          <Button size="small">重启</Button>
+          <Button size="small" danger>
+            关闭
+          </Button>
         </Space>
       ),
     },
@@ -243,3 +261,4 @@ export function HomeDashboardPage() {
     </div>
   );
 }
+

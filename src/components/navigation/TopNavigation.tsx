@@ -67,7 +67,7 @@ export function TopNavigation() {
           <UserOutlined />
           <Typography.Text style={{ color: '#fff' }}>管理员</Typography.Text>
         </Space>
-        <Button size="small" icon={<LogoutOutlined />} onClick={() => navigate('/')}>
+        <Button size="small" icon={<LogoutOutlined />} onClick={() => navigate('/home/login')}>
           退出登录
         </Button>
       </Space>

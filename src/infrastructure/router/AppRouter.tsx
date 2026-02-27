@@ -4,6 +4,7 @@ import { collectRoutes, findFirstLeafPathByCode } from '../../logic/menu/menuRou
 import { SubsystemLayout } from '../../ui/layouts/SubsystemLayout';
 import { TopLevelLayout } from '../../ui/layouts/TopLevelLayout';
 import { HomeDashboardPage } from '../../ui/pages/HomeDashboardPage';
+import { LoginPage } from '../../ui/pages/LoginPage';
 import { NotFoundPage } from '../../ui/pages/NotFoundPage';
 import { OperationMonitoringPage } from '../../ui/pages/OperationMonitoringPage';
 import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
@@ -18,6 +19,8 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/home/login" element={<LoginPage />} />
+
         <Route element={<TopLevelLayout />}>
           <Route index element={<HomeDashboardPage />} />
 

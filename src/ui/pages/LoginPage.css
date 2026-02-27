@@ -1,0 +1,73 @@
+.login-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-image: url('../../assets/factory-scene.png');
+  background-size: cover;
+  background-position: center;
+}
+
+.login-mask {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 18, 50, 0.56), rgba(6, 16, 42, 0.86));
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(139, 184, 255, 0.22);
+  background: linear-gradient(180deg, rgba(8, 26, 70, 0.86), rgba(6, 18, 50, 0.9));
+  box-shadow: 0 18px 36px rgba(2, 10, 26, 0.4);
+}
+
+.login-title {
+  margin-bottom: 4px !important;
+  color: #eaf3ff !important;
+  font-size: 36px !important;
+}
+
+.login-subtitle {
+  color: #a8c5f3;
+  font-size: 15px;
+}
+
+.login-card .ant-form-item-label > label,
+.login-card .ant-checkbox-wrapper,
+.login-card .ant-input-prefix {
+  color: #cce2ff;
+}
+
+.login-card .ant-input,
+.login-card .ant-input-password {
+  background: rgba(9, 30, 79, 0.48);
+  border-color: rgba(125, 171, 245, 0.3);
+  color: #eef6ff;
+}
+
+.login-card .ant-form-item {
+  margin-bottom: 18px;
+}
+
+.login-card .ant-input-affix-wrapper,
+.login-card .ant-input {
+  min-height: 44px;
+}
+
+@media (max-width: 768px) {
+  .login-card {
+    max-width: 460px;
+    padding: 4px;
+  }
+
+  .login-title {
+    font-size: 30px !important;
+  }
+}
