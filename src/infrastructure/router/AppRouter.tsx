@@ -8,12 +8,24 @@ import { LoginPage } from '../../ui/pages/LoginPage';
 import { NotFoundPage } from '../../ui/pages/NotFoundPage';
 import { OperationMonitoringPage } from '../../ui/pages/OperationMonitoringPage';
 import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
+import { ReinspectionRecordPage } from '../../ui/pages/ReinspectionRecordPage';
+import { WorkOrderManagePage } from '../../ui/pages/WorkOrderManagePage';
 import { WorkstationManagePage } from '../../ui/pages/WorkstationManagePage';
+import { WorkstationPositionManagePage } from '../../ui/pages/WorkstationPositionManagePage';
 
 const allRoutes = collectRoutes(menuList);
 const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
 const workstationManagePath = '/qualityInspection/workstationManage';
-const placeholderRoutes = subsystemRoutes.filter((route) => route.path !== workstationManagePath);
+const workstationPositionManagePath = '/qualityInspection/workstationPositionManage';
+const workOrderManagePath = '/qualityInspection/workOrderManage';
+const reinspectionRecordPath = '/qualityInspection/reinspectionRecord';
+const placeholderRoutes = subsystemRoutes.filter(
+  (route) =>
+    route.path !== workstationManagePath &&
+    route.path !== workstationPositionManagePath &&
+    route.path !== workOrderManagePath &&
+    route.path !== reinspectionRecordPath,
+);
 
 export function AppRouter() {
   return (
@@ -43,6 +55,9 @@ export function AppRouter() {
             />
             <Route path="/operationMonitoring" element={<OperationMonitoringPage />} />
             <Route path={workstationManagePath} element={<WorkstationManagePage />} />
+            <Route path={workstationPositionManagePath} element={<WorkstationPositionManagePage />} />
+            <Route path={workOrderManagePath} element={<WorkOrderManagePage />} />
+            <Route path={reinspectionRecordPath} element={<ReinspectionRecordPage />} />
 
             {placeholderRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={<PlaceholderPage route={route} />} />
