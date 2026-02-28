@@ -9,11 +9,23 @@ import { NotFoundPage } from '../../ui/pages/NotFoundPage';
 import { OperationMonitoringPage } from '../../ui/pages/OperationMonitoringPage';
 import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
 import { WorkstationManagePage } from '../../ui/pages/WorkstationManagePage';
+import { StationConfigPage } from '../../ui/pages/qcConfig/StationConfigPage';
+import { TerminalConfigPage } from '../../ui/pages/qcConfig/TerminalConfigPage';
+import { WireHarnessTypePage } from '../../ui/pages/qcConfig/WireHarnessTypePage';
+import { WorkstationConfigPage } from '../../ui/pages/qcConfig/WorkstationConfigPage';
 
 const allRoutes = collectRoutes(menuList);
 const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
 const workstationManagePath = '/qualityInspection/workstationManage';
-const placeholderRoutes = subsystemRoutes.filter((route) => route.path !== workstationManagePath);
+const qualityConfigPaths = [
+  '/qualityInspection/workstationConfig',
+  '/qualityInspection/workstationPositionConfig',
+  '/qualityInspection/wireHarnessType',
+  '/qualityInspection/terminalConfig',
+];
+const placeholderRoutes = subsystemRoutes.filter(
+  (route) => route.path !== workstationManagePath && !qualityConfigPaths.includes(route.path),
+);
 
 export function AppRouter() {
   return (
@@ -43,6 +55,10 @@ export function AppRouter() {
             />
             <Route path="/operationMonitoring" element={<OperationMonitoringPage />} />
             <Route path={workstationManagePath} element={<WorkstationManagePage />} />
+            <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
+            <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
+            <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
+            <Route path="/qualityInspection/terminalConfig" element={<TerminalConfigPage />} />
 
             {placeholderRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={<PlaceholderPage route={route} />} />
