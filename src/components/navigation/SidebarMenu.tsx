@@ -1,4 +1,4 @@
-﻿import {
+import {
   BarChartOutlined,
   CheckCircleOutlined,
   HomeOutlined,
@@ -9,6 +9,7 @@ import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useI18n } from '../../i18n/I18nProvider';
 import { menuList } from '../../data/menuList';
 import { buildOpenKeys, collectRoutes, matchSelectedPath } from '../../logic/menu/menuRoute';
 import type { MenuNode } from '../../shared/types/menu';
@@ -21,17 +22,18 @@ const iconMap: Record<string, ReactNode> = {
   BarChartOutlined: <BarChartOutlined />,
 };
 
-function mapToMenuItems(nodes: MenuNode[]): MenuProps['items'] {
+function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): MenuProps['items'] {
   return nodes.map((node) => {
     const key = node.path ?? node.id;
-    const label = node.path ? <Link to={node.path}>{node.name}</Link> : node.name;
+    const labelText = translate(node.name);
+    const label = node.path ? <Link to={node.path}>{labelText}</Link> : labelText;
 
     if (node.children?.length) {
       return {
         key,
         icon: node.icon ? iconMap[node.icon] : undefined,
         label,
-        children: mapToMenuItems(node.children),
+        children: mapToMenuItems(node.children, translate),
       };
     }
 
@@ -44,15 +46,15 @@ function mapToMenuItems(nodes: MenuNode[]): MenuProps['items'] {
 }
 
 const routes = collectRoutes(menuList);
-const items = mapToMenuItems(menuList);
 
 export function SidebarMenu() {
   const { pathname } = useLocation();
+  const { t } = useI18n();
 
   return (
     <Menu
       mode="inline"
-      items={items}
+      items={mapToMenuItems(menuList, t)}
       selectedKeys={matchSelectedPath(pathname, routes)}
       openKeys={buildOpenKeys(pathname, menuList)}
       style={{ borderRight: 0 }}

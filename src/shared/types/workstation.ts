@@ -1,4 +1,4 @@
-export type WorkstationStatus = '运行中' | '维护中' | '空闲';
+export type WorkstationStatus = 'running' | 'maintenance' | 'idle';
 
 export interface Workstation {
   id: string;

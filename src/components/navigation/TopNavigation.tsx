@@ -1,13 +1,15 @@
-﻿import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Menu, Space, Typography } from 'antd';
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { Button, Menu, Select, Space, Typography } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { menuList } from '../../data/menuList';
 import { topMenus } from '../../data/topMenus';
+import { useI18n } from '../../i18n/I18nProvider';
 import { findFirstLeafPathByCode } from '../../logic/menu/menuRoute';
 
 export function TopNavigation() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { t, locale, setLocale } = useI18n();
 
   const selectedKey =
     pathname === '/'
@@ -32,14 +34,14 @@ export function TopNavigation() {
         style={{ color: '#fff', margin: 0, cursor: 'pointer', minWidth: 220 }}
         onClick={() => navigate('/')}
       >
-        机器人后台管理系统
+        {t('app.systemTitle')}
       </Typography.Title>
 
       <Menu
         mode="horizontal"
         theme="dark"
         selectedKeys={selectedKey ? [selectedKey] : []}
-        items={topMenus.map((item) => ({ key: item.key, label: item.name }))}
+        items={topMenus.map((item) => ({ key: item.key, label: t(item.name) }))}
         onClick={({ key }) => {
           const target = topMenus.find((item) => item.key === key);
           if (!target) {
@@ -62,13 +64,26 @@ export function TopNavigation() {
         style={{ minWidth: 620, background: 'transparent', flex: 1, justifyContent: 'center' }}
       />
 
-      <Space size={12} style={{ color: '#fff', marginLeft: 16, minWidth: 180, justifyContent: 'flex-end' }}>
+      <Space size={12} style={{ color: '#fff', marginLeft: 16, minWidth: 340, justifyContent: 'flex-end' }}>
+        <Space size={6}>
+          <Typography.Text style={{ color: '#fff' }}>{t('app.language')}</Typography.Text>
+          <Select
+            size="small"
+            value={locale}
+            style={{ width: 100 }}
+            onChange={(value) => setLocale(value)}
+            options={[
+              { value: 'zh-CN', label: t('app.locale.zhCN') },
+              { value: 'en-US', label: t('app.locale.enUS') },
+            ]}
+          />
+        </Space>
         <Space size={6}>
           <UserOutlined />
-          <Typography.Text style={{ color: '#fff' }}>管理员</Typography.Text>
+          <Typography.Text style={{ color: '#fff' }}>{t('app.adminUser')}</Typography.Text>
         </Space>
         <Button size="small" icon={<LogoutOutlined />} onClick={() => navigate('/home/login')}>
-          退出登录
+          {t('app.logout')}
         </Button>
       </Space>
     </div>

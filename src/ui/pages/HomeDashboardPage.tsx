@@ -8,98 +8,98 @@
   RobotOutlined,
   ThunderboltOutlined,
   ToolOutlined,
-  WarningOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Col, Descriptions, Divider, Progress, Row, Space, Table, Tabs, Typography } from 'antd';
+import { Button, Card, Col, Divider, Row, Space, Table, Tabs, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '../../i18n/I18nProvider';
 import './HomeDashboardPage.css';
 
 type ExceptionItem = {
   key: string;
   code?: string;
-  type: string;
-  description?: string;
+  typeKey: string;
+  descriptionKey?: string;
   name?: string;
-  status?: string;
+  status?: 'running' | 'abnormal';
 };
 
 type MetricItem = {
-  label: string;
+  labelKey: string;
   value: string;
   icon: ReactNode;
 };
 
 const qualityTotalMetrics: MetricItem[] = [
-  { label: '质检量', value: '48,620', icon: <DashboardOutlined /> },
-  { label: '检出率', value: '97.52%', icon: <CheckCircleOutlined /> },
-  { label: '复核率', value: '91.36%', icon: <RadarChartOutlined /> },
-  { label: '检测时长', value: '12,680h', icon: <ClockCircleOutlined /> },
+  { labelKey: 'home.metric.qualityCount', value: '48,620', icon: <DashboardOutlined /> },
+  { labelKey: 'home.metric.detectionRate', value: '97.52%', icon: <CheckCircleOutlined /> },
+  { labelKey: 'home.metric.reviewRate', value: '91.36%', icon: <RadarChartOutlined /> },
+  { labelKey: 'home.metric.duration', value: '12,680h', icon: <ClockCircleOutlined /> },
 ];
 
 const qualityTodayMetrics: MetricItem[] = [
-  { label: '质检量', value: '1,286', icon: <DashboardOutlined /> },
-  { label: '检出率', value: '96.71%', icon: <CheckCircleOutlined /> },
-  { label: '复核率', value: '89.28%', icon: <RadarChartOutlined /> },
-  { label: '检测时长', value: '326h', icon: <ClockCircleOutlined /> },
+  { labelKey: 'home.metric.qualityCount', value: '1,286', icon: <DashboardOutlined /> },
+  { labelKey: 'home.metric.detectionRate', value: '96.71%', icon: <CheckCircleOutlined /> },
+  { labelKey: 'home.metric.reviewRate', value: '89.28%', icon: <RadarChartOutlined /> },
+  { labelKey: 'home.metric.duration', value: '326h', icon: <ClockCircleOutlined /> },
 ];
 
 const deviceTotalMetrics: MetricItem[] = [
-  { label: '机器人运行时长', value: '22,460h', icon: <ThunderboltOutlined /> },
-  { label: '机器人工作时长', value: '18,920h', icon: <ToolOutlined /> },
-  { label: '机器人故障率', value: '2.14%', icon: <BugOutlined /> },
+  { labelKey: 'home.metric.robotRuntime', value: '22,460h', icon: <ThunderboltOutlined /> },
+  { labelKey: 'home.metric.robotWorktime', value: '18,920h', icon: <ToolOutlined /> },
+  { labelKey: 'home.metric.robotFailureRate', value: '2.14%', icon: <BugOutlined /> },
 ];
 
 const deviceTodayMetrics: MetricItem[] = [
-  { label: '机器人数量 / 在线总数', value: '68 / 61', icon: <RobotOutlined /> },
-  { label: '机器人平均运行时长', value: '15.8h', icon: <ThunderboltOutlined /> },
-  { label: '机器人平均工作时长', value: '12.6h', icon: <ToolOutlined /> },
-  { label: '工位数量 / 运行 / 总数', value: '120 / 86 / 120', icon: <ApiOutlined /> },
+  { labelKey: 'home.metric.robotOnline', value: '68 / 61', icon: <RobotOutlined /> },
+  { labelKey: 'home.metric.avgRuntime', value: '15.8h', icon: <ThunderboltOutlined /> },
+  { labelKey: 'home.metric.avgWorktime', value: '12.6h', icon: <ToolOutlined /> },
+  { labelKey: 'home.metric.stationCount', value: '120 / 86 / 120', icon: <ApiOutlined /> },
 ];
 
 const taskExceptions: ExceptionItem[] = [
-  { key: '1', code: 'TASK-20260227-01', type: '调度异常', description: '任务下发超时，等待重试' },
-  { key: '2', code: 'TASK-20260227-02', type: '执行异常', description: '路径规划失败，目标工位不可达' },
-  { key: '3', code: 'TASK-20260227-03', type: '复核异常', description: '复核任务积压，超过阈值' },
-  { key: '4', code: 'TASK-20260227-04', type: '调度异常', description: '任务队列阻塞，等待资源释放' },
-  { key: '5', code: 'TASK-20260227-05', type: '执行异常', description: '机器人抓取动作超时中断' },
-  { key: '6', code: 'TASK-20260227-06', type: '复核异常', description: '复核样本上传失败，待补偿' },
+  { key: '1', code: 'TASK-20260227-01', typeKey: 'home.type.dispatch', descriptionKey: 'home.desc.taskTimeout' },
+  { key: '2', code: 'TASK-20260227-02', typeKey: 'home.type.execution', descriptionKey: 'home.desc.pathPlanningFailed' },
+  { key: '3', code: 'TASK-20260227-03', typeKey: 'home.type.review', descriptionKey: 'home.desc.reviewBacklog' },
+  { key: '4', code: 'TASK-20260227-04', typeKey: 'home.type.dispatch', descriptionKey: 'home.desc.queueBlocked' },
+  { key: '5', code: 'TASK-20260227-05', typeKey: 'home.type.execution', descriptionKey: 'home.desc.grabTimeout' },
+  { key: '6', code: 'TASK-20260227-06', typeKey: 'home.type.review', descriptionKey: 'home.desc.uploadFailed' },
 ];
 
 const deviceExceptions: ExceptionItem[] = [
-  { key: '1', code: 'DEV-20260227-01', type: '传感器异常', description: '激光雷达数据抖动超限' },
-  { key: '2', code: 'DEV-20260227-02', type: '电量异常', description: '剩余电量低于安全阈值' },
-  { key: '3', code: 'DEV-20260227-03', type: '通讯异常', description: '与工位终端心跳中断' },
-  { key: '4', code: 'DEV-20260227-04', type: '传感器异常', description: '视觉模块曝光参数异常' },
-  { key: '5', code: 'DEV-20260227-05', type: '驱动异常', description: '轮组编码器反馈丢失' },
-  { key: '6', code: 'DEV-20260227-06', type: '通讯异常', description: 'MQTT 连接重试次数超限' },
+  { key: '1', code: 'DEV-20260227-01', typeKey: 'home.type.sensor', descriptionKey: 'home.desc.lidarJitter' },
+  { key: '2', code: 'DEV-20260227-02', typeKey: 'home.type.power', descriptionKey: 'home.desc.lowBattery' },
+  { key: '3', code: 'DEV-20260227-03', typeKey: 'home.type.communication', descriptionKey: 'home.desc.heartbeatLost' },
+  { key: '4', code: 'DEV-20260227-04', typeKey: 'home.type.sensor', descriptionKey: 'home.desc.exposureAbnormal' },
+  { key: '5', code: 'DEV-20260227-05', typeKey: 'home.type.driver', descriptionKey: 'home.desc.encoderLost' },
+  { key: '6', code: 'DEV-20260227-06', typeKey: 'home.type.communication', descriptionKey: 'home.desc.mqttRetryExceeded' },
 ];
 
 const serviceExceptions: ExceptionItem[] = [
-  { key: '1', name: 'qc-task-service', type: '任务服务', status: '异常' },
-  { key: '2', name: 'qc-device-service', type: '设备服务', status: '运行中' },
-  { key: '3', name: 'qc-report-service', type: '报表服务', status: '异常' },
-  { key: '4', name: 'qc-auth-service', type: '认证服务', status: '运行中' },
-  { key: '5', name: 'qc-alert-service', type: '告警服务', status: '异常' },
-  { key: '6', name: 'qc-map-service', type: '地图服务', status: '运行中' },
+  { key: '1', name: 'qc-task-service', typeKey: 'home.service.task', status: 'abnormal' },
+  { key: '2', name: 'qc-device-service', typeKey: 'home.service.device', status: 'running' },
+  { key: '3', name: 'qc-report-service', typeKey: 'home.service.report', status: 'abnormal' },
+  { key: '4', name: 'qc-auth-service', typeKey: 'home.service.auth', status: 'running' },
+  { key: '5', name: 'qc-alert-service', typeKey: 'home.service.alert', status: 'abnormal' },
+  { key: '6', name: 'qc-map-service', typeKey: 'home.service.map', status: 'running' },
 ];
 
-function ServiceStatusTag({ status }: { status?: string }) {
-  if (status === '运行中') {
-    return <span style={{ color: '#9ce08f', fontWeight: 600 }}>运行中</span>;
+function ServiceStatusTag({ status, t }: { status?: 'running' | 'abnormal'; t: (key: string) => string }) {
+  if (status === 'running') {
+    return <span style={{ color: '#9ce08f', fontWeight: 600 }}>{t('home.serviceStatus.running')}</span>;
   }
-  return <span style={{ color: '#ff9c9c', fontWeight: 600 }}>异常</span>;
+  return <span style={{ color: '#ff9c9c', fontWeight: 600 }}>{t('home.serviceStatus.abnormal')}</span>;
 }
 
-function MetricGrid({ data }: { data: MetricItem[] }) {
+function MetricGrid({ data, t }: { data: MetricItem[]; t: (key: string) => string }) {
   return (
     <div className="metric-grid">
       {data.map((item) => (
-        <div className="metric-item" key={item.label}>
+        <div className="metric-item" key={`${item.labelKey}-${item.value}`}>
           <span className="metric-icon">{item.icon}</span>
           <div>
-            <div className="metric-label">{item.label}</div>
+            <div className="metric-label">{t(item.labelKey)}</div>
             <div className="metric-value">{item.value}</div>
           </div>
         </div>
@@ -110,48 +110,69 @@ function MetricGrid({ data }: { data: MetricItem[] }) {
 
 export function HomeDashboardPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const taskColumns: ColumnsType<ExceptionItem> = [
-    { title: '编号', dataIndex: 'code', key: 'code', width: 190, align: 'center' },
-    { title: '类型', dataIndex: 'type', key: 'type', width: 130, align: 'center' },
-    { title: '异常描述', dataIndex: 'description', key: 'description', align: 'center' },
+    { title: t('home.table.code'), dataIndex: 'code', key: 'code', width: 190, align: 'center' },
     {
-      title: '操作',
+      title: t('home.table.type'),
+      dataIndex: 'typeKey',
+      key: 'typeKey',
+      width: 150,
+      align: 'center',
+      render: (typeKey: string) => t(typeKey),
+    },
+    {
+      title: t('home.table.description'),
+      dataIndex: 'descriptionKey',
+      key: 'descriptionKey',
+      align: 'center',
+      render: (descriptionKey?: string) => (descriptionKey ? t(descriptionKey) : '-'),
+    },
+    {
+      title: t('home.table.action'),
       key: 'action',
       width: 130,
       align: 'center',
       render: () => (
         <Button size="small" type="primary" ghost onClick={() => navigate('/operationMaintenance/notification/exceptionNotification')}>
-          异常处理
+          {t('home.action.handleException')}
         </Button>
       ),
     },
   ];
 
   const serviceColumns: ColumnsType<ExceptionItem> = [
-    { title: '名称', dataIndex: 'name', key: 'name', width: 200, align: 'center' },
-    { title: '类型', dataIndex: 'type', key: 'type', width: 130, align: 'center' },
+    { title: t('home.table.name'), dataIndex: 'name', key: 'name', width: 200, align: 'center' },
     {
-      title: '状态',
+      title: t('home.table.type'),
+      dataIndex: 'typeKey',
+      key: 'typeKey',
+      width: 160,
+      align: 'center',
+      render: (typeKey: string) => t(typeKey),
+    },
+    {
+      title: t('home.table.status'),
       dataIndex: 'status',
       key: 'status',
       width: 110,
       align: 'center',
-      render: (status: string) => <ServiceStatusTag status={status} />,
+      render: (status: 'running' | 'abnormal') => <ServiceStatusTag status={status} t={t} />,
     },
     {
-      title: '操作',
+      title: t('home.table.action'),
       key: 'action',
       width: 220,
       align: 'center',
       render: () => (
         <Space size={8}>
           <Button size="small" type="primary">
-            运行
+            {t('home.action.run')}
           </Button>
-          <Button size="small">重启</Button>
+          <Button size="small">{t('home.action.restart')}</Button>
           <Button size="small" danger>
-            关闭
+            {t('home.action.stop')}
           </Button>
         </Space>
       ),
@@ -163,41 +184,41 @@ export function HomeDashboardPage() {
       <div className="home-bg-mask" />
       <div className="home-shell">
         <div className="quad-grid">
-          <Card className="tech-card quality-card" title="质检概况" bordered={false}>
-            <Typography.Text className="section-sub-title">总统计</Typography.Text>
-            <MetricGrid data={qualityTotalMetrics} />
+          <Card className="tech-card quality-card" title={t('home.qualityOverview')} bordered={false}>
+            <Typography.Text className="section-sub-title">{t('home.total')}</Typography.Text>
+            <MetricGrid data={qualityTotalMetrics} t={t} />
             <Divider className="split-line" />
-            <Typography.Text className="section-sub-title">日统计</Typography.Text>
-            <MetricGrid data={qualityTodayMetrics} />
+            <Typography.Text className="section-sub-title">{t('home.today')}</Typography.Text>
+            <MetricGrid data={qualityTodayMetrics} t={t} />
           </Card>
 
           <div className="quad-spacer" />
 
-          <Card className="tech-card device-card" title="设备概况" bordered={false}>
-            <Typography.Text className="section-sub-title">总统计</Typography.Text>
-            <MetricGrid data={deviceTotalMetrics} />
+          <Card className="tech-card device-card" title={t('home.deviceOverview')} bordered={false}>
+            <Typography.Text className="section-sub-title">{t('home.total')}</Typography.Text>
+            <MetricGrid data={deviceTotalMetrics} t={t} />
             <Divider className="split-line" />
-            <Typography.Text className="section-sub-title">日统计</Typography.Text>
-            <MetricGrid data={deviceTodayMetrics} />
+            <Typography.Text className="section-sub-title">{t('home.today')}</Typography.Text>
+            <MetricGrid data={deviceTodayMetrics} t={t} />
           </Card>
 
-          <Card className="tech-card operation-card" title="运行概况" bordered={false}>
+          <Card className="tech-card operation-card" title={t('home.operationOverview')} bordered={false}>
             <Row gutter={12} className="operation-head">
               <Col span={8}>
                 <Card className="mini-stat-card" bordered={false}>
-                  <Typography.Text>执行中任务</Typography.Text>
+                  <Typography.Text>{t('home.stat.executingTasks')}</Typography.Text>
                   <Typography.Title level={3}>26</Typography.Title>
                 </Card>
               </Col>
               <Col span={8}>
                 <Card className="mini-stat-card" bordered={false}>
-                  <Typography.Text>待处理异常</Typography.Text>
+                  <Typography.Text>{t('home.stat.pendingExceptions')}</Typography.Text>
                   <Typography.Title level={3}>18</Typography.Title>
                 </Card>
               </Col>
               <Col span={8}>
                 <Card className="mini-stat-card" bordered={false}>
-                  <Typography.Text>执行达成率</Typography.Text>
+                  <Typography.Text>{t('home.stat.completionRate')}</Typography.Text>
                   <Typography.Title level={3}>72%</Typography.Title>
                 </Card>
               </Col>
@@ -207,7 +228,7 @@ export function HomeDashboardPage() {
               items={[
                 {
                   key: 'task',
-                  label: '任务异常',
+                  label: t('home.tab.taskException'),
                   children: (
                     <Table
                       rowKey="key"
@@ -223,7 +244,7 @@ export function HomeDashboardPage() {
                 },
                 {
                   key: 'device',
-                  label: '设备异常',
+                  label: t('home.tab.deviceException'),
                   children: (
                     <Table
                       rowKey="key"
@@ -239,7 +260,7 @@ export function HomeDashboardPage() {
                 },
                 {
                   key: 'service',
-                  label: '系统服务异常',
+                  label: t('home.tab.serviceException'),
                   children: (
                     <Table
                       rowKey="key"
@@ -261,4 +282,3 @@ export function HomeDashboardPage() {
     </div>
   );
 }
-

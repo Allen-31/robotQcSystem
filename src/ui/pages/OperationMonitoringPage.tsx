@@ -1,10 +1,13 @@
 ﻿import { Card, Empty, Typography } from 'antd';
+import { useI18n } from '../../i18n/I18nProvider';
 
 export function OperationMonitoringPage() {
+  const { t } = useI18n();
+
   return (
     <Card>
-      <Typography.Title level={4}>运行监控</Typography.Title>
-      <Empty description="运行监控子系统占位页，后续按需求补充" />
+      <Typography.Title level={4}>{t('operationMonitoring.title')}</Typography.Title>
+      <Empty description={t('operationMonitoring.placeholder')} />
     </Card>
   );
 }

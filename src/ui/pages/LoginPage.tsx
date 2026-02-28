@@ -1,6 +1,7 @@
+﻿import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Card, Checkbox, Form, Input, Typography, message } from 'antd';
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '../../i18n/I18nProvider';
 import './LoginPage.css';
 
 interface LoginFormValues {
@@ -11,9 +12,10 @@ interface LoginFormValues {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const onFinish = (values: LoginFormValues) => {
-    message.success(`欢迎，${values.username}`);
+    message.success(t('login.welcome', { username: values.username }));
     navigate('/');
   };
 
@@ -22,9 +24,9 @@ export function LoginPage() {
       <div className="login-mask" />
       <Card className="login-card" bordered={false}>
         <Typography.Title level={3} className="login-title">
-          机器人后台管理系统
+          {t('login.title')}
         </Typography.Title>
-        <Typography.Text className="login-subtitle">请输入账号信息登录系统</Typography.Text>
+        <Typography.Text className="login-subtitle">{t('login.subtitle')}</Typography.Text>
 
         <Form<LoginFormValues>
           layout="vertical"
@@ -33,27 +35,27 @@ export function LoginPage() {
           style={{ marginTop: 20 }}
         >
           <Form.Item
-            label="用户名"
+            label={t('login.username')}
             name="username"
-            rules={[{ required: true, message: '请输入用户名' }]}
+            rules={[{ required: true, message: t('login.usernameRequired') }]}
           >
-            <Input prefix={<UserOutlined />} placeholder="请输入用户名" />
+            <Input prefix={<UserOutlined />} placeholder={t('login.usernamePlaceholder')} />
           </Form.Item>
 
           <Form.Item
-            label="密码"
+            label={t('login.password')}
             name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
+            rules={[{ required: true, message: t('login.passwordRequired') }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="请输入密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('login.passwordPlaceholder')} />
           </Form.Item>
 
           <Form.Item name="remember" valuePropName="checked">
-            <Checkbox>记住我</Checkbox>
+            <Checkbox>{t('login.remember')}</Checkbox>
           </Form.Item>
 
           <Button type="primary" htmlType="submit" block size="large">
-            登录
+            {t('login.submit')}
           </Button>
         </Form>
       </Card>

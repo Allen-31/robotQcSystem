@@ -1,15 +1,15 @@
-﻿import type { MenuNode } from '../shared/types/menu';
+import type { MenuNode } from '../shared/types/menu';
 
 export const menuList: MenuNode[] = [
   {
     id: '1',
-    name: '首页',
+    name: 'menu.home',
     code: 'home',
     icon: 'HomeOutlined',
     children: [
       {
         id: '1-1',
-        name: '登录页',
+        name: 'menu.login',
         code: 'login',
         path: '/home/login',
         permission: 'home:login:view',
@@ -20,41 +20,41 @@ export const menuList: MenuNode[] = [
   },
   {
     id: '2',
-    name: '质检业务',
+    name: 'menu.qualityInspection',
     code: 'qualityInspection',
     icon: 'CheckCircleOutlined',
     children: [
       {
         id: '2-1',
-        name: '工作站管理',
+        name: 'menu.workstationManage',
         code: 'workstationManage',
         path: '/qualityInspection/workstationManage',
         permission: 'qualityInspection:workstationManage:view',
       },
       {
         id: '2-2',
-        name: '工作站配置',
+        name: 'menu.workstationConfig',
         code: 'workstationConfig',
         path: '/qualityInspection/workstationConfig',
         permission: 'qualityInspection:workstationConfig:view',
       },
       {
         id: '2-3',
-        name: '工位管理',
+        name: 'menu.workstationPositionManage',
         code: 'workstationPositionManage',
         path: '/qualityInspection/workstationPositionManage',
         permission: 'qualityInspection:workstationPositionManage:view',
       },
       {
         id: '2-4',
-        name: '工位配置',
+        name: 'menu.workstationPositionConfig',
         code: 'workstationPositionConfig',
         path: '/qualityInspection/workstationPositionConfig',
         permission: 'qualityInspection:workstationPositionConfig:view',
       },
       {
         id: '2-5',
-        name: '终端配置',
+        name: 'menu.terminalConfig',
         code: 'terminalConfig',
         path: '/qualityInspection/terminalConfig',
         permission: 'qualityInspection:terminalConfig:view',
@@ -65,18 +65,18 @@ export const menuList: MenuNode[] = [
   },
   {
     id: '3',
-    name: '部署配置',
+    name: 'menu.deployConfig',
     code: 'deployConfig',
     icon: 'SettingOutlined',
     children: [
       {
         id: '3-1',
-        name: '任务',
+        name: 'menu.task',
         code: 'task',
         children: [
           {
             id: '3-1-1',
-            name: '任务编排',
+            name: 'menu.taskOrchestration',
             code: 'taskOrchestration',
             path: '/deployConfig/task/taskOrchestration',
             permission: 'deployConfig:task:taskOrchestration:view',
@@ -86,47 +86,47 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '3-2',
-        name: '机器人',
+        name: 'menu.robot',
         code: 'robot',
         children: [
           {
             id: '3-2-1',
-            name: '机器人列表',
+            name: 'menu.robotList',
             code: 'robotList',
             path: '/deployConfig/robot/robotList',
             permission: 'deployConfig:robot:robotList:view',
           },
           {
             id: '3-2-2',
-            name: '机器人类型',
+            name: 'menu.robotType',
             code: 'robotType',
             path: '/deployConfig/robot/robotType',
             permission: 'deployConfig:robot:robotType:view',
           },
           {
             id: '3-2-3',
-            name: '机器人分组',
+            name: 'menu.robotGroup',
             code: 'robotGroup',
             path: '/deployConfig/robot/robotGroup',
             permission: 'deployConfig:robot:robotGroup:view',
           },
           {
             id: '3-2-4',
-            name: '机器人零部件',
+            name: 'menu.robotParts',
             code: 'robotParts',
             path: '/deployConfig/robot/robotParts',
             permission: 'deployConfig:robot:robotParts:view',
           },
           {
             id: '3-2-5',
-            name: '充电策略',
+            name: 'menu.chargeStrategy',
             code: 'chargeStrategy',
             path: '/deployConfig/robot/chargeStrategy',
             permission: 'deployConfig:robot:chargeStrategy:view',
           },
           {
             id: '3-2-6',
-            name: '归巢策略',
+            name: 'menu.homingStrategy',
             code: 'homingStrategy',
             path: '/deployConfig/robot/homingStrategy',
             permission: 'deployConfig:robot:homingStrategy:view',
@@ -136,26 +136,26 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '3-3',
-        name: '场景',
+        name: 'menu.scene',
         code: 'scene',
         children: [
           {
             id: '3-3-1',
-            name: '配置模板',
+            name: 'menu.configTemplate',
             code: 'configTemplate',
             path: '/deployConfig/scene/configTemplate',
             permission: 'deployConfig:scene:configTemplate:view',
           },
           {
             id: '3-3-2',
-            name: '建图',
+            name: 'menu.mapBuilding',
             code: 'mapBuilding',
             path: '/deployConfig/scene/mapBuilding',
             permission: 'deployConfig:scene:mapBuilding:view',
           },
           {
             id: '3-3-3',
-            name: '地图管理',
+            name: 'menu.mapManage',
             code: 'mapManage',
             path: '/deployConfig/scene/mapManage',
             permission: 'deployConfig:scene:mapManage:view',
@@ -165,19 +165,19 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '3-4',
-        name: '设定',
+        name: 'menu.setting',
         code: 'setting',
         children: [
           {
             id: '3-4-1',
-            name: '多语言',
+            name: 'menu.multilingual',
             code: 'multilingual',
             path: '/deployConfig/setting/multilingual',
             permission: 'deployConfig:setting:multilingual:view',
           },
           {
             id: '3-4-2',
-            name: '显示配置',
+            name: 'menu.displayConfig',
             code: 'displayConfig',
             path: '/deployConfig/setting/displayConfig',
             permission: 'deployConfig:setting:displayConfig:view',
@@ -187,19 +187,19 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '3-5',
-        name: '用户',
+        name: 'menu.user',
         code: 'user',
         children: [
           {
             id: '3-5-1',
-            name: '用户管理',
+            name: 'menu.userManage',
             code: 'userManage',
             path: '/deployConfig/user/userManage',
             permission: 'deployConfig:user:userManage:view',
           },
           {
             id: '3-5-2',
-            name: '权限管理',
+            name: 'menu.permissionManage',
             code: 'permissionManage',
             path: '/deployConfig/user/permissionManage',
             permission: 'deployConfig:user:permissionManage:view',
@@ -213,18 +213,18 @@ export const menuList: MenuNode[] = [
   },
   {
     id: '5',
-    name: '运营维护',
+    name: 'menu.operationMaintenance',
     code: 'operationMaintenance',
     icon: 'ToolOutlined',
     children: [
       {
         id: '5-1',
-        name: '任务',
+        name: 'menu.task',
         code: 'task',
         children: [
           {
             id: '5-1-1',
-            name: '任务管理',
+            name: 'menu.taskManage',
             code: 'taskManage',
             path: '/operationMaintenance/task/taskManage',
             permission: 'operationMaintenance:task:taskManage:view',
@@ -234,12 +234,12 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '5-2',
-        name: '机器人',
+        name: 'menu.robot',
         code: 'robot',
         children: [
           {
             id: '5-2-1',
-            name: '机器人管理',
+            name: 'menu.robotManage',
             code: 'robotManage',
             path: '/operationMaintenance/robot/robotManage',
             permission: 'operationMaintenance:robot:robotManage:view',
@@ -249,12 +249,12 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '5-3',
-        name: '通知',
+        name: 'menu.notification',
         code: 'notification',
         children: [
           {
             id: '5-3-1',
-            name: '异常通知',
+            name: 'menu.exceptionNotification',
             code: 'exceptionNotification',
             path: '/operationMaintenance/notification/exceptionNotification',
             permission: 'operationMaintenance:notification:exceptionNotification:view',
@@ -264,26 +264,26 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '5-4',
-        name: '日志',
+        name: 'menu.log',
         code: 'log',
         children: [
           {
             id: '5-4-1',
-            name: '登录日志',
+            name: 'menu.loginLog',
             code: 'loginLog',
             path: '/operationMaintenance/log/loginLog',
             permission: 'operationMaintenance:log:loginLog:view',
           },
           {
             id: '5-4-2',
-            name: '操作日志',
+            name: 'menu.operationLog',
             code: 'operationLog',
             path: '/operationMaintenance/log/operationLog',
             permission: 'operationMaintenance:log:operationLog:view',
           },
           {
             id: '5-4-3',
-            name: '运行日志',
+            name: 'menu.runLog',
             code: 'runLog',
             path: '/operationMaintenance/log/runLog',
             permission: 'operationMaintenance:log:runLog:view',
@@ -293,12 +293,12 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '5-5',
-        name: '文件',
+        name: 'menu.file',
         code: 'file',
         children: [
           {
             id: '5-5-1',
-            name: '文件管理',
+            name: 'menu.fileManage',
             code: 'fileManage',
             path: '/operationMaintenance/file/fileManage',
             permission: 'operationMaintenance:file:fileManage:view',
@@ -308,12 +308,12 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '5-6',
-        name: '升级',
+        name: 'menu.upgrade',
         code: 'upgrade',
         children: [
           {
             id: '5-6-1',
-            name: '安装包管理',
+            name: 'menu.packageManage',
             code: 'packageManage',
             path: '/operationMaintenance/upgrade/packageManage',
             permission: 'operationMaintenance:upgrade:packageManage:view',
@@ -323,19 +323,19 @@ export const menuList: MenuNode[] = [
       },
       {
         id: '5-7',
-        name: '服务',
+        name: 'menu.service',
         code: 'service',
         children: [
           {
             id: '5-7-1',
-            name: '发布管理',
+            name: 'menu.publishManage',
             code: 'publishManage',
             path: '/operationMaintenance/service/publishManage',
             permission: 'operationMaintenance:service:publishManage:view',
           },
           {
             id: '5-7-2',
-            name: '服务管理',
+            name: 'menu.serviceManage',
             code: 'serviceManage',
             path: '/operationMaintenance/service/serviceManage',
             permission: 'operationMaintenance:service:serviceManage:view',
@@ -349,27 +349,27 @@ export const menuList: MenuNode[] = [
   },
   {
     id: '6',
-    name: '数据统计',
+    name: 'menu.dataStatistics',
     code: 'dataStatistics',
     icon: 'BarChartOutlined',
     children: [
       {
         id: '6-1',
-        name: '质检统计',
+        name: 'menu.qualityStatistics',
         code: 'qualityStatistics',
         path: '/dataStatistics/qualityStatistics',
         permission: 'dataStatistics:qualityStatistics:view',
       },
       {
         id: '6-2',
-        name: '设备统计',
+        name: 'menu.deviceStatistics',
         code: 'deviceStatistics',
         path: '/dataStatistics/deviceStatistics',
         permission: 'dataStatistics:deviceStatistics:view',
       },
       {
         id: '6-3',
-        name: '异常统计',
+        name: 'menu.exceptionStatistics',
         code: 'exceptionStatistics',
         path: '/dataStatistics/exceptionStatistics',
         permission: 'dataStatistics:exceptionStatistics:view',

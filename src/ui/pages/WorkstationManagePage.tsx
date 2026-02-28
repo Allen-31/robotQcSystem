@@ -1,18 +1,26 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined } from '@ant-design/icons';
+﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { useWorkstationManage } from '../../logic/workstation/useWorkstationManage';
 import type { Workstation, WorkstationStatus } from '../../shared/types/workstation';
 
 const statusColorMap: Record<WorkstationStatus, string> = {
-  运行中: 'success',
-  维护中: 'warning',
-  空闲: 'default',
+  running: 'success',
+  maintenance: 'warning',
+  idle: 'default',
 };
+
+const statusOptions: WorkstationStatus[] = ['running', 'maintenance', 'idle'];
+
+function statusTextKey(status: WorkstationStatus): string {
+  return `workstation.status.${status}`;
+}
 
 export function WorkstationManagePage() {
   const [form] = Form.useForm();
+  const { t } = useI18n();
   const { keyword, setKeyword, filteredList, editingRecord, openEdit, closeEdit, saveEdit, removeWorkstation } =
     useWorkstationManage();
 
@@ -33,19 +41,19 @@ export function WorkstationManagePage() {
   }, [editingRecord, form]);
 
   const columns: ColumnsType<Workstation> = [
-    { title: '作业台 ID', dataIndex: 'id', key: 'id', width: 130 },
-    { title: '名称', dataIndex: 'name', key: 'name', width: 180 },
-    { title: '所属工厂', dataIndex: 'factory', key: 'factory', width: 120 },
+    { title: t('workstation.table.id'), dataIndex: 'id', key: 'id', width: 130 },
+    { title: t('workstation.table.name'), dataIndex: 'name', key: 'name', width: 220 },
+    { title: t('workstation.table.factory'), dataIndex: 'factory', key: 'factory', width: 140 },
     {
-      title: '质检工位数量',
+      title: t('workstation.table.count'),
       dataIndex: 'inspectionStationCount',
       key: 'inspectionStationCount',
-      width: 120,
+      width: 180,
       sorter: (a, b) => a.inspectionStationCount - b.inspectionStationCount,
     },
-    { title: '所属位置', dataIndex: 'location', key: 'location', width: 160 },
+    { title: t('workstation.table.location'), dataIndex: 'location', key: 'location', width: 220 },
     {
-      title: '工位列表',
+      title: t('workstation.table.stationList'),
       dataIndex: 'stationList',
       key: 'stationList',
       render: (stationList: string[]) => (
@@ -57,27 +65,23 @@ export function WorkstationManagePage() {
       ),
     },
     {
-      title: '作业状态',
+      title: t('workstation.table.status'),
       dataIndex: 'status',
       key: 'status',
-      width: 110,
-      render: (status: WorkstationStatus) => <Tag color={statusColorMap[status]}>{status}</Tag>,
-      filters: [
-        { text: '运行中', value: '运行中' },
-        { text: '维护中', value: '维护中' },
-        { text: '空闲', value: '空闲' },
-      ],
+      width: 140,
+      render: (status: WorkstationStatus) => <Tag color={statusColorMap[status]}>{t(statusTextKey(status))}</Tag>,
+      filters: statusOptions.map((status) => ({ text: t(statusTextKey(status)), value: status })),
       onFilter: (value, record) => record.status === value,
     },
     {
-      title: '操作',
+      title: t('workstation.table.action'),
       key: 'actions',
-      width: 150,
+      width: 160,
       fixed: 'right',
       render: (_, record) => (
         <Space size={8}>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
-            编辑
+            {t('workstation.action.edit')}
           </Button>
           <Button
             type="link"
@@ -85,17 +89,17 @@ export function WorkstationManagePage() {
             icon={<DeleteOutlined />}
             onClick={() => {
               Modal.confirm({
-                title: '确认删除该作业台吗？',
+                title: t('workstation.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
-                content: `${record.name}（${record.id}）`,
-                okText: '删除',
+                content: t('workstation.deleteConfirmContent', { name: record.name, id: record.id }),
+                okText: t('workstation.action.delete'),
                 okButtonProps: { danger: true },
-                cancelText: '取消',
+                cancelText: t('workstation.modal.cancel'),
                 onOk: () => removeWorkstation(record.id),
               });
             }}
           >
-            删除
+            {t('workstation.action.delete')}
           </Button>
         </Space>
       ),
@@ -107,12 +111,12 @@ export function WorkstationManagePage() {
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
-            工作站管理
+            {t('workstation.pageTitle')}
           </Typography.Title>
           <Input
             allowClear
             prefix={<SearchOutlined />}
-            placeholder="按作业台 ID、名称、工厂、位置、工位编号搜索"
+            placeholder={t('workstation.searchPlaceholder')}
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />
@@ -125,17 +129,17 @@ export function WorkstationManagePage() {
           columns={columns}
           dataSource={filteredList}
           pagination={{ pageSize: 8, showSizeChanger: false }}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1400 }}
         />
       </Card>
 
       <Modal
-        title="编辑作业台"
+        title={t('workstation.modal.title')}
         open={Boolean(editingRecord)}
         onCancel={closeEdit}
         onOk={() => form.submit()}
-        okText="保存"
-        cancelText="取消"
+        okText={t('workstation.modal.save')}
+        cancelText={t('workstation.modal.cancel')}
         destroyOnClose
       >
         <Form
@@ -152,28 +156,31 @@ export function WorkstationManagePage() {
             })
           }
         >
-          <Form.Item label="作业台 ID" name="id">
+          <Form.Item label={t('workstation.form.id')} name="id">
             <Input disabled />
           </Form.Item>
-          <Form.Item label="名称" name="name" rules={[{ required: true, message: '请输入名称' }]}>
+          <Form.Item label={t('workstation.form.name')} name="name" rules={[{ required: true, message: t('workstation.form.nameRequired') }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="所属工厂" name="factory" rules={[{ required: true, message: '请输入所属工厂' }]}>
+          <Form.Item label={t('workstation.form.factory')} name="factory" rules={[{ required: true, message: t('workstation.form.factoryRequired') }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="所属位置" name="location" rules={[{ required: true, message: '请输入所属位置' }]}>
+          <Form.Item label={t('workstation.form.location')} name="location" rules={[{ required: true, message: t('workstation.form.locationRequired') }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="作业状态" name="status" rules={[{ required: true, message: '请选择作业状态' }]}>
+          <Form.Item label={t('workstation.form.status')} name="status" rules={[{ required: true, message: t('workstation.form.statusRequired') }]}>
             <Select
-              options={[
-                { label: '运行中', value: '运行中' },
-                { label: '维护中', value: '维护中' },
-                { label: '空闲', value: '空闲' },
-              ]}
+              options={statusOptions.map((status) => ({
+                label: t(statusTextKey(status)),
+                value: status,
+              }))}
             />
           </Form.Item>
-          <Form.Item label="工位列表（英文逗号分隔）" name="stationListRaw" rules={[{ required: true, message: '请输入工位列表' }]}>
+          <Form.Item
+            label={t('workstation.form.stationListRaw')}
+            name="stationListRaw"
+            rules={[{ required: true, message: t('workstation.form.stationListRequired') }]}
+          >
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
