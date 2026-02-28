@@ -51,13 +51,6 @@ export const menuList: MenuNode[] = [
             permission: 'qualityInspection:workOrderManage:view',
           },
           {
-            id: '2-1-4',
-            name: 'menu.wireHarnessType',
-            code: 'wireHarnessType',
-            path: '/qualityInspection/wireHarnessType',
-            permission: 'qualityInspection:wireHarnessType:view',
-          },
-          {
             id: '2-1-5',
             name: 'menu.reinspectionRecord',
             code: 'reinspectionRecord',
@@ -88,6 +81,13 @@ export const menuList: MenuNode[] = [
           },
           {
             id: '2-2-3',
+            name: 'menu.wireHarnessType',
+            code: 'wireHarnessType',
+            path: '/qualityInspection/wireHarnessType',
+            permission: 'qualityInspection:wireHarnessType:view',
+          },
+          {
+            id: '2-2-4',
             name: 'menu.terminalConfig',
             code: 'terminalConfig',
             path: '/qualityInspection/terminalConfig',
