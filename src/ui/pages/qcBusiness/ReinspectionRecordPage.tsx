@@ -2,8 +2,8 @@ import { DownloadOutlined, FileImageOutlined, SearchOutlined, VideoCameraOutline
 import { Button, Card, Col, Image, Input, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { useI18n } from '../../i18n/I18nProvider';
-import { reinspectionRecordList, type ReinspectionRecordItem, type ReinspectionResult, type ReinspectionStatus } from '../../data/reinspectionRecordList';
+import { useI18n } from '../../../i18n/I18nProvider';
+import { reinspectionRecordList, type ReinspectionRecordItem, type ReinspectionResult, type ReinspectionStatus } from '../../../data/qcBusiness/reinspectionRecordList';
 
 const statusColorMap: Record<ReinspectionStatus, string> = {
   pending: 'default',

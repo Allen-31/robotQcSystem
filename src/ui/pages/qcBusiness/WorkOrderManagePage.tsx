@@ -21,9 +21,9 @@ import {
 import type { UploadProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useState } from 'react';
-import { useI18n } from '../../i18n/I18nProvider';
-import { useWorkOrderManage } from '../../logic/workstation/useWorkOrderManage';
-import type { QualityResult, WorkOrderItem, WorkOrderStatus } from '../../data/workOrderList';
+import { useI18n } from '../../../i18n/I18nProvider';
+import { useWorkOrderManage } from '../../../logic/qcBusiness/useWorkOrderManage';
+import type { QualityResult, WorkOrderItem, WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
 
 const statusColorMap: Record<WorkOrderStatus, string> = {
   pending: 'default',

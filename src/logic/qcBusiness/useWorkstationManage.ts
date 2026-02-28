@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { workstationList } from '../../data/workstationList';
+import { workstationList } from '../../data/qcBusiness/workstationList';
 import type { Workstation, WorkstationStatus } from '../../shared/types/workstation';
 
 export interface StationRecord {

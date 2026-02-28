@@ -2,9 +2,9 @@ import { EyeOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-desig
 import { Button, Card, Col, Descriptions, Modal, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { useI18n } from '../../i18n/I18nProvider';
-import type { StationRecord } from '../../logic/workstation/useWorkstationManage';
-import { useWorkstationManage } from '../../logic/workstation/useWorkstationManage';
+import { useI18n } from '../../../i18n/I18nProvider';
+import type { StationRecord } from '../../../logic/qcBusiness/useWorkstationManage';
+import { useWorkstationManage } from '../../../logic/qcBusiness/useWorkstationManage';
 
 export function WorkstationManagePage() {
   const { t } = useI18n();

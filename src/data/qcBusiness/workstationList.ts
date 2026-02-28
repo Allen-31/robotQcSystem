@@ -1,4 +1,4 @@
-import type { Workstation } from '../shared/types/workstation';
+import type { Workstation } from '../../shared/types/workstation';
 
 export const workstationList: Workstation[] = [
   {

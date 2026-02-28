@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { workstationPositionList, type WorkOrderInfo, type WorkstationPositionItem } from '../../data/workstationPositionList';
+import { workstationPositionList, type WorkOrderInfo, type WorkstationPositionItem } from '../../data/qcBusiness/workstationPositionList';
 
 function parseTime(value: string): number {
   if (value === '-') {

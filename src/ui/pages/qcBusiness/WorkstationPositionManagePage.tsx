@@ -2,9 +2,9 @@ import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined, VideoCa
 import { Button, Card, Col, Descriptions, Image, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import type { RobotStatus, WorkOrderInfo, WorkOrderStatus } from '../../data/workstationPositionList';
-import { useI18n } from '../../i18n/I18nProvider';
-import { useWorkstationPositionManage } from '../../logic/workstation/useWorkstationPositionManage';
+import type { RobotStatus, WorkOrderInfo, WorkOrderStatus } from '../../../data/qcBusiness/workstationPositionList';
+import { useI18n } from '../../../i18n/I18nProvider';
+import { useWorkstationPositionManage } from '../../../logic/qcBusiness/useWorkstationPositionManage';
 
 const robotStatusColorMap: Record<RobotStatus, string> = {
   idle: 'default',

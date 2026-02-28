@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { workOrderList, type QualityResult, type WorkOrderItem, type WorkOrderStatus } from '../../data/workOrderList';
+import { workOrderList, type QualityResult, type WorkOrderItem, type WorkOrderStatus } from '../../data/qcBusiness/workOrderList';
 
 export interface WorkOrderEditPayload {
   id: string;
