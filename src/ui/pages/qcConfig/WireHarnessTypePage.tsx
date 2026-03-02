@@ -6,7 +6,7 @@ import {
   SearchOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Upload, message } from 'antd';
+import { Button, Card, Col, Form, Input, Modal, Row, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MouseEvent } from 'react';
 import { useEffect, useState } from 'react';
@@ -234,25 +234,31 @@ export function WireHarnessTypePage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('qcConfig.wireHarness.pageTitle')}
           </Typography.Title>
-          <Input
-            allowClear
-            prefix={<SearchOutlined />}
-            placeholder={t('qcConfig.wireHarness.searchPlaceholder')}
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-          />
+          <Row gutter={[12, 12]} align="middle">
+            <Col xs={24} lg={10}>
+              <Input
+                allowClear
+                prefix={<SearchOutlined />}
+                placeholder={t('qcConfig.wireHarness.searchPlaceholder')}
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+              />
+            </Col>
+            <Col xs={24} lg={14}>
+              <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                  {t('qcConfig.wireHarness.createButton')}
+                </Button>
+                <Button onClick={() => messageApi.success(t('qcConfig.common.imported'))}>{t('qcConfig.common.import')}</Button>
+                <Button onClick={() => messageApi.success(t('qcConfig.common.exported'))}>{t('qcConfig.common.export')}</Button>
+              </Space>
+            </Col>
+          </Row>
         </Space>
       </Card>
 
       <Card>
         <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1400 }} />
-        <Space style={{ marginTop: 16 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t('qcConfig.wireHarness.createButton')}
-          </Button>
-          <Button onClick={() => messageApi.success(t('qcConfig.common.imported'))}>{t('qcConfig.common.import')}</Button>
-          <Button onClick={() => messageApi.success(t('qcConfig.common.exported'))}>{t('qcConfig.common.export')}</Button>
-        </Space>
       </Card>
 
       <Modal

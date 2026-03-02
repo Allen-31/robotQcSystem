@@ -1,5 +1,5 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import { workstationConfigList } from '../../../data/qcConfig/workstationConfigList';
@@ -107,25 +107,31 @@ export function StationConfigPage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('qcConfig.station.pageTitle')}
           </Typography.Title>
-          <Input
-            allowClear
-            prefix={<SearchOutlined />}
-            placeholder={t('qcConfig.station.searchPlaceholder')}
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-          />
+          <Row gutter={[12, 12]} align="middle">
+            <Col xs={24} lg={10}>
+              <Input
+                allowClear
+                prefix={<SearchOutlined />}
+                placeholder={t('qcConfig.station.searchPlaceholder')}
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+              />
+            </Col>
+            <Col xs={24} lg={14}>
+              <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                  {t('qcConfig.common.create')}
+                </Button>
+                <Button onClick={() => messageApi.success(t('qcConfig.common.imported'))}>{t('qcConfig.common.import')}</Button>
+                <Button onClick={() => messageApi.success(t('qcConfig.common.exported'))}>{t('qcConfig.common.export')}</Button>
+              </Space>
+            </Col>
+          </Row>
         </Space>
       </Card>
 
       <Card>
         <Table rowKey="stationId" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1200 }} />
-        <Space style={{ marginTop: 16 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t('qcConfig.common.create')}
-          </Button>
-          <Button onClick={() => messageApi.success(t('qcConfig.common.imported'))}>{t('qcConfig.common.import')}</Button>
-          <Button onClick={() => messageApi.success(t('qcConfig.common.exported'))}>{t('qcConfig.common.export')}</Button>
-        </Space>
       </Card>
 
       <Modal
