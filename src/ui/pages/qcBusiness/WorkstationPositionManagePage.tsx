@@ -303,6 +303,52 @@ export function WorkstationPositionManagePage() {
     }));
   }, [selectedPosition, currentOrderInspectionPoints]);
 
+  const historyOrderHarness2DImage = useMemo(() => {
+    const harnessType = viewingHistoryWorkOrder?.fixtureLineType;
+    if (!harnessType) {
+      return null;
+    }
+    const wireHarnessId = resolveWireHarnessId(harnessType);
+    if (!wireHarnessId) {
+      return null;
+    }
+    const annotations = loadQcWireHarnessAnnotations();
+    return annotations.imageByHarnessId[wireHarnessId] ?? null;
+  }, [viewingHistoryWorkOrder]);
+
+  const historyOrderOverlayPoints = useMemo(() => {
+    const harnessType = viewingHistoryWorkOrder?.fixtureLineType;
+    if (!harnessType) {
+      return inspectionPoints.map((point) => ({
+        x: point.x,
+        y: point.y,
+        label: point.pointCode,
+      }));
+    }
+    const wireHarnessId = resolveWireHarnessId(harnessType);
+    if (!wireHarnessId) {
+      return inspectionPoints.map((point) => ({
+        x: point.x,
+        y: point.y,
+        label: point.pointCode,
+      }));
+    }
+    const annotations = loadQcWireHarnessAnnotations();
+    const annotationPoints = annotations.pointsByHarnessId[wireHarnessId] ?? [];
+    if (annotationPoints.length === 0) {
+      return inspectionPoints.map((point) => ({
+        x: point.x,
+        y: point.y,
+        label: point.pointCode,
+      }));
+    }
+    return annotationPoints.map((point, index) => ({
+      x: point.x,
+      y: point.y,
+      label: point.description?.trim() || `P${index + 1}`,
+    }));
+  }, [viewingHistoryWorkOrder, inspectionPoints]);
+
   const pointColumns: ColumnsType<InspectionPointItem> = [
     { title: t('workOrder.detail.pointCode'), dataIndex: 'pointCode', key: 'pointCode', width: 100 },
     {
@@ -604,102 +650,67 @@ export function WorkstationPositionManagePage() {
             </Descriptions>
 
             <Card size="small" title={t('workOrder.detail.harness2dTitle')}>
-              <div
-                style={{
-                  position: 'relative',
-                  height: 360,
-                  borderRadius: 8,
-                  backgroundColor: '#f8fafc',
-                  backgroundImage:
-                    'linear-gradient(to right, rgba(148,163,184,0.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.18) 1px, transparent 1px)',
-                  backgroundSize: '24px 24px',
-                  border: '1px solid #e5e7eb',
-                  overflow: 'hidden',
-                }}
-              >
+              {historyOrderHarness2DImage ? (
                 <div
                   style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    background: '#22c55e',
-                    color: '#052e16',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: '6px 10px',
-                    borderBottomRightRadius: 8,
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: 620,
+                    margin: '0 auto',
+                    overflow: 'hidden',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    background: '#fff',
                   }}
                 >
-                  KT1
-                </div>
-                <svg viewBox="0 0 1000 360" width="100%" height="100%" preserveAspectRatio="none">
-                  <g stroke="#0f172a" strokeWidth="20" fill="none" strokeLinecap="round">
-                    <line x1="30" y1="182" x2="320" y2="182" />
-                    <line x1="320" y1="182" x2="760" y2="182" />
-                    <line x1="320" y1="182" x2="560" y2="60" />
-                    <line x1="320" y1="182" x2="820" y2="312" />
-                    <line x1="590" y1="182" x2="590" y2="78" />
-                  </g>
-                  <g stroke="#2563eb" strokeWidth="8" fill="none" strokeLinecap="round">
-                    <line x1="30" y1="182" x2="320" y2="182" />
-                    <line x1="320" y1="182" x2="760" y2="182" />
-                    <line x1="320" y1="182" x2="560" y2="60" />
-                    <line x1="320" y1="182" x2="820" y2="312" />
-                    <line x1="590" y1="182" x2="590" y2="78" />
-                  </g>
-                </svg>
-                {inspectionPoints.map((point) => (
-                  <div key={point.id}>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewPoint(point)}
-                      style={{
-                        position: 'absolute',
-                        left: `${point.x}%`,
-                        top: `${point.y}%`,
-                        transform: 'translate(-50%, -50%)',
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        padding: 0,
-                      }}
-                    >
-                      <span
+                  <img src={historyOrderHarness2DImage} alt="history-workorder-harness-2d" style={{ width: '100%', display: 'block' }} />
+                  {historyOrderOverlayPoints.map((point, index) => (
+                    <div key={`history-order-overlay-${point.x}-${point.y}-${index}`}>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewPoint(inspectionPoints[index] ?? null)}
+                        title={point.label}
                         style={{
-                          display: 'block',
-                          width: 14,
-                          height: 14,
+                          position: 'absolute',
+                          left: `${point.x}%`,
+                          top: `${point.y}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: 22,
+                          height: 22,
                           borderRadius: '50%',
-                          background: point.status === 'ok' ? '#16a34a' : '#dc2626',
-                          border: '2px solid #f8fafc',
-                          boxShadow: '0 0 0 1px rgba(15,23,42,0.15)',
+                          border: '2px solid #ffffff',
+                          background: inspectionPoints[index]?.status === 'ng' ? '#ff4d4f' : '#1677ff',
+                          boxShadow: '0 1px 6px rgba(0, 0, 0, 0.35)',
+                          cursor: inspectionPoints[index] ? 'pointer' : 'default',
+                          padding: 0,
+                          color: '#fff',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          lineHeight: '18px',
+                          textAlign: 'center',
                         }}
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewPoint(point)}
-                      style={{
-                        position: 'absolute',
-                        left: `${point.labelX}%`,
-                        top: `${point.labelY}%`,
-                        transform: 'translate(-50%, -50%)',
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        color: point.status === 'ng' ? '#dc2626' : '#111827',
-                        fontSize: 28,
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        whiteSpace: 'nowrap',
-                        padding: 0,
-                      }}
-                    >
-                      {point.pointCode}
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      >
+                        {index + 1}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    height: 220,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6b7280',
+                    background: '#f8fafc',
+                  }}
+                >
+                  2D 图片未配置
+                </div>
+              )}
             </Card>
 
             <Card size="small" title={t('workOrder.detail.pointListTitle')}>
