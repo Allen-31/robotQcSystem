@@ -204,29 +204,7 @@ export const menuList: MenuNode[] = [
         id: '3-4',
         name: 'menu.setting',
         code: 'setting',
-        children: [
-          {
-            id: '3-4-1',
-            name: 'menu.multilingual',
-            code: 'multilingual',
-            path: '/deployConfig/setting/multilingual',
-            permission: 'deployConfig:setting:multilingual:view',
-          },
-          {
-            id: '3-4-2',
-            name: 'menu.licenseManage',
-            code: 'licenseManage',
-            path: '/deployConfig/setting/licenseManage',
-            permission: 'deployConfig:setting:licenseManage:view',
-          },
-          {
-            id: '3-4-3',
-            name: 'menu.displayConfig',
-            code: 'displayConfig',
-            path: '/deployConfig/setting/displayConfig',
-            permission: 'deployConfig:setting:displayConfig:view',
-          },
-        ],
+        path: '/deployConfig/setting',
         permission: 'deployConfig:setting:view',
       },
       {
