@@ -41,7 +41,10 @@ export function WorkstationConfigPage() {
       createRecord(values);
       messageApi.success(t('qcConfig.common.created'));
     } else if (editingRecord) {
-      updateRecord(values);
+      updateRecord({
+        ...editingRecord,
+        ...values,
+      });
       messageApi.success(t('qcConfig.common.updated'));
     }
     closeModal();
@@ -50,7 +53,6 @@ export function WorkstationConfigPage() {
   const columns: ColumnsType<WorkstationConfig> = [
     { title: t('qcConfig.workstation.table.id'), dataIndex: 'id', key: 'id', width: 140 },
     { title: t('qcConfig.workstation.table.name'), dataIndex: 'name', key: 'name', width: 220 },
-    { title: t('qcConfig.workstation.table.wireHarnessType'), dataIndex: 'wireHarnessType', key: 'wireHarnessType', width: 180 },
     { title: t('qcConfig.workstation.table.robotGroup'), dataIndex: 'robotGroup', key: 'robotGroup', width: 160 },
     {
       title: t('qcConfig.workstation.table.enabled'),
@@ -146,13 +148,15 @@ export function WorkstationConfigPage() {
           <Form.Item label={t('qcConfig.workstation.form.name')} name="name" rules={[{ required: true, message: t('qcConfig.workstation.form.nameRequired') }]}>
             <Input />
           </Form.Item>
-          <Form.Item
-            label={t('qcConfig.workstation.form.wireHarnessType')}
-            name="wireHarnessType"
-            rules={[{ required: true, message: t('qcConfig.workstation.form.wireHarnessTypeRequired') }]}
-          >
-            <Select options={wireHarnessOptions.map((item) => ({ label: item, value: item }))} />
-          </Form.Item>
+          {createOpen ? (
+            <Form.Item
+              label={t('qcConfig.workstation.form.wireHarnessType')}
+              name="wireHarnessType"
+              rules={[{ required: true, message: t('qcConfig.workstation.form.wireHarnessTypeRequired') }]}
+            >
+              <Select options={wireHarnessOptions.map((item) => ({ label: item, value: item }))} />
+            </Form.Item>
+          ) : null}
           <Form.Item
             label={t('qcConfig.workstation.form.robotGroup')}
             name="robotGroup"
