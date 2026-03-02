@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { getHarnessTypeOptions, getStationCodeOptions, normalizeHarnessType, normalizeStationCode } from '../../data/qcBusiness/qcConfigReference';
 import { workOrderList, type QualityResult, type WorkOrderItem, type WorkOrderStatus } from '../../data/qcBusiness/workOrderList';
 
 export interface WorkOrderEditPayload {
@@ -37,7 +38,15 @@ function parseTime(value: string): number {
 }
 
 export function useWorkOrderManage() {
-  const [workOrders, setWorkOrders] = useState<WorkOrderItem[]>(workOrderList);
+  const harnessTypeOptions = useMemo(() => getHarnessTypeOptions(), []);
+  const stationCodeOptions = useMemo(() => getStationCodeOptions(), []);
+  const [workOrders, setWorkOrders] = useState<WorkOrderItem[]>(() =>
+    workOrderList.map((item, index) => ({
+      ...item,
+      harnessType: normalizeHarnessType(item.harnessType, index),
+      stationCode: normalizeStationCode(item.stationCode, index),
+    })),
+  );
   const [viewingWorkOrder, setViewingWorkOrder] = useState<WorkOrderItem | null>(null);
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrderItem | null>(null);
   const [keyword, setKeyword] = useState('');
@@ -61,8 +70,13 @@ export function useWorkOrderManage() {
       for (const item of prev) {
         map.set(item.id, item);
       }
-      for (const item of items) {
-        map.set(item.id, item);
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index];
+        map.set(item.id, {
+          ...item,
+          harnessType: normalizeHarnessType(item.harnessType, index),
+          stationCode: normalizeStationCode(item.stationCode, index),
+        });
       }
       return Array.from(map.values());
     });
@@ -128,8 +142,8 @@ export function useWorkOrderManage() {
           ? {
               ...item,
               harnessCode: payload.harnessCode,
-              harnessType: payload.harnessType,
-              stationCode: payload.stationCode,
+              harnessType: normalizeHarnessType(payload.harnessType),
+              stationCode: normalizeStationCode(payload.stationCode),
               status: payload.status,
               qualityResult: payload.qualityResult,
               taskIds,
@@ -154,8 +168,8 @@ export function useWorkOrderManage() {
       id: `WO-${Date.now()}`,
       workOrderNo: payload.workOrderNo,
       harnessCode: payload.harnessCode,
-      harnessType: payload.harnessType,
-      stationCode: payload.stationCode,
+      harnessType: normalizeHarnessType(payload.harnessType),
+      stationCode: normalizeStationCode(payload.stationCode),
       status: payload.status,
       qualityResult: payload.qualityResult,
       taskIds,
@@ -171,6 +185,8 @@ export function useWorkOrderManage() {
   return {
     workOrders: filteredAndSortedWorkOrders,
     rawWorkOrders: workOrders,
+    harnessTypeOptions,
+    stationCodeOptions,
     keyword,
     setKeyword,
     viewingWorkOrder,

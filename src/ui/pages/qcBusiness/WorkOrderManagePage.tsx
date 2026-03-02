@@ -21,8 +21,10 @@ import {
 import type { UploadProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useState } from 'react';
+import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useWorkOrderManage } from '../../../logic/qcBusiness/useWorkOrderManage';
+import { loadQcWireHarnessAnnotations, type QcPoint } from '../../../shared/qcWireHarnessAnnotation';
 import type { QualityResult, WorkOrderItem, WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
 
 const statusColorMap: Record<WorkOrderStatus, string> = {
@@ -239,6 +241,72 @@ function buildInspectionPoints(workOrder: WorkOrderItem): InspectionPointItem[] 
   });
 }
 
+function resolveWireHarnessId(harnessType: string): string | null {
+  const normalized = harnessType.trim();
+  const explicitId = normalized.match(/WH-\d{3}/i)?.[0]?.toUpperCase();
+  if (explicitId && wireHarnessTypeList.some((item) => item.id.toUpperCase() === explicitId)) {
+    return explicitId;
+  }
+  const suffix = normalized.match(/[-－]([ABC])$/i)?.[1]?.toUpperCase();
+  if (suffix === 'A') {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
+  }
+  if (suffix === 'B') {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
+  }
+  if (suffix === 'C') {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
+  }
+  const exact = wireHarnessTypeList.find((item) => item.id === harnessType || item.name === harnessType);
+  if (exact) {
+    return exact.id;
+  }
+  if (harnessType.includes('主驱') || harnessType.includes('-A')) {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
+  }
+  if (harnessType.includes('控制') || harnessType.includes('-B')) {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
+  }
+  if (harnessType.includes('高压') || harnessType.includes('-C')) {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
+  }
+  const levelMatch = /L(\d+)/i.exec(harnessType);
+  if (levelMatch) {
+    const level = Number(levelMatch[1]);
+    if (level > 0 && level <= wireHarnessTypeList.length) {
+      return wireHarnessTypeList[level - 1]?.id ?? null;
+    }
+  }
+  return null;
+}
+
+function buildInspectionPointsFromAnnotation(workOrder: WorkOrderItem, points: QcPoint[]): InspectionPointItem[] {
+  return points.map((point, index) => {
+    const status: InspectionPointStatus = (workOrder.qualityResult === 'ng' && index % 3 === 1) || index === 1 ? 'ng' : 'ok';
+    const mediaType: InspectionPointMediaType = index % 2 === 0 ? 'image' : 'video';
+    const duration = Number((Math.max(workOrder.detectionDuration, 1) / Math.max(points.length, 1) + index * 0.2).toFixed(1));
+    return {
+      id: `${workOrder.id}-ANNO-${index + 1}`,
+      pointCode: point.description?.trim() || `P${index + 1}`,
+      status,
+      robot: `RB-${workOrder.stationCode}-${(index % 2) + 1}`,
+      result: status === 'ok' ? 'OK' : 'NG',
+      mediaType,
+      mediaUrl:
+        mediaType === 'image'
+          ? buildMockPointImage(point.description?.trim() || `P${index + 1}`, status)
+          : `https://example.com/workorder/${workOrder.workOrderNo}/P${index + 1}.mp4`,
+      duration,
+      startedAt: workOrder.startedAt === '-' ? '-' : workOrder.startedAt,
+      endedAt: workOrder.endedAt === '-' ? '-' : workOrder.endedAt,
+      x: point.x,
+      y: point.y,
+      labelX: Math.min(95, point.x + 2.2),
+      labelY: Math.min(95, point.y + 3.2),
+    };
+  });
+}
+
 export function WorkOrderManagePage() {
   const { t } = useI18n();
   const [form] = Form.useForm();
@@ -250,6 +318,8 @@ export function WorkOrderManagePage() {
   const {
     workOrders,
     rawWorkOrders,
+    harnessTypeOptions,
+    stationCodeOptions,
     keyword,
     setKeyword,
     viewingWorkOrder,
@@ -329,7 +399,42 @@ export function WorkOrderManagePage() {
     if (!viewingWorkOrder) {
       return [];
     }
+    const wireHarnessId = resolveWireHarnessId(viewingWorkOrder.harnessType);
+    const annotations = loadQcWireHarnessAnnotations();
+    const annotationPoints = wireHarnessId ? annotations.pointsByHarnessId[wireHarnessId] ?? [] : [];
+    if (annotationPoints.length > 0) {
+      return buildInspectionPointsFromAnnotation(viewingWorkOrder, annotationPoints);
+    }
     return buildInspectionPoints(viewingWorkOrder);
+  }, [viewingWorkOrder]);
+
+  const annotationPoints = useMemo(() => {
+    if (!viewingWorkOrder) {
+      return [];
+    }
+    const wireHarnessId = resolveWireHarnessId(viewingWorkOrder.harnessType);
+    const annotations = loadQcWireHarnessAnnotations();
+    return wireHarnessId ? annotations.pointsByHarnessId[wireHarnessId] ?? [] : [];
+  }, [viewingWorkOrder]);
+
+  const overlayPoints = useMemo(
+    () =>
+      annotationPoints.length > 0
+        ? annotationPoints.map((point) => ({ x: point.x, y: point.y, description: point.description }))
+        : inspectionPoints.map((point) => ({ x: point.x, y: point.y, description: point.pointCode })),
+    [annotationPoints, inspectionPoints],
+  );
+
+  const harness2DImage = useMemo(() => {
+    if (!viewingWorkOrder) {
+      return null;
+    }
+    const wireHarnessId = resolveWireHarnessId(viewingWorkOrder.harnessType);
+    if (!wireHarnessId) {
+      return null;
+    }
+    const annotations = loadQcWireHarnessAnnotations();
+    return annotations.imageByHarnessId[wireHarnessId] ?? null;
   }, [viewingWorkOrder]);
 
   const pointColumns: ColumnsType<InspectionPointItem> = [
@@ -504,99 +609,86 @@ export function WorkOrderManagePage() {
             <Card size="small" title={t('workOrder.detail.harness2dTitle')}>
               <div
                 style={{
-                  position: 'relative',
-                  height: 360,
                   borderRadius: 8,
                   backgroundColor: '#f8fafc',
-                  backgroundImage:
-                    'linear-gradient(to right, rgba(148,163,184,0.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.18) 1px, transparent 1px)',
-                  backgroundSize: '24px 24px',
                   border: '1px solid #e5e7eb',
-                  overflow: 'hidden',
+                  minHeight: 360,
                 }}
               >
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    background: '#22c55e',
-                    color: '#052e16',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: '6px 10px',
-                    borderBottomRightRadius: 8,
-                  }}
-                >
-                  KT1
-                </div>
-                <svg viewBox="0 0 1000 360" width="100%" height="100%" preserveAspectRatio="none">
-                  <g stroke="#0f172a" strokeWidth="20" fill="none" strokeLinecap="round">
-                    <line x1="30" y1="182" x2="320" y2="182" />
-                    <line x1="320" y1="182" x2="760" y2="182" />
-                    <line x1="320" y1="182" x2="560" y2="60" />
-                    <line x1="320" y1="182" x2="820" y2="312" />
-                    <line x1="590" y1="182" x2="590" y2="78" />
-                  </g>
-                  <g stroke="#2563eb" strokeWidth="8" fill="none" strokeLinecap="round">
-                    <line x1="30" y1="182" x2="320" y2="182" />
-                    <line x1="320" y1="182" x2="760" y2="182" />
-                    <line x1="320" y1="182" x2="560" y2="60" />
-                    <line x1="320" y1="182" x2="820" y2="312" />
-                    <line x1="590" y1="182" x2="590" y2="78" />
-                  </g>
-                </svg>
-                {inspectionPoints.map((point) => (
-                  <div key={point.id}>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewPoint(point)}
-                      style={{
-                        position: 'absolute',
-                        left: `${point.x}%`,
-                        top: `${point.y}%`,
-                        transform: 'translate(-50%, -50%)',
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        padding: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'block',
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          background: point.status === 'ok' ? '#16a34a' : '#dc2626',
-                          border: '2px solid #f8fafc',
-                          boxShadow: '0 0 0 1px rgba(15,23,42,0.15)',
-                        }}
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewPoint(point)}
-                      style={{
-                        position: 'absolute',
-                        left: `${point.labelX}%`,
-                        top: `${point.labelY}%`,
-                        transform: 'translate(-50%, -50%)',
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        color: point.status === 'ng' ? '#dc2626' : '#111827',
-                        fontSize: 28,
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        whiteSpace: 'nowrap',
-                        padding: 0,
-                      }}
-                    >
-                      {point.pointCode}
-                    </button>
+                {harness2DImage ? (
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      maxWidth: 620,
+                      margin: '0 auto',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img src={harness2DImage} alt="wire-harness-2d" style={{ width: '100%', display: 'block', background: '#fff' }} />
+                    {overlayPoints.map((point, index) => (
+                      <div key={inspectionPoints[index]?.id ?? `annotation-${point.x}-${point.y}-${index}`}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPoint(inspectionPoints[index] ?? null)}
+                          style={{
+                            position: 'absolute',
+                            left: `${point.x}%`,
+                            top: `${point.y}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            border: '2px solid #ffffff',
+                            background: inspectionPoints[index]?.status === 'ng' ? '#ff4d4f' : '#1677ff',
+                            color: '#ffffff',
+                            fontSize: 12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 600,
+                            boxShadow: '0 1px 6px rgba(0, 0, 0, 0.35)',
+                            cursor: 'pointer',
+                            padding: 0,
+                          }}
+                        >
+                          {index + 1}
+                        </button>
+                        {point.description ? (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: `${point.x}%`,
+                              top: `${point.y}%`,
+                              transform: 'translate(14px, -50%)',
+                              background: 'rgba(0, 0, 0, 0.7)',
+                              color: '#fff',
+                              borderRadius: 4,
+                              padding: '2px 6px',
+                              fontSize: 12,
+                              maxWidth: 180,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {point.description}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: 360,
+                      backgroundImage:
+                        'linear-gradient(to right, rgba(148,163,184,0.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.18) 1px, transparent 1px)',
+                      backgroundSize: '24px 24px',
+                    }}
+                  />
+                )}
               </div>
             </Card>
 
@@ -682,10 +774,10 @@ export function WorkOrderManagePage() {
             <Input />
           </Form.Item>
           <Form.Item label={t('workOrder.table.harnessType')} name="harnessType" rules={[{ required: true }]}>
-            <Input />
+            <Select options={harnessTypeOptions.map((item) => ({ label: item, value: item }))} />
           </Form.Item>
           <Form.Item label={t('workOrder.table.stationCode')} name="stationCode" rules={[{ required: true }]}>
-            <Input />
+            <Select options={stationCodeOptions.map((item) => ({ label: item, value: item }))} />
           </Form.Item>
           <Form.Item label={t('workOrder.table.status')} name="status" rules={[{ required: true }]}>
             <Select options={statusOptions.map((item) => ({ label: t(`workOrder.status.${item}`), value: item }))} />
@@ -752,10 +844,10 @@ export function WorkOrderManagePage() {
             <Input />
           </Form.Item>
           <Form.Item label={t('workOrder.table.harnessType')} name="harnessType" rules={[{ required: true }]}>
-            <Input />
+            <Select options={harnessTypeOptions.map((item) => ({ label: item, value: item }))} />
           </Form.Item>
           <Form.Item label={t('workOrder.table.stationCode')} name="stationCode" rules={[{ required: true }]}>
-            <Input />
+            <Select options={stationCodeOptions.map((item) => ({ label: item, value: item }))} />
           </Form.Item>
           <Form.Item label={t('workOrder.table.status')} name="status" rules={[{ required: true }]}>
             <Select options={statusOptions.map((item) => ({ label: t(`workOrder.status.${item}`), value: item }))} />

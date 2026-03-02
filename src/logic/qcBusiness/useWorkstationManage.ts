@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { workstationList } from '../../data/qcBusiness/workstationList';
+import { buildWorkstationListFromConfig } from '../../data/qcBusiness/qcConfigReference';
 import type { Workstation, WorkstationStatus } from '../../shared/types/workstation';
 
 export interface StationRecord {
@@ -49,7 +49,7 @@ function toEnabledStatus(status: WorkstationStatus): boolean {
 }
 
 export function useWorkstationManage() {
-  const workstations = workstationList;
+  const workstations = useMemo<Workstation[]>(() => buildWorkstationListFromConfig(), []);
   const [selectedWorkstationId, setSelectedWorkstationId] = useState<string>(workstations[0]?.id ?? '');
   const [stationMap, setStationMap] = useState<Record<string, StationRecord[]>>(() => buildStationMap(workstations));
 

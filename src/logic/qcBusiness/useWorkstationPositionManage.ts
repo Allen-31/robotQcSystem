@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { getStationCodeOptions, normalizeHarnessType, normalizeStationCode } from '../../data/qcBusiness/qcConfigReference';
 import { workstationPositionList, type WorkOrderInfo, type WorkstationPositionItem } from '../../data/qcBusiness/workstationPositionList';
 
 function parseTime(value: string): number {
@@ -9,8 +10,51 @@ function parseTime(value: string): number {
 }
 
 export function useWorkstationPositionManage() {
-  const [positionList, setPositionList] = useState<WorkstationPositionItem[]>(workstationPositionList);
-  const [selectedPositionId, setSelectedPositionId] = useState<string>(workstationPositionList[0]?.id ?? '');
+  const [positionList, setPositionList] = useState<WorkstationPositionItem[]>(() => {
+    const stationOptions = getStationCodeOptions();
+    const normalized = workstationPositionList.map((item, index) => {
+      const stationCode = normalizeStationCode(item.stationCode, index);
+      return {
+        ...item,
+        stationCode,
+        name: `Station ${stationCode}`,
+        currentWorkOrder: {
+          ...item.currentWorkOrder,
+          fixtureLineType: normalizeHarnessType(item.currentWorkOrder.fixtureLineType, index),
+          stationCode,
+        },
+        historyWorkOrders: item.historyWorkOrders.map((workOrder, historyIndex) => ({
+          ...workOrder,
+          fixtureLineType: normalizeHarnessType(workOrder.fixtureLineType, index + historyIndex),
+          stationCode,
+        })),
+      };
+    });
+
+    const existingStationCodes = new Set(normalized.map((item) => item.stationCode));
+    const template = normalized[0];
+    const appended = stationOptions
+      .filter((stationCode) => !existingStationCodes.has(stationCode))
+      .map((stationCode, index) => ({
+        ...(template ?? workstationPositionList[0]),
+        id: `PS-CFG-${index + 1}`,
+        name: `Station ${stationCode}`,
+        stationCode,
+        enabled: true,
+        todayInspectionCount: 60 + index * 11,
+        detectionRate: 95 + (index % 4),
+        reviewRate: 93 + (index % 5),
+        currentWorkOrder: {
+          ...(template?.currentWorkOrder ?? workstationPositionList[0].currentWorkOrder),
+          workOrderNo: `WO-CFG-${String(index + 1).padStart(3, '0')}`,
+          stationCode,
+          fixtureLineType: normalizeHarnessType((template?.currentWorkOrder ?? workstationPositionList[0].currentWorkOrder).fixtureLineType, index),
+        },
+      }));
+
+    return [...normalized, ...appended];
+  });
+  const [selectedPositionId, setSelectedPositionId] = useState<string>(positionList[0]?.id ?? '');
 
   const selectedPosition = useMemo(
     () => positionList.find((item) => item.id === selectedPositionId) ?? positionList[0],

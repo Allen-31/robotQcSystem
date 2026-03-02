@@ -2,6 +2,7 @@ import { DownloadOutlined, FileImageOutlined, SearchOutlined, VideoCameraOutline
 import { Button, Card, Col, Image, Input, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { normalizeHarnessType, normalizeStationCode } from '../../../data/qcBusiness/qcConfigReference';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { reinspectionRecordList, type ReinspectionRecordItem, type ReinspectionResult, type ReinspectionStatus } from '../../../data/qcBusiness/reinspectionRecordList';
 
@@ -63,18 +64,27 @@ export function ReinspectionRecordPage() {
   const [imageRecord, setImageRecord] = useState<ReinspectionRecordItem | null>(null);
   const [keyword, setKeyword] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const linkedRecords = useMemo(
+    () =>
+      reinspectionRecordList.map((item, index) => ({
+        ...item,
+        harnessType: normalizeHarnessType(item.harnessType, index),
+        stationCode: normalizeStationCode(item.stationCode, index),
+      })),
+    [],
+  );
 
   const dataSource = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
     if (!normalized) {
-      return reinspectionRecordList;
+      return linkedRecords;
     }
-    return reinspectionRecordList.filter((item) => {
+    return linkedRecords.filter((item) => {
       const text =
         `${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.status} ${item.reinspectionResult} ${item.reinspectionTime} ${item.reviewer}`.toLowerCase();
       return text.includes(normalized);
     });
-  }, [keyword]);
+  }, [keyword, linkedRecords]);
 
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));

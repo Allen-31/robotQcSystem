@@ -2,9 +2,11 @@ import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined, VideoCa
 import { Button, Card, Col, Descriptions, Image, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
 import type { RobotStatus, WorkOrderInfo, WorkOrderStatus } from '../../../data/qcBusiness/workstationPositionList';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useWorkstationPositionManage } from '../../../logic/qcBusiness/useWorkstationPositionManage';
+import { loadQcWireHarnessAnnotations } from '../../../shared/qcWireHarnessAnnotation';
 
 const robotStatusColorMap: Record<RobotStatus, string> = {
   idle: 'default',
@@ -109,6 +111,45 @@ function buildInspectionPoints(workOrder: WorkOrderInfo): InspectionPointItem[] 
   });
 }
 
+function resolveWireHarnessId(harnessType: string): string | null {
+  const normalized = harnessType.trim();
+  const explicitId = normalized.match(/WH-\d{3}/i)?.[0]?.toUpperCase();
+  if (explicitId && wireHarnessTypeList.some((item) => item.id.toUpperCase() === explicitId)) {
+    return explicitId;
+  }
+  const suffix = normalized.match(/[-－]([ABC])$/i)?.[1]?.toUpperCase();
+  if (suffix === 'A') {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
+  }
+  if (suffix === 'B') {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
+  }
+  if (suffix === 'C') {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
+  }
+  const exact = wireHarnessTypeList.find((item) => item.id === harnessType || item.name === harnessType);
+  if (exact) {
+    return exact.id;
+  }
+  if (harnessType.includes('主驱') || harnessType.includes('-A')) {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
+  }
+  if (harnessType.includes('控制') || harnessType.includes('-B')) {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
+  }
+  if (harnessType.includes('高压') || harnessType.includes('-C')) {
+    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
+  }
+  const levelMatch = /L(\d+)/i.exec(harnessType);
+  if (levelMatch) {
+    const level = Number(levelMatch[1]);
+    if (level > 0 && level <= wireHarnessTypeList.length) {
+      return wireHarnessTypeList[level - 1]?.id ?? null;
+    }
+  }
+  return null;
+}
+
 export function WorkstationPositionManagePage() {
   const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
@@ -208,6 +249,59 @@ export function WorkstationPositionManagePage() {
       reviewRate: weekReviewRate,
     };
   }, [positionRank, selectedPosition, summaryPeriod]);
+
+  const currentOrderHarness2DImage = useMemo(() => {
+    const harnessType = selectedPosition?.currentWorkOrder.fixtureLineType;
+    if (!harnessType) {
+      return null;
+    }
+    const wireHarnessId = resolveWireHarnessId(harnessType);
+    if (!wireHarnessId) {
+      return null;
+    }
+    const annotations = loadQcWireHarnessAnnotations();
+    return annotations.imageByHarnessId[wireHarnessId] ?? null;
+  }, [selectedPosition]);
+
+  const currentOrderInspectionPoints = useMemo(() => {
+    if (!selectedPosition) {
+      return [];
+    }
+    return buildInspectionPoints(selectedPosition.currentWorkOrder);
+  }, [selectedPosition]);
+
+  const currentOrderOverlayPoints = useMemo(() => {
+    const harnessType = selectedPosition?.currentWorkOrder.fixtureLineType;
+    if (!harnessType) {
+      return currentOrderInspectionPoints.map((point) => ({
+        x: point.x,
+        y: point.y,
+        label: point.pointCode,
+      }));
+    }
+    const wireHarnessId = resolveWireHarnessId(harnessType);
+    if (!wireHarnessId) {
+      return currentOrderInspectionPoints.map((point) => ({
+        x: point.x,
+        y: point.y,
+        label: point.pointCode,
+      }));
+    }
+    const annotations = loadQcWireHarnessAnnotations();
+    const annotationPoints = annotations.pointsByHarnessId[wireHarnessId] ?? [];
+    if (annotationPoints.length === 0) {
+      return currentOrderInspectionPoints.map((point) => ({
+        x: point.x,
+        y: point.y,
+        label: point.pointCode,
+      }));
+    }
+    return annotationPoints.map((point, index) => ({
+      x: point.x,
+      y: point.y,
+      label: point.description?.trim() || `P${index + 1}`,
+    }));
+  }, [selectedPosition, currentOrderInspectionPoints]);
 
   const pointColumns: ColumnsType<InspectionPointItem> = [
     { title: t('workOrder.detail.pointCode'), dataIndex: 'pointCode', key: 'pointCode', width: 100 },
@@ -408,6 +502,73 @@ export function WorkstationPositionManagePage() {
           <Descriptions.Item label={t('workstationPosition.currentOrder.startedAt')}>{selectedPosition?.currentWorkOrder.startedAt ?? '-'}</Descriptions.Item>
           <Descriptions.Item label={t('workstationPosition.currentOrder.endedAt')}>{selectedPosition?.currentWorkOrder.endedAt ?? '-'}</Descriptions.Item>
         </Descriptions>
+        <Card size="small" title={t('workOrder.detail.harness2dTitle')} style={{ marginTop: 12 }}>
+          {currentOrderHarness2DImage ? (
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: 760,
+                margin: '0 auto',
+                border: '1px solid #e5e7eb',
+                borderRadius: 8,
+                background: '#fff',
+                overflow: 'hidden',
+              }}
+            >
+              <img
+                src={currentOrderHarness2DImage}
+                alt="current-workorder-harness-2d"
+                style={{ width: '100%', display: 'block' }}
+              />
+              {currentOrderOverlayPoints.map((point, index) => (
+                <div key={`current-order-overlay-${point.x}-${point.y}-${index}`}>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewPoint(currentOrderInspectionPoints[index] ?? null)}
+                    title={point.label}
+                    style={{
+                      position: 'absolute',
+                      left: `${point.x}%`,
+                      top: `${point.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      border: '2px solid #ffffff',
+                      background: currentOrderInspectionPoints[index]?.status === 'ng' ? '#ff4d4f' : '#1677ff',
+                      boxShadow: '0 1px 6px rgba(0, 0, 0, 0.35)',
+                      cursor: currentOrderInspectionPoints[index] ? 'pointer' : 'default',
+                      padding: 0,
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      lineHeight: '18px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {index + 1}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                height: 220,
+                border: '1px solid #e5e7eb',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280',
+                background: '#f8fafc',
+              }}
+            >
+              2D 图片未配置
+            </div>
+          )}
+        </Card>
         {selectedPosition?.currentWorkOrder.qualityResult === 'ng' ? (
           <div style={{ marginTop: 12 }}>
             <Button

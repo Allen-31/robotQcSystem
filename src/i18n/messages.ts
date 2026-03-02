@@ -187,7 +187,7 @@ export const messages: Messages = {
     'workstationPosition.currentOrder.stationCode': '工位编号',
     'workstationPosition.currentOrder.status': '状态',
     'workstationPosition.currentOrder.qualityResult': '质检结果',
-    'workstationPosition.currentOrder.taskIds': '任务编号（可分段）',
+    'workstationPosition.currentOrder.taskIds': '任务编号',
     'workstationPosition.currentOrder.detectionDuration': '检测时长',
     'workstationPosition.currentOrder.createdAt': '创建时间',
     'workstationPosition.currentOrder.startedAt': '开始时间',

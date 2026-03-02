@@ -9,13 +9,13 @@ import {
 import { Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MouseEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useWireHarnessType } from '../../../logic/qcConfig/useWireHarnessType';
+import { loadQcWireHarnessAnnotations, saveQcWireHarnessAnnotations, type QcPoint } from '../../../shared/qcWireHarnessAnnotation';
 import type { WireHarnessTypeConfig } from '../../../shared/types/qcConfig';
 
 type FormValues = WireHarnessTypeConfig;
-type QcPoint = { x: number; y: number; description: string };
 
 export function WireHarnessTypePage() {
   const [form] = Form.useForm<FormValues>();
@@ -27,8 +27,8 @@ export function WireHarnessTypePage() {
   const [annotationImageUrl, setAnnotationImageUrl] = useState<string | null>(null);
   const [annotationTargetId, setAnnotationTargetId] = useState<string>('__draft__');
   const [draftPoints, setDraftPoints] = useState<QcPoint[]>([]);
-  const [pointsByHarnessId, setPointsByHarnessId] = useState<Record<string, QcPoint[]>>({});
-  const [imageByHarnessId, setImageByHarnessId] = useState<Record<string, string>>({});
+  const [pointsByHarnessId, setPointsByHarnessId] = useState<Record<string, QcPoint[]>>(() => loadQcWireHarnessAnnotations().pointsByHarnessId);
+  const [imageByHarnessId, setImageByHarnessId] = useState<Record<string, string>>(() => loadQcWireHarnessAnnotations().imageByHarnessId);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [previewPoints, setPreviewPoints] = useState<QcPoint[]>([]);
@@ -219,6 +219,13 @@ export function WireHarnessTypePage() {
     reader.readAsDataURL(file);
   };
 
+  useEffect(() => {
+    saveQcWireHarnessAnnotations({
+      pointsByHarnessId,
+      imageByHarnessId,
+    });
+  }, [pointsByHarnessId, imageByHarnessId]);
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
@@ -355,21 +362,95 @@ export function WireHarnessTypePage() {
           ) : null}
           {annotationImageUrl ? (
             <div
-              onClick={handleImageClick}
               style={{
-                position: 'relative',
                 width: '100%',
                 maxHeight: 520,
                 overflow: 'auto',
                 border: '1px solid #d9d9d9',
                 borderRadius: 8,
-                cursor: 'crosshair',
               }}
             >
-              <img src={annotationImageUrl} alt="2d-wire-harness" style={{ width: '100%', display: 'block' }} />
-              {draftPoints.map((point, index) => (
+              <div
+                onClick={handleImageClick}
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  cursor: 'crosshair',
+                }}
+              >
+                <img src={annotationImageUrl} alt="2d-wire-harness" style={{ width: '100%', display: 'block' }} />
+                {draftPoints.map((point, index) => (
+                  <div
+                    key={`${point.x}-${point.y}-${index}`}
+                    title={point.description || t('qcConfig.wireHarness.annotation.noDescription')}
+                    style={{
+                      position: 'absolute',
+                      left: `${point.x}%`,
+                      top: `${point.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      border: '2px solid #ffffff',
+                      background: '#ff4d4f',
+                      color: '#ffffff',
+                      fontSize: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 600,
+                      boxShadow: '0 1px 6px rgba(0, 0, 0, 0.35)',
+                    }}
+                  >
+                    {index + 1}
+                  </div>
+                ))}
+                {draftPoints.map((point, index) =>
+                  point.description ? (
+                    <div
+                      key={`draft-label-${point.x}-${point.y}-${index}`}
+                      style={{
+                        position: 'absolute',
+                        left: `${point.x}%`,
+                        top: `${point.y}%`,
+                        transform: 'translate(14px, -50%)',
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        color: '#fff',
+                        borderRadius: 4,
+                        padding: '2px 6px',
+                        fontSize: 12,
+                        maxWidth: 180,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {point.description}
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            </div>
+          ) : null}
+        </Space>
+      </Modal>
+
+      <Modal title={previewTitle} open={previewOpen} onCancel={() => setPreviewOpen(false)} footer={null} width={880}>
+        {previewImageUrl ? (
+          <div
+            style={{
+              width: '100%',
+              maxHeight: 520,
+              overflow: 'auto',
+              border: '1px solid #d9d9d9',
+              borderRadius: 8,
+            }}
+          >
+            <div style={{ position: 'relative', width: '100%' }}>
+              <img src={previewImageUrl} alt="qc-point-preview" style={{ width: '100%', display: 'block' }} />
+              {previewPoints.map((point, index) => (
                 <div
-                  key={`${point.x}-${point.y}-${index}`}
+                  key={`preview-${point.x}-${point.y}-${index}`}
                   title={point.description || t('qcConfig.wireHarness.annotation.noDescription')}
                   style={{
                     position: 'absolute',
@@ -380,7 +461,7 @@ export function WireHarnessTypePage() {
                     height: 22,
                     borderRadius: '50%',
                     border: '2px solid #ffffff',
-                    background: '#ff4d4f',
+                    background: '#1677ff',
                     color: '#ffffff',
                     fontSize: 12,
                     display: 'flex',
@@ -393,10 +474,10 @@ export function WireHarnessTypePage() {
                   {index + 1}
                 </div>
               ))}
-              {draftPoints.map((point, index) =>
+              {previewPoints.map((point, index) =>
                 point.description ? (
                   <div
-                    key={`draft-label-${point.x}-${point.y}-${index}`}
+                    key={`preview-label-${point.x}-${point.y}-${index}`}
                     style={{
                       position: 'absolute',
                       left: `${point.x}%`,
@@ -418,73 +499,6 @@ export function WireHarnessTypePage() {
                 ) : null,
               )}
             </div>
-          ) : null}
-        </Space>
-      </Modal>
-
-      <Modal title={previewTitle} open={previewOpen} onCancel={() => setPreviewOpen(false)} footer={null} width={880}>
-        {previewImageUrl ? (
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-              maxHeight: 520,
-              overflow: 'auto',
-              border: '1px solid #d9d9d9',
-              borderRadius: 8,
-            }}
-          >
-            <img src={previewImageUrl} alt="qc-point-preview" style={{ width: '100%', display: 'block' }} />
-            {previewPoints.map((point, index) => (
-              <div
-                key={`preview-${point.x}-${point.y}-${index}`}
-                title={point.description || t('qcConfig.wireHarness.annotation.noDescription')}
-                style={{
-                  position: 'absolute',
-                  left: `${point.x}%`,
-                  top: `${point.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  border: '2px solid #ffffff',
-                  background: '#1677ff',
-                  color: '#ffffff',
-                  fontSize: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 600,
-                  boxShadow: '0 1px 6px rgba(0, 0, 0, 0.35)',
-                }}
-              >
-                {index + 1}
-              </div>
-            ))}
-            {previewPoints.map((point, index) =>
-              point.description ? (
-                <div
-                  key={`preview-label-${point.x}-${point.y}-${index}`}
-                  style={{
-                    position: 'absolute',
-                    left: `${point.x}%`,
-                    top: `${point.y}%`,
-                    transform: 'translate(14px, -50%)',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    color: '#fff',
-                    borderRadius: 4,
-                    padding: '2px 6px',
-                    fontSize: 12,
-                    maxWidth: 180,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {point.description}
-                </div>
-              ) : null,
-            )}
           </div>
         ) : null}
         <Space direction="vertical" size={6} style={{ marginTop: 12, width: '100%' }}>
