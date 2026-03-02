@@ -142,17 +142,17 @@ export const menuList: MenuNode[] = [
           },
           {
             id: '3-2-3',
-            name: 'menu.robotGroup',
-            code: 'robotGroup',
-            path: '/deployConfig/robot/robotGroup',
-            permission: 'deployConfig:robot:robotGroup:view',
-          },
-          {
-            id: '3-2-4',
             name: 'menu.robotParts',
             code: 'robotParts',
             path: '/deployConfig/robot/robotParts',
             permission: 'deployConfig:robot:robotParts:view',
+          },
+          {
+            id: '3-2-4',
+            name: 'menu.robotGroup',
+            code: 'robotGroup',
+            path: '/deployConfig/robot/robotGroup',
+            permission: 'deployConfig:robot:robotGroup:view',
           },
           {
             id: '3-2-5',
@@ -168,6 +168,13 @@ export const menuList: MenuNode[] = [
             path: '/deployConfig/robot/homingStrategy',
             permission: 'deployConfig:robot:homingStrategy:view',
           },
+          {
+            id: '3-2-7',
+            name: 'menu.configTemplate',
+            code: 'configTemplate',
+            path: '/deployConfig/scene/configTemplate',
+            permission: 'deployConfig:scene:configTemplate:view',
+          },
         ],
         permission: 'deployConfig:robot:view',
       },
@@ -178,20 +185,13 @@ export const menuList: MenuNode[] = [
         children: [
           {
             id: '3-3-1',
-            name: 'menu.configTemplate',
-            code: 'configTemplate',
-            path: '/deployConfig/scene/configTemplate',
-            permission: 'deployConfig:scene:configTemplate:view',
-          },
-          {
-            id: '3-3-2',
             name: 'menu.mapBuilding',
             code: 'mapBuilding',
             path: '/deployConfig/scene/mapBuilding',
             permission: 'deployConfig:scene:mapBuilding:view',
           },
           {
-            id: '3-3-3',
+            id: '3-3-2',
             name: 'menu.mapManage',
             code: 'mapManage',
             path: '/deployConfig/scene/mapManage',
@@ -214,6 +214,13 @@ export const menuList: MenuNode[] = [
           },
           {
             id: '3-4-2',
+            name: 'menu.licenseManage',
+            code: 'licenseManage',
+            path: '/deployConfig/setting/licenseManage',
+            permission: 'deployConfig:setting:licenseManage:view',
+          },
+          {
+            id: '3-4-3',
             name: 'menu.displayConfig',
             code: 'displayConfig',
             path: '/deployConfig/setting/displayConfig',
