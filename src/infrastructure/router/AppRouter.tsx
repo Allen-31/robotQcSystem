@@ -1,5 +1,7 @@
 ﻿import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { menuList } from '../../data/menuList';
+import { getCurrentRole } from '../../logic/deployConfig/permissionStore';
+import { filterMenuTreeByRole } from '../../logic/menu/menuPermission';
 import { collectRoutes, findFirstLeafPathByCode } from '../../logic/menu/menuRoute';
 import { SubsystemLayout } from '../../ui/layouts/SubsystemLayout';
 import { TopLevelLayout } from '../../ui/layouts/TopLevelLayout';
@@ -12,6 +14,12 @@ import { ReinspectionRecordPage } from '../../ui/pages/qcBusiness/ReinspectionRe
 import { WorkOrderManagePage } from '../../ui/pages/qcBusiness/WorkOrderManagePage';
 import { WorkstationManagePage } from '../../ui/pages/qcBusiness/WorkstationManagePage';
 import { WorkstationPositionManagePage } from '../../ui/pages/qcBusiness/WorkstationPositionManagePage';
+import { PermissionManagePage } from '../../ui/pages/deployConfig/PermissionManagePage';
+import { RoleManagePage } from '../../ui/pages/deployConfig/RoleManagePage';
+import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
+import { MapManagePage } from '../../ui/pages/deployConfig/MapManagePage';
+import { SettingPage } from '../../ui/pages/deployConfig/SettingPage';
+import { UserManagePage } from '../../ui/pages/deployConfig/UserManagePage';
 import { StationConfigPage } from '../../ui/pages/qcConfig/StationConfigPage';
 import { TerminalConfigPage } from '../../ui/pages/qcConfig/TerminalConfigPage';
 import { WireHarnessTypePage } from '../../ui/pages/qcConfig/WireHarnessTypePage';
@@ -23,6 +31,12 @@ const workstationManagePath = '/qualityInspection/workstationManage';
 const workstationPositionManagePath = '/qualityInspection/workstationPositionManage';
 const workOrderManagePath = '/qualityInspection/workOrderManage';
 const reinspectionRecordPath = '/qualityInspection/reinspectionRecord';
+const userManagePath = '/deployConfig/user/userManage';
+const roleManagePath = '/deployConfig/user/roleManage';
+const permissionManagePath = '/deployConfig/user/permissionManage';
+const settingPath = '/deployConfig/setting';
+const mapManagePath = '/deployConfig/scene/mapManage';
+const configTemplatePath = '/deployConfig/scene/configTemplate';
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
@@ -35,10 +49,23 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== workstationPositionManagePath &&
     route.path !== workOrderManagePath &&
     route.path !== reinspectionRecordPath &&
+    route.path !== userManagePath &&
+    route.path !== roleManagePath &&
+    route.path !== permissionManagePath &&
+    route.path !== settingPath &&
+    route.path !== mapManagePath &&
+    route.path !== configTemplatePath &&
     !qualityConfigPaths.includes(route.path),
 );
 
 export function AppRouter() {
+  const role = getCurrentRole();
+  const visibleMenuTree = filterMenuTreeByRole(menuList, role);
+  const qualityInspectionFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'qualityInspection');
+  const deployConfigFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'deployConfig');
+  const operationMaintenanceFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'operationMaintenance');
+  const dataStatisticsFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'dataStatistics');
+
   return (
     <BrowserRouter>
       <Routes>
@@ -50,25 +77,31 @@ export function AppRouter() {
           <Route element={<SubsystemLayout />}>
             <Route
               path="/qualityInspection"
-              element={<Navigate to={findFirstLeafPathByCode(menuList, 'qualityInspection')} replace />}
+              element={<Navigate to={qualityInspectionFirstPath === '/' ? '/qualityInspection' : qualityInspectionFirstPath} replace />}
             />
             <Route
               path="/deployConfig"
-              element={<Navigate to={findFirstLeafPathByCode(menuList, 'deployConfig')} replace />}
+              element={<Navigate to={deployConfigFirstPath === '/' ? '/deployConfig' : deployConfigFirstPath} replace />}
             />
             <Route
               path="/operationMaintenance"
-              element={<Navigate to={findFirstLeafPathByCode(menuList, 'operationMaintenance')} replace />}
+              element={<Navigate to={operationMaintenanceFirstPath === '/' ? '/operationMaintenance' : operationMaintenanceFirstPath} replace />}
             />
             <Route
               path="/dataStatistics"
-              element={<Navigate to={findFirstLeafPathByCode(menuList, 'dataStatistics')} replace />}
+              element={<Navigate to={dataStatisticsFirstPath === '/' ? '/dataStatistics' : dataStatisticsFirstPath} replace />}
             />
             <Route path="/operationMonitoring" element={<OperationMonitoringPage />} />
             <Route path={workstationManagePath} element={<WorkstationManagePage />} />
             <Route path={workstationPositionManagePath} element={<WorkstationPositionManagePage />} />
             <Route path={workOrderManagePath} element={<WorkOrderManagePage />} />
             <Route path={reinspectionRecordPath} element={<ReinspectionRecordPage />} />
+            <Route path={userManagePath} element={<UserManagePage />} />
+            <Route path={roleManagePath} element={<RoleManagePage />} />
+            <Route path={permissionManagePath} element={<PermissionManagePage />} />
+            <Route path={settingPath} element={<SettingPage />} />
+            <Route path={mapManagePath} element={<MapManagePage />} />
+            <Route path={configTemplatePath} element={<ConfigTemplatePage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />

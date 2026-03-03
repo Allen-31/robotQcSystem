@@ -2,23 +2,6 @@ import type { MenuNode } from '../shared/types/menu';
 
 export const menuList: MenuNode[] = [
   {
-    id: '1',
-    name: 'menu.home',
-    code: 'home',
-    icon: 'HomeOutlined',
-    children: [
-      {
-        id: '1-1',
-        name: 'menu.login',
-        code: 'login',
-        path: '/home/login',
-        permission: 'home:login:view',
-      },
-    ],
-    path: '/home',
-    permission: 'home:view',
-  },
-  {
     id: '2',
     name: 'menu.qualityInspection',
     code: 'qualityInspection',
@@ -184,13 +167,6 @@ export const menuList: MenuNode[] = [
         code: 'scene',
         children: [
           {
-            id: '3-3-1',
-            name: 'menu.mapBuilding',
-            code: 'mapBuilding',
-            path: '/deployConfig/scene/mapBuilding',
-            permission: 'deployConfig:scene:mapBuilding:view',
-          },
-          {
             id: '3-3-2',
             name: 'menu.mapManage',
             code: 'mapManage',
@@ -221,6 +197,13 @@ export const menuList: MenuNode[] = [
           },
           {
             id: '3-5-2',
+            name: 'menu.roleManage',
+            code: 'roleManage',
+            path: '/deployConfig/user/roleManage',
+            permission: 'deployConfig:user:roleManage:view',
+          },
+          {
+            id: '3-5-3',
             name: 'menu.permissionManage',
             code: 'permissionManage',
             path: '/deployConfig/user/permissionManage',

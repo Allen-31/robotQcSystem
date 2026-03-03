@@ -8,9 +8,12 @@ import {
 import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
 import { menuList } from '../../data/menuList';
+import { useCurrentRole } from '../../logic/deployConfig/useCurrentRole';
+import { filterMenuTreeByRole } from '../../logic/menu/menuPermission';
 import { buildOpenKeys, collectRoutes, matchSelectedPath } from '../../logic/menu/menuRoute';
 import type { MenuNode } from '../../shared/types/menu';
 
@@ -45,18 +48,19 @@ function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): 
   });
 }
 
-const routes = collectRoutes(menuList);
-
 export function SidebarMenu() {
   const { pathname } = useLocation();
   const { t } = useI18n();
+  const { currentRole, permissionVersion } = useCurrentRole();
+  const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole, permissionVersion]);
+  const routes = useMemo(() => collectRoutes(visibleMenuTree), [visibleMenuTree]);
 
   return (
     <Menu
       mode="inline"
-      items={mapToMenuItems(menuList, t)}
+      items={mapToMenuItems(visibleMenuTree, t)}
       selectedKeys={matchSelectedPath(pathname, routes)}
-      openKeys={buildOpenKeys(pathname, menuList)}
+      openKeys={buildOpenKeys(pathname, visibleMenuTree)}
       style={{ borderRight: 0 }}
     />
   );

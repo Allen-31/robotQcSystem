@@ -1,7 +1,8 @@
 ﻿import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Card, Checkbox, Form, Input, Typography, message } from 'antd';
+import { Button, Card, Checkbox, Form, Input, Space, Typography, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
+import { login } from '../../logic/auth/authStore';
 import './LoginPage.css';
 
 interface LoginFormValues {
@@ -15,7 +16,12 @@ export function LoginPage() {
   const { t } = useI18n();
 
   const onFinish = (values: LoginFormValues) => {
-    message.success(t('login.welcome', { username: values.username }));
+    const result = login(values.username, values.password);
+    if (!result.success) {
+      message.error(t('login.invalid'));
+      return;
+    }
+    message.success(t('login.welcome', { username: result.user.displayName }));
     navigate('/');
   };
 
@@ -27,6 +33,13 @@ export function LoginPage() {
           {t('login.title')}
         </Typography.Title>
         <Typography.Text className="login-subtitle">{t('login.subtitle')}</Typography.Text>
+        <Space direction="vertical" size={2} style={{ marginTop: 8 }}>
+          <Typography.Text type="secondary">{t('login.mockAccounts')}</Typography.Text>
+          <Typography.Text type="secondary">{t('login.mockAdmin')}</Typography.Text>
+          <Typography.Text type="secondary">{t('login.mockQc')}</Typography.Text>
+          <Typography.Text type="secondary">{t('login.mockPe')}</Typography.Text>
+          <Typography.Text type="secondary">{t('login.mockOps')}</Typography.Text>
+        </Space>
 
         <Form<LoginFormValues>
           layout="vertical"

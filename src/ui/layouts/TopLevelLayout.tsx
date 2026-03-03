@@ -1,8 +1,15 @@
-﻿import { Layout } from 'antd';
-import { Outlet } from 'react-router-dom';
+import { Layout } from 'antd';
+import { Navigate, Outlet } from 'react-router-dom';
 import { TopNavigation } from '../../components/navigation/TopNavigation';
+import { useAuthUser } from '../../logic/auth/useAuthUser';
 
 export function TopLevelLayout() {
+  const user = useAuthUser();
+
+  if (!user) {
+    return <Navigate to="/home/login" replace />;
+  }
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <TopNavigation />
@@ -10,3 +17,4 @@ export function TopLevelLayout() {
     </Layout>
   );
 }
+

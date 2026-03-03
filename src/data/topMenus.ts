@@ -5,7 +5,6 @@ export interface TopMenuItem {
 }
 
 export const topMenus: TopMenuItem[] = [
-  { key: 'home', name: 'menu.home', basePath: '/' },
   { key: 'qualityInspection', name: 'menu.qualityInspection', basePath: '/qualityInspection' },
   { key: 'deployConfig', name: 'menu.deployConfig', basePath: '/deployConfig' },
   { key: 'operationMonitoring', name: 'menu.operationMonitoring', basePath: '/operationMonitoring' },
