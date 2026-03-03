@@ -59,3 +59,38 @@ export interface ConfigTemplateRecord {
   updatedAt: string;
   updatedBy: string;
 }
+
+export type ChargeStrategyStatus = 'enabled' | 'disabled';
+export type ChargeMethod = 'auto' | 'chargingPile' | 'manualBatterySwap';
+
+export interface ChargeTriggerRule {
+  lowBatteryThreshold: number;
+  minChargeMinutes: number;
+  chargeMethod: ChargeMethod;
+}
+
+export interface ChargeStrategyRecord {
+  code: string;
+  name: string;
+  status: ChargeStrategyStatus;
+  robotType: string[];
+  robotGroup: string[];
+  robot: string[];
+  triggerRule: ChargeTriggerRule;
+}
+
+export type HomingStrategyStatus = 'enabled' | 'disabled';
+
+export interface HomingTriggerRule {
+  idleWaitSeconds: number;
+}
+
+export interface HomingStrategyRecord {
+  code: string;
+  name: string;
+  status: HomingStrategyStatus;
+  robotType: string[];
+  robotGroup: string[];
+  robot: string[];
+  triggerRule: HomingTriggerRule;
+}

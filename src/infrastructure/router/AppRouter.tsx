@@ -16,7 +16,9 @@ import { WorkstationManagePage } from '../../ui/pages/qcBusiness/WorkstationMana
 import { WorkstationPositionManagePage } from '../../ui/pages/qcBusiness/WorkstationPositionManagePage';
 import { PermissionManagePage } from '../../ui/pages/deployConfig/PermissionManagePage';
 import { RoleManagePage } from '../../ui/pages/deployConfig/RoleManagePage';
+import { ChargeStrategyPage } from '../../ui/pages/deployConfig/ChargeStrategyPage';
 import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
+import { HomingStrategyPage } from '../../ui/pages/deployConfig/HomingStrategyPage';
 import { MapManagePage } from '../../ui/pages/deployConfig/MapManagePage';
 import { SettingPage } from '../../ui/pages/deployConfig/SettingPage';
 import { UserManagePage } from '../../ui/pages/deployConfig/UserManagePage';
@@ -37,6 +39,8 @@ const permissionManagePath = '/deployConfig/user/permissionManage';
 const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
+const chargeStrategyPath = '/deployConfig/robot/chargeStrategy';
+const homingStrategyPath = '/deployConfig/robot/homingStrategy';
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
@@ -55,6 +59,8 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== settingPath &&
     route.path !== mapManagePath &&
     route.path !== configTemplatePath &&
+    route.path !== chargeStrategyPath &&
+    route.path !== homingStrategyPath &&
     !qualityConfigPaths.includes(route.path),
 );
 
@@ -102,6 +108,8 @@ export function AppRouter() {
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
             <Route path={configTemplatePath} element={<ConfigTemplatePage />} />
+            <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
+            <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
