@@ -2,60 +2,21 @@ import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, Se
 import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-
-interface TechnicalParam {
-  name: string;
-  value: string;
-  unit: string;
-  range: string;
-}
-
-interface RobotPartRecord {
-  id: string;
-  partNo: string;
-  name: string;
-  type: string;
-  model: string;
-  vendor: string;
-  supplier: string;
-  lifecycle: string;
-  status: '启用' | '停用';
-  remark?: string;
-  technicalParams: TechnicalParam[];
-}
+import { getStoredRobotParts, setStoredRobotParts, type RobotPartRecord } from '../../../logic/deployConfig/robotPartStore';
 
 type PartFormValues = Omit<RobotPartRecord, 'id'>;
 
 const typeOptions = ['电机', '传感器', '控制板', '执行件'];
 const vendorOptions = ['智控科技', '海蓝电子', '星辰机电', '普航自动化'];
-
-const initialList: RobotPartRecord[] = [
-  {
-    id: 'part-1',
-    partNo: 'RP-001',
-    name: '左手腕电机',
-    type: '电机',
-    model: 'MTR-LW-02',
-    vendor: '星辰机电',
-    supplier: '华北供应链',
-    lifecycle: '5年',
-    status: '启用',
-    remark: '关键部件',
-    technicalParams: [
-      { name: '额定电压', value: '24', unit: 'V', range: '18~30' },
-      { name: '最大扭矩', value: '12', unit: 'N.m', range: '0~20' },
-      { name: '编码器精度', value: '0.1', unit: 'deg', range: '0~1' },
-      { name: '通讯方式', value: 'CAN', unit: '-', range: 'CAN/RS485' },
-    ],
-  },
-];
+const positionOptions = ['头部', '手部', '臂部', '躯干', '腿部', '脚部', '其他'];
 
 export function RobotPartsPage() {
   const [form] = Form.useForm<PartFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
-  const [list, setList] = useState<RobotPartRecord[]>(initialList);
+  const [list, setList] = useState<RobotPartRecord[]>(getStoredRobotParts);
   const [keyword, setKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
+  const [positionFilter, setPositionFilter] = useState<string | undefined>();
   const [vendorFilter, setVendorFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<'启用' | '停用' | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,11 +30,12 @@ export function RobotPartsPage() {
         item.name.toLowerCase().includes(keyword.toLowerCase()) ||
         item.model.toLowerCase().includes(keyword.toLowerCase());
       const typeMatched = !typeFilter || item.type === typeFilter;
+      const positionMatched = !positionFilter || item.position === positionFilter;
       const vendorMatched = !vendorFilter || item.vendor === vendorFilter;
       const statusMatched = !statusFilter || item.status === statusFilter;
-      return keywordMatched && typeMatched && vendorMatched && statusMatched;
+      return keywordMatched && typeMatched && positionMatched && vendorMatched && statusMatched;
     });
-  }, [keyword, list, statusFilter, typeFilter, vendorFilter]);
+  }, [keyword, list, positionFilter, statusFilter, typeFilter, vendorFilter]);
 
   const openCreate = () => {
     setEditing(null);
@@ -81,6 +43,7 @@ export function RobotPartsPage() {
     form.setFieldsValue({
       partNo: `RP-${String(list.length + 1).padStart(3, '0')}`,
       type: typeOptions[0],
+      position: positionOptions[0],
       vendor: vendorOptions[0],
       status: '启用',
       technicalParams: [
@@ -97,6 +60,7 @@ export function RobotPartsPage() {
       partNo: record.partNo,
       name: record.name,
       type: record.type,
+      position: record.position,
       model: record.model,
       vendor: record.vendor,
       supplier: record.supplier,
@@ -117,10 +81,18 @@ export function RobotPartsPage() {
   const saveRecord = async () => {
     const values = await form.validateFields();
     if (editing) {
-      setList((prev) => prev.map((item) => (item.id === editing.id ? { ...item, ...values } : item)));
+      setList((prev) => {
+        const next = prev.map((item) => (item.id === editing.id ? { ...item, ...values } : item));
+        setStoredRobotParts(next);
+        return next;
+      });
       messageApi.success('零部件已更新');
     } else {
-      setList((prev) => [{ id: `part-${Date.now()}`, ...values }, ...prev]);
+      setList((prev) => {
+        const next = [{ id: `part-${Date.now()}`, ...values }, ...prev];
+        setStoredRobotParts(next);
+        return next;
+      });
       messageApi.success('零部件已创建');
     }
     closeModal();
@@ -134,13 +106,19 @@ export function RobotPartsPage() {
       okText: '删除',
       okButtonProps: { danger: true },
       cancelText: '取消',
-      onOk: () => setList((prev) => prev.filter((item) => item.id !== record.id)),
+      onOk: () =>
+        setList((prev) => {
+          const next = prev.filter((item) => item.id !== record.id);
+          setStoredRobotParts(next);
+          return next;
+        }),
     });
   };
 
   const columns: ColumnsType<RobotPartRecord> = [
     { title: '编号', dataIndex: 'partNo', key: 'partNo', width: 120 },
     { title: '名称', dataIndex: 'name', key: 'name', width: 180 },
+    { title: '部位', dataIndex: 'position', key: 'position', width: 120 },
     { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
     { title: '型号', dataIndex: 'model', key: 'model', width: 140 },
     { title: '厂商', dataIndex: 'vendor', key: 'vendor', width: 140 },
@@ -185,7 +163,7 @@ export function RobotPartsPage() {
             <Col xs={24} md={8}>
               <Input allowClear prefix={<SearchOutlined />} placeholder="零部件编号/名称/型号" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
             </Col>
-            <Col xs={24} md={5}>
+            <Col xs={24} md={4}>
               <Select
                 allowClear
                 style={{ width: '100%' }}
@@ -195,7 +173,17 @@ export function RobotPartsPage() {
                 onChange={setTypeFilter}
               />
             </Col>
-            <Col xs={24} md={5}>
+            <Col xs={24} md={4}>
+              <Select
+                allowClear
+                style={{ width: '100%' }}
+                placeholder="部位"
+                value={positionFilter}
+                options={positionOptions.map((item) => ({ label: item, value: item }))}
+                onChange={setPositionFilter}
+              />
+            </Col>
+            <Col xs={24} md={4}>
               <Select
                 allowClear
                 style={{ width: '100%' }}
@@ -205,7 +193,7 @@ export function RobotPartsPage() {
                 onChange={setVendorFilter}
               />
             </Col>
-            <Col xs={24} md={6}>
+            <Col xs={24} md={8}>
               <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增
@@ -248,6 +236,11 @@ export function RobotPartsPage() {
             <Col xs={24} md={8}>
               <Form.Item label="类型" name="type" rules={[{ required: true, message: '请选择类型' }]}>
                 <Select options={typeOptions.map((item) => ({ label: item, value: item }))} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="部位" name="position" rules={[{ required: true, message: '请选择部位' }]}>
+                <Select options={positionOptions.map((item) => ({ label: item, value: item }))} />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>

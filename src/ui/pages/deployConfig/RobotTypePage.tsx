@@ -2,18 +2,18 @@ import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, Se
 import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MouseEvent } from 'react';
-import { useMemo, useState } from 'react';
-
-interface TypePart {
-  id: string;
-  name: string;
-  model: string;
-  type: string;
-}
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ROBOT_PART_STORAGE_KEY,
+  ROBOT_PARTS_CHANGED_EVENT,
+  getRobotTypeSelectableParts,
+  type RobotTypeSelectablePart,
+} from '../../../logic/deployConfig/robotPartStore';
 
 interface AnnotationPoint {
   id: string;
   partName: string;
+  partPosition?: string;
   x: number;
   y: number;
   rotation: number;
@@ -31,13 +31,6 @@ interface RobotTypeRecord {
   status: '启用' | '停用';
   points: AnnotationPoint[];
 }
-
-const partsPool: TypePart[] = [
-  { id: 'pt-1', name: '左手腕电机', model: 'MTR-LW-02', type: '电机' },
-  { id: 'pt-2', name: '雷达模组', model: 'LIDAR-X5', type: '传感器' },
-  { id: 'pt-3', name: '主控板', model: 'CTRL-A9', type: '控制板' },
-  { id: 'pt-4', name: '驱动轮', model: 'WHEEL-34', type: '执行件' },
-];
 
 const initialList: RobotTypeRecord[] = [
   {
@@ -71,10 +64,30 @@ export function RobotTypePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<RobotTypeRecord | null>(null);
   const [partKeyword, setPartKeyword] = useState('');
-  const [activePart, setActivePart] = useState<TypePart | null>(null);
+  const [partPositionFilter, setPartPositionFilter] = useState<string | undefined>();
+  const [partsPool, setPartsPool] = useState<RobotTypeSelectablePart[]>(getRobotTypeSelectableParts);
+  const [activePart, setActivePart] = useState<RobotTypeSelectablePart | null>(null);
   const [draftPoints, setDraftPoints] = useState<AnnotationPoint[]>([]);
   const [annotationModalOpen, setAnnotationModalOpen] = useState(false);
   const [pendingPointId, setPendingPointId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const refreshParts = () => {
+      setPartsPool(getRobotTypeSelectableParts());
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key?.includes(ROBOT_PART_STORAGE_KEY)) {
+        refreshParts();
+      }
+    };
+
+    window.addEventListener(ROBOT_PARTS_CHANGED_EVENT, refreshParts);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener(ROBOT_PARTS_CHANGED_EVENT, refreshParts);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
 
   const filteredList = useMemo(() => {
     return list.filter((item) => {
@@ -88,8 +101,14 @@ export function RobotTypePage() {
   }, [keyword, list, statusFilter]);
 
   const filteredParts = useMemo(() => {
-    return partsPool.filter((item) => !partKeyword || item.name.includes(partKeyword) || item.model.includes(partKeyword));
-  }, [partKeyword]);
+    return partsPool.filter(
+      (item) =>
+        (!partPositionFilter || item.position === partPositionFilter) &&
+        (!partKeyword || item.name.includes(partKeyword) || item.model.includes(partKeyword)),
+    );
+  }, [partKeyword, partPositionFilter, partsPool]);
+
+  const partPositionOptions = useMemo(() => Array.from(new Set(partsPool.map((item) => item.position))), [partsPool]);
 
   const openCreate = () => {
     setEditing(null);
@@ -123,6 +142,7 @@ export function RobotTypePage() {
     form.resetFields();
     setActivePart(null);
     setPartKeyword('');
+    setPartPositionFilter(undefined);
     setPendingPointId(null);
   };
 
@@ -183,9 +203,9 @@ export function RobotTypePage() {
     const x = Number((((event.clientX - rect.left) / rect.width) * 100).toFixed(2));
     const y = Number((((event.clientY - rect.top) / rect.height) * 100).toFixed(2));
     const pointId = `point-${Date.now()}`;
-    setDraftPoints((prev) => [...prev, { id: pointId, partName: activePart.name, x, y, rotation: 0, remark: '' }]);
+    setDraftPoints((prev) => [...prev, { id: pointId, partName: activePart.name, partPosition: activePart.position, x, y, rotation: 0, remark: '' }]);
     setPendingPointId(pointId);
-    annotationForm.setFieldsValue({ id: pointId, partName: activePart.name, x, y, rotation: 0, remark: '' });
+    annotationForm.setFieldsValue({ id: pointId, partName: activePart.name, partPosition: activePart.position, x, y, rotation: 0, remark: '' });
     setAnnotationModalOpen(true);
   };
 
@@ -385,7 +405,21 @@ export function RobotTypePage() {
           </Col>
           <Col xs={24} md={10}>
             <Card size="small" title="零部件选择区" extra={<Typography.Text type="secondary">已标注 {draftPoints.length}</Typography.Text>}>
-              <Input allowClear placeholder="搜索零部件" value={partKeyword} onChange={(event) => setPartKeyword(event.target.value)} style={{ marginBottom: 8 }} />
+              <Row gutter={8} style={{ marginBottom: 8 }}>
+                <Col span={11}>
+                  <Select
+                    allowClear
+                    style={{ width: '100%' }}
+                    placeholder="按部位筛选"
+                    value={partPositionFilter}
+                    options={partPositionOptions.map((item) => ({ label: item, value: item }))}
+                    onChange={setPartPositionFilter}
+                  />
+                </Col>
+                <Col span={13}>
+                  <Input allowClear placeholder="搜索零部件" value={partKeyword} onChange={(event) => setPartKeyword(event.target.value)} />
+                </Col>
+              </Row>
               <Table
                 rowKey="id"
                 size="small"
@@ -393,12 +427,13 @@ export function RobotTypePage() {
                 dataSource={filteredParts}
                 columns={[
                   { title: '零部件名称', dataIndex: 'name', key: 'name' },
+                  { title: '部位', dataIndex: 'position', key: 'position' },
                   { title: '型号', dataIndex: 'model', key: 'model' },
                   { title: '类型', dataIndex: 'type', key: 'type' },
                   {
                     title: '操作',
                     key: 'action',
-                    render: (_, record: TypePart) => (
+                    render: (_, record: RobotTypeSelectablePart) => (
                       <Button type={activePart?.id === record.id ? 'primary' : 'link'} size="small" onClick={() => setActivePart(record)}>
                         选择
                       </Button>
@@ -422,7 +457,7 @@ export function RobotTypePage() {
       >
         <Form form={annotationForm} layout="vertical">
           <Form.Item label="零部件名称" name="partName" rules={[{ required: true, message: '请选择零部件' }]}>
-            <Select options={partsPool.map((item) => ({ label: item.name, value: item.name }))} />
+            <Select options={filteredParts.map((item) => ({ label: `${item.name} (${item.position})`, value: item.name }))} />
           </Form.Item>
           <Row gutter={12}>
             <Col span={12}>
