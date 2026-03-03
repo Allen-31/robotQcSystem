@@ -56,9 +56,9 @@ export const workstationPositionList: WorkstationPositionItem[] = [
       },
       {
         robotCode: 'RB-A101-2',
-        status: 'idle',
+        status: 'fault',
         battery: 88,
-        abnormalInfo: 'None',
+        abnormalInfo: 'Motor overcurrent alarm',
       },
     ],
     currentWorkOrder: {

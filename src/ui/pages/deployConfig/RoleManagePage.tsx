@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useRoleManage, type RoleManageFormValues } from '../../../logic/deployConfig/useRoleManage';
 import type { RoleManageRecord } from '../../../shared/types/deployConfig';
+import { PermissionManagePageInner } from './PermissionManagePage';
 
 export function RoleManagePage() {
   const { t } = useI18n();
@@ -14,6 +15,7 @@ export function RoleManagePage() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RoleManageRecord | null>(null);
+  const [permissionRoleRecord, setPermissionRoleRecord] = useState<RoleManageRecord | null>(null);
 
   const openCreate = () => {
     form.resetFields();
@@ -56,9 +58,12 @@ export function RoleManagePage() {
     {
       title: t('roleManage.table.action'),
       key: 'action',
-      width: 220,
+      width: 340,
       render: (_, record) => (
         <Space>
+          <Button type="link" onClick={() => setPermissionRoleRecord(record)}>
+            {t('roleManage.action.assignPermission')}
+          </Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             {t('qcConfig.common.edit')}
           </Button>
@@ -149,7 +154,17 @@ export function RoleManagePage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Modal
+        title={t('roleManage.permissionModalTitle', { role: permissionRoleRecord?.name ?? '' })}
+        open={Boolean(permissionRoleRecord)}
+        onCancel={() => setPermissionRoleRecord(null)}
+        width={1500}
+        footer={null}
+        destroyOnClose
+      >
+        {permissionRoleRecord ? <PermissionManagePageInner fixedRole={permissionRoleRecord.name} hideHeaderCard={false} /> : null}
+      </Modal>
     </Space>
   );
 }
-

@@ -15,7 +15,7 @@ export function useWorkstationConfig() {
     }
 
     return records.filter((item) =>
-      `${item.id} ${item.name} ${item.wireHarnessType} ${item.robotGroup}`.toLowerCase().includes(normalized),
+      `${item.id} ${item.name} ${item.workshopCode} ${item.wireHarnessType} ${item.robotGroup}`.toLowerCase().includes(normalized),
     );
   }, [keyword, records]);
 

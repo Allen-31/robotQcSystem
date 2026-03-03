@@ -52,7 +52,7 @@ const deviceTotalMetrics: MetricItem[] = [
 ];
 
 const deviceTodayMetrics: MetricItem[] = [
-  { labelKey: 'home.metric.robotOnline', value: '68 / 61', icon: <RobotOutlined /> },
+  { labelKey: 'home.metric.robotOnline', value: '61 / 68', icon: <RobotOutlined /> },
   { labelKey: 'home.metric.avgRuntime', value: '15.8h', icon: <ThunderboltOutlined /> },
   { labelKey: 'home.metric.avgWorktime', value: '12.6h', icon: <ToolOutlined /> },
   { labelKey: 'home.metric.stationCount', value: '120 / 86 / 120', icon: <ApiOutlined /> },

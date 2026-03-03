@@ -1,4 +1,4 @@
-import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Descriptions, Image, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -451,27 +451,6 @@ export function WorkstationPositionManagePage() {
                       </Space>
                     </Descriptions.Item>
                   </Descriptions>
-                  <div
-                    style={{
-                      height: 120,
-                      borderRadius: 8,
-                      background: 'linear-gradient(135deg, #1f2937 0%, #0f172a 100%)',
-                      color: '#e5e7eb',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      textAlign: 'center',
-                      padding: 8,
-                    }}
-                  >
-                    <div>
-                      <div>
-                        <VideoCameraOutlined style={{ marginRight: 6 }} />
-                        {robot.robotCode}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 12 }}>{t('workstationPosition.robot.cameraPlaceholder')}</div>
-                    </div>
-                  </div>
                   <Space size={8}>
                     <Popconfirm
                       title={t('workstationPosition.robot.confirmEmergencyStopTitle')}
@@ -617,6 +596,9 @@ export function WorkstationPositionManagePage() {
         </Card>
         {selectedPosition?.currentWorkOrder.qualityResult === 'ng' ? (
           <div style={{ marginTop: 12 }}>
+            <Typography.Text type="warning" style={{ display: 'block', marginBottom: 8 }}>
+              该线束检测不合格，请人工复检
+            </Typography.Text>
             <Button
               type="primary"
               onClick={() => {
