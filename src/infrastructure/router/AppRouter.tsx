@@ -10,13 +10,19 @@ import { LoginPage } from '../../ui/pages/LoginPage';
 import { NotFoundPage } from '../../ui/pages/NotFoundPage';
 import { OperationMonitoringPage } from '../../ui/pages/OperationMonitoringPage';
 import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
+import { RobotConfigPage } from '../../ui/pages/deployConfig/RobotConfigPage';
+import { RobotGroupPage } from '../../ui/pages/deployConfig/RobotGroupPage';
+import { RobotPartsPage } from '../../ui/pages/deployConfig/RobotPartsPage';
+import { RobotTypePage } from '../../ui/pages/deployConfig/RobotTypePage';
 import { ReinspectionRecordPage } from '../../ui/pages/qcBusiness/ReinspectionRecordPage';
 import { WorkOrderManagePage } from '../../ui/pages/qcBusiness/WorkOrderManagePage';
 import { WorkstationManagePage } from '../../ui/pages/qcBusiness/WorkstationManagePage';
 import { WorkstationPositionManagePage } from '../../ui/pages/qcBusiness/WorkstationPositionManagePage';
 import { PermissionManagePage } from '../../ui/pages/deployConfig/PermissionManagePage';
 import { RoleManagePage } from '../../ui/pages/deployConfig/RoleManagePage';
+import { ChargeStrategyPage } from '../../ui/pages/deployConfig/ChargeStrategyPage';
 import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
+import { HomingStrategyPage } from '../../ui/pages/deployConfig/HomingStrategyPage';
 import { MapManagePage } from '../../ui/pages/deployConfig/MapManagePage';
 import { SettingPage } from '../../ui/pages/deployConfig/SettingPage';
 import { UserManagePage } from '../../ui/pages/deployConfig/UserManagePage';
@@ -37,11 +43,19 @@ const permissionManagePath = '/deployConfig/user/permissionManage';
 const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
+const chargeStrategyPath = '/deployConfig/robot/chargeStrategy';
+const homingStrategyPath = '/deployConfig/robot/homingStrategy';
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
   '/qualityInspection/wireHarnessType',
   '/qualityInspection/terminalConfig',
+];
+const deployRobotPaths = [
+  '/deployConfig/robot/robotList',
+  '/deployConfig/robot/robotType',
+  '/deployConfig/robot/robotParts',
+  '/deployConfig/robot/robotGroup',
 ];
 const placeholderRoutes = subsystemRoutes.filter(
   (route) =>
@@ -55,7 +69,10 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== settingPath &&
     route.path !== mapManagePath &&
     route.path !== configTemplatePath &&
-    !qualityConfigPaths.includes(route.path),
+    route.path !== chargeStrategyPath &&
+    route.path !== homingStrategyPath &&
+    !qualityConfigPaths.includes(route.path) &&
+    !deployRobotPaths.includes(route.path),
 );
 
 export function AppRouter() {
@@ -102,10 +119,16 @@ export function AppRouter() {
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
             <Route path={configTemplatePath} element={<ConfigTemplatePage />} />
+            <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
+            <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
             <Route path="/qualityInspection/terminalConfig" element={<TerminalConfigPage />} />
+            <Route path="/deployConfig/robot/robotList" element={<RobotConfigPage />} />
+            <Route path="/deployConfig/robot/robotType" element={<RobotTypePage />} />
+            <Route path="/deployConfig/robot/robotParts" element={<RobotPartsPage />} />
+            <Route path="/deployConfig/robot/robotGroup" element={<RobotGroupPage />} />
 
             {placeholderRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={<PlaceholderPage route={route} />} />
