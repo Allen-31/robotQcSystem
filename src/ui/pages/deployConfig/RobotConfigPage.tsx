@@ -1,6 +1,7 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tabs, Tag, Tree, Typography, message } from 'antd';
+import { DeleteOutlined, DownloadOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tabs, Tree, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { UploadProps } from 'antd/es/upload';
 import type { Key } from 'react';
 import { useMemo, useState } from 'react';
 
@@ -53,6 +54,7 @@ interface RobotConfigRecord {
   status: ConfigStatus;
   createdAt: string;
   updatedAt: string;
+  updatedBy: string;
   description?: string;
   isDefault?: boolean;
   params: ConfigParam[];
@@ -221,6 +223,7 @@ const initialList: RobotConfigRecord[] = [
     status: '已发布',
     createdAt: '2026-02-01 09:20',
     updatedAt: '2026-03-01 14:25',
+    updatedBy: 'admin',
     description: '产线巡检默认参数',
     isDefault: true,
     params: [
@@ -248,6 +251,7 @@ const initialList: RobotConfigRecord[] = [
     status: '已发布',
     createdAt: '2026-02-10 10:05',
     updatedAt: '2026-03-02 18:40',
+    updatedBy: 'admin',
     description: '夜间低速高精度巡检参数',
     isDefault: false,
     params: [
@@ -285,7 +289,6 @@ export function RobotConfigPage() {
   const [list, setList] = useState<RobotConfigRecord[]>(initialList);
   const [keyword, setKeyword] = useState('');
   const [robotTypeFilter, setRobotTypeFilter] = useState<string | undefined>();
-  const [statusFilter, setStatusFilter] = useState<ConfigStatus | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<RobotConfigRecord | null>(null);
   const [draftParams, setDraftParams] = useState<ConfigParam[]>([]);
@@ -331,7 +334,6 @@ export function RobotConfigPage() {
     setDraftParams([]);
   };
 
-  const activeRecord = editing;
   const filteredParams = draftParams.filter((item) => item.categoryPath === selectedCategory);
 
   const filteredList = useMemo(() => {
@@ -341,12 +343,11 @@ export function RobotConfigPage() {
         item.configNo.toLowerCase().includes(keyword.toLowerCase()) ||
         item.configName.toLowerCase().includes(keyword.toLowerCase());
       const typeMatched = !robotTypeFilter || item.robotType === robotTypeFilter;
-      const statusMatched = !statusFilter || item.status === statusFilter;
-      return keywordMatched && typeMatched && statusMatched;
+      return keywordMatched && typeMatched;
     });
-  }, [keyword, list, robotTypeFilter, statusFilter]);
+  }, [keyword, list, robotTypeFilter]);
 
-  const saveRecord = async (nextStatus: ConfigStatus) => {
+  const saveRecord = async () => {
     const values = await form.validateFields();
     if (editing) {
       setList((prev) =>
@@ -355,9 +356,9 @@ export function RobotConfigPage() {
             ? {
                 ...item,
                 ...values,
-                status: nextStatus,
                 params: cloneConfigParams(draftParams),
                 updatedAt: new Date().toLocaleString('zh-CN', { hour12: false }),
+                updatedBy: 'admin',
               }
             : item,
         ),
@@ -365,18 +366,19 @@ export function RobotConfigPage() {
       messageApi.success('配置已更新');
     } else {
       const createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
-      const next: RobotConfigRecord = {
-        id: `cfg-${Date.now()}`,
-        configNo: values.configNo,
-        configName: values.configName,
-        robotType: values.robotType,
-        group: values.group,
-        firmware: values.firmware,
-        currentVersion: nextStatus === '已发布' ? 'v1.0.0' : '-',
-        status: nextStatus,
-        createdAt,
-        updatedAt: createdAt,
-        description: values.description,
+        const next: RobotConfigRecord = {
+          id: `cfg-${Date.now()}`,
+          configNo: values.configNo,
+          configName: values.configName,
+          robotType: values.robotType,
+          group: values.group,
+          firmware: values.firmware,
+          currentVersion: '-',
+          status: '草稿',
+          createdAt,
+          updatedAt: createdAt,
+          updatedBy: 'admin',
+          description: values.description,
         isDefault: false,
         params: cloneConfigParams(draftParams),
         versions: [],
@@ -444,58 +446,25 @@ export function RobotConfigPage() {
     { title: '分组', dataIndex: 'group', key: 'group', width: 100 },
     { title: '适用固件版本', dataIndex: 'firmware', key: 'firmware', width: 140 },
     { title: '当前版本', dataIndex: 'currentVersion', key: 'currentVersion', width: 120 },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: ConfigStatus) => <Tag color={status === '已发布' ? 'success' : 'default'}>{status}</Tag>,
-    },
     { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
     { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
+    { title: '编辑人', dataIndex: 'updatedBy', key: 'updatedBy', width: 120 },
     {
       title: '操作',
       key: 'actions',
-      width: 360,
+      width: 220,
       fixed: 'right',
       render: (_, record) => (
         <Space size={4} wrap>
-          <Button type="link" onClick={() => messageApi.success(`已跳转到机器人管理: ${record.configNo}`)}>
-            开始建图
-          </Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             编辑
-          </Button>
-          <Button type="link" onClick={() => messageApi.info(`版本管理: ${record.configNo}`)}>
-            版本管理
           </Button>
           <Button type="link" onClick={() => openCompareModal(record)}>
             对比
           </Button>
-          <Button type="link" onClick={() => messageApi.success(`下发任务已提交: ${record.configNo}`)}>
-            下发
-          </Button>
           <Button type="link" danger icon={<DeleteOutlined />} onClick={() => deleteRecord(record)}>
             删除
           </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  const versionColumns: ColumnsType<VersionRecord> = [
-    { title: '版本号', dataIndex: 'version', key: 'version', width: 120 },
-    { title: '发布时间', dataIndex: 'publishedAt', key: 'publishedAt', width: 180 },
-    { title: '发布人', dataIndex: 'publisher', key: 'publisher', width: 120 },
-    { title: '变更说明', dataIndex: 'changeLog', key: 'changeLog' },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 140,
-      render: () => (
-        <Space>
-          <Button type="link">查看</Button>
-          <Button type="link">回滚</Button>
         </Space>
       ),
     },
@@ -582,6 +551,311 @@ export function RobotConfigPage() {
     return compareRows.filter((row) => row.categoryKey === compareCategory || row.categoryKey.startsWith(`${compareCategory}/`));
   }, [compareCategory, compareRows]);
 
+  const buildCsvRows = (content: string): string[][] => {
+    const normalized = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let cell = '';
+    let inQuotes = false;
+    for (let i = 0; i < normalized.length; i += 1) {
+      const ch = normalized[i];
+      if (ch === '"') {
+        const next = normalized[i + 1];
+        if (inQuotes && next === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+      if (ch === ',' && !inQuotes) {
+        row.push(cell.trim());
+        cell = '';
+        continue;
+      }
+      if (ch === '\n' && !inQuotes) {
+        row.push(cell.trim());
+        rows.push(row);
+        row = [];
+        cell = '';
+        continue;
+      }
+      cell += ch;
+    }
+    if (cell.length || row.length) {
+      row.push(cell.trim());
+      rows.push(row);
+    }
+    return rows.filter((item) => item.some((value) => value.length));
+  };
+
+  const buildHtmlTableRows = (content: string): string[][] => {
+    const doc = new DOMParser().parseFromString(content, 'text/html');
+    const trs = Array.from(doc.querySelectorAll('tr'));
+    const grid: string[][] = [];
+    const occupied = new Map<string, true>();
+    trs.forEach((tr, rowIndex) => {
+      const row: string[] = grid[rowIndex] ?? [];
+      let colIndex = 0;
+      const cells = Array.from(tr.querySelectorAll('th,td'));
+      cells.forEach((cell) => {
+        while (occupied.has(`${rowIndex}-${colIndex}`)) {
+          colIndex += 1;
+        }
+        const value = cell.textContent?.trim() ?? '';
+        const colSpan = Number(cell.getAttribute('colspan') ?? '1') || 1;
+        const rowSpan = Number(cell.getAttribute('rowspan') ?? '1') || 1;
+        for (let r = rowIndex; r < rowIndex + rowSpan; r += 1) {
+          if (!grid[r]) {
+            grid[r] = [];
+          }
+          for (let c = colIndex; c < colIndex + colSpan; c += 1) {
+            grid[r][c] = value;
+            if (r !== rowIndex || c !== colIndex) {
+              occupied.set(`${r}-${c}`, true);
+            }
+          }
+        }
+        colIndex += colSpan;
+      });
+      grid[rowIndex] = row;
+    });
+    return grid.map((row) => row.map((cell) => cell ?? '')).filter((row) => row.some((value) => value.length));
+  };
+
+  const importRowsToRecords = (rows: string[][]) => {
+    if (rows.length <= 1) {
+      return { nextRecords: [] as RobotConfigRecord[], skipped: 0 };
+    }
+    const knownBaseHeaders = new Set(['配置编号', 'configNo', '配置名称', 'configName', '机器人类型', 'robotType', '分组', 'group', '适用固件版本', 'firmware', '当前版本', 'currentVersion', '编辑人', 'updatedBy', '描述', 'description']);
+    let header = rows[0].map((item) => item.trim());
+    let dataStartIndex = 1;
+    if (!header.some((item) => item.startsWith('参数/')) && rows.length > 1) {
+      const topRow = rows[0].map((item) => item.trim());
+      const secondRow = rows[1].map((item) => item.trim());
+      const totalCols = Math.max(topRow.length, secondRow.length);
+      header = Array.from({ length: totalCols }, (_, colIdx) => {
+        const top = topRow[colIdx] ?? '';
+        const sub = secondRow[colIdx] ?? '';
+        if (knownBaseHeaders.has(top)) {
+          return top;
+        }
+        if (knownBaseHeaders.has(sub)) {
+          return sub;
+        }
+        if (top.startsWith('参数/')) {
+          return top;
+        }
+        if (sub.startsWith('参数/')) {
+          return sub;
+        }
+        if (top && sub) {
+          return `参数/${top}/${sub}`;
+        }
+        return top || sub;
+      });
+      dataStartIndex = 2;
+    }
+
+    const columnIndex = {
+      configNo: header.findIndex((item) => ['配置编号', 'configNo'].includes(item)),
+      configName: header.findIndex((item) => ['配置名称', 'configName'].includes(item)),
+      robotType: header.findIndex((item) => ['机器人类型', 'robotType'].includes(item)),
+      group: header.findIndex((item) => ['分组', 'group'].includes(item)),
+      firmware: header.findIndex((item) => ['适用固件版本', 'firmware'].includes(item)),
+      currentVersion: header.findIndex((item) => ['当前版本', 'currentVersion'].includes(item)),
+      updatedBy: header.findIndex((item) => ['编辑人', 'updatedBy'].includes(item)),
+      description: header.findIndex((item) => ['描述', 'description'].includes(item)),
+    };
+    const paramColumns = header
+      .map((item, index) => ({ item, index }))
+      .filter((entry) => entry.item.startsWith('参数/'))
+      .map((entry) => {
+        const fullPath = entry.item.replace(/^参数\//, '').trim();
+        const lastSlash = fullPath.lastIndexOf('/');
+        if (lastSlash < 0) {
+          return null;
+        }
+        const categoryPath = fullPath.slice(0, lastSlash).trim();
+        const name = fullPath.slice(lastSlash + 1).trim();
+        if (!categoryPath || !name) {
+          return null;
+        }
+        return { index: entry.index, categoryPath, name };
+      })
+      .filter((item): item is { index: number; categoryPath: string; name: string } => Boolean(item));
+
+    if (columnIndex.configNo === -1 || columnIndex.configName === -1) {
+      return { nextRecords: [] as RobotConfigRecord[], skipped: rows.length - 1 };
+    }
+    const now = new Date().toLocaleString('zh-CN', { hour12: false });
+    const nextRecords = rows.slice(dataStartIndex).reduce<RobotConfigRecord[]>((acc, row, idx) => {
+      const configNo = row[columnIndex.configNo]?.trim();
+      const configName = row[columnIndex.configName]?.trim();
+      if (!configNo || !configName) {
+        return acc;
+      }
+      const importedParams: ConfigParam[] = paramColumns.reduce<ConfigParam[]>((params, column, colIdx) => {
+        const value = row[column.index]?.trim();
+        if (value === undefined || value === '') {
+          return params;
+        }
+        params.push({
+          id: `imp-param-${idx}-${colIdx}`,
+          name: column.name,
+          value,
+          defaultValue: value,
+          unit: '-',
+          range: '-',
+          remoteEditable: true,
+          categoryPath: column.categoryPath,
+        });
+        return params;
+      }, []);
+
+      acc.push({
+        id: `cfg-import-${Date.now()}-${idx}`,
+        configNo,
+        configName,
+        robotType: row[columnIndex.robotType]?.trim() || robotTypes[0],
+        group: row[columnIndex.group]?.trim() || groups[0],
+        firmware: row[columnIndex.firmware]?.trim() || 'v2.3.1',
+        currentVersion: row[columnIndex.currentVersion]?.trim() || '-',
+        status: '草稿',
+        createdAt: now,
+        updatedAt: now,
+        updatedBy: row[columnIndex.updatedBy]?.trim() || 'admin',
+        description: row[columnIndex.description]?.trim(),
+        isDefault: false,
+        params: buildDetailedParams(importedParams),
+        versions: [],
+        dispatches: [],
+      });
+      return acc;
+    }, []);
+    return { nextRecords, skipped: rows.length - 1 - nextRecords.length };
+  };
+
+  const importExcel: UploadProps['beforeUpload'] = async (file) => {
+    const suffix = file.name.toLowerCase().split('.').pop();
+    if (!['csv', 'xls'].includes(suffix ?? '')) {
+      messageApi.error('仅支持 .csv 或 .xls 文件导入');
+      return Upload.LIST_IGNORE;
+    }
+    const content = await file.text();
+    const rows = suffix === 'csv' ? buildCsvRows(content) : buildHtmlTableRows(content);
+    const { nextRecords, skipped } = importRowsToRecords(rows);
+    if (!nextRecords.length) {
+      messageApi.warning('未识别到可导入数据，请检查表头和内容');
+      return Upload.LIST_IGNORE;
+    }
+    setList((prev) => [...nextRecords, ...prev]);
+    messageApi.success(`导入成功 ${nextRecords.length} 条${skipped ? `，跳过 ${skipped} 条` : ''}`);
+    return Upload.LIST_IGNORE;
+  };
+
+  const exportExcel = () => {
+    const paramKeySet = new Set(defaultParamTemplate.map((param) => `${param.categoryPath}|${param.name}`));
+    filteredList.forEach((item) => {
+      item.params.forEach((param) => {
+        paramKeySet.add(`${param.categoryPath}|${param.name}`);
+      });
+    });
+    const paramKeys = Array.from(paramKeySet).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    const moduleGroups = paramKeys.reduce<Record<string, string[]>>((acc, key) => {
+      const [categoryPath] = key.split('|');
+      const moduleName = categoryPath.split('/')[0] || '未分类';
+      if (!acc[moduleName]) {
+        acc[moduleName] = [];
+      }
+      acc[moduleName].push(key);
+      return acc;
+    }, {});
+    const orderedModuleNames = ['算法', '运动控制', '底盘驱动', '关节执行器', '视觉相机', '传感器', '电源管理', '通讯与网络', '安全策略'];
+    const moduleNames = [
+      ...orderedModuleNames.filter((name) => moduleGroups[name]?.length),
+      ...Object.keys(moduleGroups).filter((name) => !orderedModuleNames.includes(name)),
+    ];
+    const headers = [
+      '配置编号',
+      '配置名称',
+      '机器人类型',
+      '分组',
+      '适用固件版本',
+      '当前版本',
+      '创建时间',
+      '更新时间',
+      '编辑人',
+      '描述',
+      ...paramKeys.map((key) => {
+        const [categoryPath, name] = key.split('|');
+        return `参数/${categoryPath}/${name}`;
+      }),
+    ];
+    const escapeHtml = (value: string) =>
+      value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const baseHeaderCount = 10;
+    const firstHeaderRow = [
+      ...headers.slice(0, baseHeaderCount).map((header) => `<th rowspan="2">${header}</th>`),
+      ...moduleNames.map((moduleName) => `<th colspan="${moduleGroups[moduleName].length}">${escapeHtml(moduleName)}</th>`),
+    ].join('');
+    const secondHeaderRow = moduleNames
+      .flatMap((moduleName) =>
+        moduleGroups[moduleName].map((key) => {
+          const [categoryPath, name] = key.split('|');
+          const modulePrefix = `${moduleName}/`;
+          const subPath = categoryPath.startsWith(modulePrefix) ? categoryPath.slice(modulePrefix.length) : categoryPath;
+          const label = subPath ? `${subPath}/${name}` : name;
+          return `<th>${escapeHtml(label)}</th>`;
+        }),
+      )
+      .join('');
+    const rows = filteredList
+      .map(
+        (item) => {
+          const paramMap = new Map(item.params.map((param) => [`${param.categoryPath}|${param.name}`, param.value]));
+          const paramCells = paramKeys.map((key) => `<td>${escapeHtml(paramMap.get(key) ?? '')}</td>`).join('');
+          return `
+      <tr>
+        <td>${escapeHtml(item.configNo)}</td>
+        <td>${escapeHtml(item.configName)}</td>
+        <td>${escapeHtml(item.robotType)}</td>
+        <td>${escapeHtml(item.group)}</td>
+        <td>${escapeHtml(item.firmware)}</td>
+        <td>${escapeHtml(item.currentVersion)}</td>
+        <td>${escapeHtml(item.createdAt)}</td>
+        <td>${escapeHtml(item.updatedAt)}</td>
+        <td>${escapeHtml(item.updatedBy)}</td>
+        <td>${escapeHtml(item.description ?? '')}</td>
+        ${paramCells}
+      </tr>`;
+        },
+      )
+      .join('');
+    const html = `
+      <html>
+      <head><meta charset="UTF-8"></head>
+      <body>
+        <table border="1">
+          <tr>${firstHeaderRow}</tr>
+          <tr>${secondHeaderRow}</tr>
+          ${rows}
+        </table>
+      </body>
+      </html>`;
+    const blob = new Blob([`\uFEFF${html}`], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `template-config-${Date.now()}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    messageApi.success('导出成功');
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
@@ -610,26 +884,12 @@ export function RobotConfigPage() {
                 onChange={setRobotTypeFilter}
               />
             </Col>
-            <Col xs={24} md={6}>
-              <Select
-                allowClear
-                style={{ width: '100%' }}
-                placeholder="状态"
-                options={[
-                  { label: '草稿', value: '草稿' },
-                  { label: '已发布', value: '已发布' },
-                ]}
-                value={statusFilter}
-                onChange={setStatusFilter}
-              />
-            </Col>
-            <Col xs={24} md={4}>
+            <Col xs={24} md={10}>
               <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
                 <Button
                   onClick={() => {
                     setKeyword('');
                     setRobotTypeFilter(undefined);
-                    setStatusFilter(undefined);
                   }}
                 >
                   重置
@@ -641,9 +901,12 @@ export function RobotConfigPage() {
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
               新增
             </Button>
-            <Button onClick={() => messageApi.success('导入成功')}>导入</Button>
-            <Button onClick={() => messageApi.success('导出成功')}>导出</Button>
-            <Button onClick={() => messageApi.success('批量下发任务已创建')}>批量下发</Button>
+            <Upload accept=".csv,.xls" showUploadList={false} beforeUpload={importExcel}>
+              <Button icon={<UploadOutlined />}>导入Excel</Button>
+            </Upload>
+            <Button icon={<DownloadOutlined />} onClick={exportExcel}>
+              导出Excel
+            </Button>
           </Space>
         </Space>
       </Card>
@@ -670,11 +933,8 @@ export function RobotConfigPage() {
           <Button key="cancel" onClick={closeModal}>
             取消
           </Button>,
-          <Button key="draft" onClick={() => saveRecord('草稿')}>
-            保存草稿
-          </Button>,
-          <Button key="publish" type="primary" onClick={() => saveRecord('已发布')}>
-            发布版本
+          <Button key="save" type="primary" onClick={() => saveRecord()}>
+            保存
           </Button>,
         ]}
         destroyOnClose
@@ -784,11 +1044,6 @@ export function RobotConfigPage() {
                 </Row>
               ),
             },
-            {
-              key: 'versions',
-              label: '版本管理',
-              children: <Table rowKey="id" columns={versionColumns} dataSource={activeRecord?.versions ?? []} pagination={false} size="small" />,
-            },
           ]}
         />
       </Modal>
@@ -862,4 +1117,3 @@ export function RobotConfigPage() {
     </Space>
   );
 }
-
