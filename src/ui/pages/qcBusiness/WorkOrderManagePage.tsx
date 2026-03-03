@@ -5,6 +5,7 @@ import {
   Col,
   Descriptions,
   Form,
+  Grid,
   Image,
   Input,
   InputNumber,
@@ -309,6 +310,8 @@ function buildInspectionPointsFromAnnotation(workOrder: WorkOrderItem, points: Q
 
 export function WorkOrderManagePage() {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
+  const isLaptop = !screens.xxl;
   const [form] = Form.useForm();
   const [createForm] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
@@ -596,7 +599,7 @@ export function WorkOrderManagePage() {
         />
       </Card>
 
-      <Modal title={t('workOrder.detailTitle')} open={Boolean(viewingWorkOrder)} onCancel={closeDetail} footer={null} width={1280}>
+      <Modal title={t('workOrder.detailTitle')} open={Boolean(viewingWorkOrder)} onCancel={closeDetail} footer={null} width={isLaptop ? 'calc(100vw - 48px)' : 1280}>
         {viewingWorkOrder ? (
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             <Descriptions size="small" column={3}>
@@ -693,7 +696,7 @@ export function WorkOrderManagePage() {
             </Card>
 
             <Card size="small" title={t('workOrder.detail.pointListTitle')}>
-              <Table rowKey="id" columns={pointColumns} dataSource={inspectionPoints} pagination={false} size="small" scroll={{ x: 1100 }} />
+              <Table rowKey="id" columns={pointColumns} dataSource={inspectionPoints} pagination={false} size="small" scroll={{ x: 'max-content' }} />
             </Card>
           </Space>
         ) : null}

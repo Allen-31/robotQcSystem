@@ -1,5 +1,5 @@
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Modal, Row, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
+import { Button, Card, Col, Grid, Modal, Row, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
 import { useMemo, useState } from 'react';
@@ -57,6 +57,8 @@ export function SettingPage() {
   const { t, locale, setLocale } = useI18n();
   const { themeMode, setThemeMode } = useTheme();
   const [messageApi, contextHolder] = message.useMessage();
+  const screens = Grid.useBreakpoint();
+  const isLaptop = !screens.xxl;
   const [licenseRecord, setLicenseRecord] = useState<LicenseRecord | null>(null);
   const [languages, setLanguages] = useState<LanguageConfigRecord[]>(INITIAL_LANGUAGE_CONFIGS);
   const [manageOpen, setManageOpen] = useState(false);
@@ -285,7 +287,7 @@ export function SettingPage() {
       <Modal
         title={t('setting.display.modal.title')}
         open={manageOpen}
-        width={1300}
+        width={isLaptop ? 'calc(100vw - 48px)' : 1300}
         onCancel={() => setManageOpen(false)}
         footer={[
           <Button key="close" onClick={() => setManageOpen(false)}>
@@ -293,7 +295,7 @@ export function SettingPage() {
           </Button>,
         ]}
       >
-        <Table rowKey="id" columns={languageColumns} dataSource={languages} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1600 }} />
+        <Table rowKey="id" columns={languageColumns} dataSource={languages} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 'max-content' }} />
       </Modal>
     </Space>
   );

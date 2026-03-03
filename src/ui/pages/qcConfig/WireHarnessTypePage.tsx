@@ -6,7 +6,7 @@ import {
   SearchOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Space, Table, Tag, Typography, Upload, message } from 'antd';
+import { Button, Card, Col, Form, Grid, Input, Modal, Row, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MouseEvent } from 'react';
 import { useEffect, useState } from 'react';
@@ -20,6 +20,8 @@ type FormValues = WireHarnessTypeConfig;
 export function WireHarnessTypePage() {
   const [form] = Form.useForm<FormValues>();
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
+  const isLaptop = !screens.xxl;
   const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useWireHarnessType();
   const [editingRecord, setEditingRecord] = useState<WireHarnessTypeConfig | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -258,7 +260,7 @@ export function WireHarnessTypePage() {
       </Card>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1400 }} />
+        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 'max-content' }} />
       </Card>
 
       <Modal
@@ -344,7 +346,7 @@ export function WireHarnessTypePage() {
         onOk={saveAnnotation}
         okText={t('qcConfig.common.save')}
         cancelText={t('qcConfig.common.cancel')}
-        width={880}
+        width={isLaptop ? 'calc(100vw - 48px)' : 880}
       >
         <Space direction="vertical" style={{ width: '100%' }} size={12}>
           <Typography.Text type="secondary">{t('qcConfig.wireHarness.annotation.hint')}</Typography.Text>
@@ -441,7 +443,7 @@ export function WireHarnessTypePage() {
         </Space>
       </Modal>
 
-      <Modal title={previewTitle} open={previewOpen} onCancel={() => setPreviewOpen(false)} footer={null} width={880}>
+      <Modal title={previewTitle} open={previewOpen} onCancel={() => setPreviewOpen(false)} footer={null} width={isLaptop ? 'calc(100vw - 48px)' : 880}>
         {previewImageUrl ? (
           <div
             style={{

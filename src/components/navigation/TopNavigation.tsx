@@ -1,5 +1,5 @@
 import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Menu, Select, Space, Typography } from 'antd';
+import { Button, Grid, Menu, Select, Space, Typography } from 'antd';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { menuList } from '../../data/menuList';
@@ -17,6 +17,9 @@ export function TopNavigation() {
   const { t, locale, setLocale } = useI18n();
   const currentUser = useAuthUser();
   const { currentRole, permissionVersion } = useCurrentRole();
+  const screens = Grid.useBreakpoint();
+  const isLaptop = !screens.xxl;
+  const isTight = !screens.xl;
   const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole, permissionVersion]);
   const visibleTopMenus = useMemo(() => filterTopMenusByRole(topMenus, currentRole), [currentRole, permissionVersion]);
 
@@ -25,18 +28,18 @@ export function TopNavigation() {
   return (
     <div
       style={{
-        height: 64,
+        height: isLaptop ? 56 : 64,
         position: 'relative',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 20px',
+        padding: isLaptop ? '0 12px' : '0 20px',
         background: '#0B1F52',
       }}
     >
       <Typography.Title
         level={4}
-        style={{ color: '#fff', margin: 0, cursor: 'pointer', minWidth: 220 }}
+        style={{ color: '#fff', margin: 0, cursor: 'pointer', minWidth: isLaptop ? 170 : 220, fontSize: isLaptop ? 18 : undefined }}
         onClick={() => navigate('/')}
       >
         {t('app.systemTitle')}
@@ -50,7 +53,7 @@ export function TopNavigation() {
           display: 'flex',
           justifyContent: 'center',
           width: 'fit-content',
-          maxWidth: '60vw',
+          maxWidth: isTight ? '48vw' : '60vw',
         }}
       >
         <Menu
@@ -76,8 +79,8 @@ export function TopNavigation() {
         />
       </div>
 
-      <Space size={12} style={{ color: '#fff', marginLeft: 16, minWidth: 420, justifyContent: 'flex-end' }}>
-        <Space size={6}>
+      <Space size={isLaptop ? 8 : 12} style={{ color: '#fff', marginLeft: 8, minWidth: isTight ? 240 : 420, justifyContent: 'flex-end' }}>
+        <Space size={6} style={{ display: isTight ? 'none' : 'inline-flex' }}>
           <Typography.Text style={{ color: '#fff' }}>{t('app.language')}</Typography.Text>
           <Select
             size="small"
@@ -90,12 +93,12 @@ export function TopNavigation() {
             ]}
           />
         </Space>
-        <Space size={6}>
+        <Space size={6} style={{ display: isTight ? 'none' : 'inline-flex' }}>
           <Typography.Text style={{ color: '#fff' }}>{t('app.role')}：{currentRole}</Typography.Text>
         </Space>
         <Space size={6}>
           <UserOutlined />
-          <Typography.Text style={{ color: '#fff' }}>{currentUser?.displayName ?? t('app.adminUser')}</Typography.Text>
+          <Typography.Text style={{ color: '#fff', display: isTight ? 'none' : 'inline' }}>{currentUser?.displayName ?? t('app.adminUser')}</Typography.Text>
         </Space>
         <Button
           size="small"

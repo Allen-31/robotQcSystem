@@ -1,4 +1,4 @@
-import { Layout } from 'antd';
+import { Grid, Layout } from 'antd';
 import { useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { SubsystemMenu } from '../../components/navigation/SubsystemMenu';
@@ -12,6 +12,8 @@ const { Sider, Content } = Layout;
 export function SubsystemLayout() {
   const { pathname } = useLocation();
   const { currentRole, permissionVersion } = useCurrentRole();
+  const screens = Grid.useBreakpoint();
+  const isLaptop = !screens.xxl;
 
   const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole, permissionVersion]);
   const topNode = getTopMenuNodeByPath(visibleMenuTree, pathname);
@@ -19,7 +21,7 @@ export function SubsystemLayout() {
 
   if (menuNodes.length === 0) {
     return (
-      <Content style={{ padding: 16 }}>
+      <Content style={{ padding: isLaptop ? 12 : 16, minWidth: 0 }}>
         <Outlet />
       </Content>
     );
@@ -27,10 +29,10 @@ export function SubsystemLayout() {
 
   return (
     <Layout>
-      <Sider width={260} theme="light">
+      <Sider width={isLaptop ? 220 : 260} theme="light">
         <SubsystemMenu nodes={menuNodes} />
       </Sider>
-      <Content style={{ margin: 16 }}>
+      <Content style={{ margin: isLaptop ? 12 : 16, minWidth: 0 }}>
         <Outlet />
       </Content>
     </Layout>
