@@ -1,5 +1,5 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tabs, Tag, Tree, Typography, message } from 'antd';
+import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tabs, Tag, Tree, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key } from 'react';
 import { useMemo, useState } from 'react';
@@ -280,6 +280,8 @@ type ConfigFormValues = {
 export function RobotConfigPage() {
   const [form] = Form.useForm<ConfigFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
+  const screens = Grid.useBreakpoint();
+  const isLaptop = !screens.xxl;
   const [list, setList] = useState<RobotConfigRecord[]>(initialList);
   const [keyword, setKeyword] = useState('');
   const [robotTypeFilter, setRobotTypeFilter] = useState<string | undefined>();
@@ -647,14 +649,14 @@ export function RobotConfigPage() {
       </Card>
 
       <Card>
-        <Table rowKey="id" columns={configColumns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1900 }} />
+        <Table rowKey="id" columns={configColumns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 'max-content' }} />
       </Card>
 
       <Modal
         title={editing ? '编辑机器人配置' : '新增机器人配置'}
         open={modalOpen}
         onCancel={closeModal}
-        width={1080}
+        width={isLaptop ? 960 : 1080}
         style={{ top: 16 }}
         styles={{
           body: {
@@ -725,12 +727,12 @@ export function RobotConfigPage() {
               label: '参数配置',
               children: (
                 <Row gutter={12}>
-                  <Col xs={24} md={5}>
+                  <Col xs={24} md={isLaptop ? 7 : 5}>
                     <Card size="small" title="参数分类" styles={{ body: { maxHeight: 620, overflowY: 'auto' } }}>
                       <Tree treeData={categoryTree} defaultExpandAll selectedKeys={[selectedCategory]} onSelect={handleCategorySelect} />
                     </Card>
                   </Col>
-                  <Col xs={24} md={19}>
+                  <Col xs={24} md={isLaptop ? 17 : 19}>
                     <Card
                       size="small"
                       title={`分类：${selectedCategory}`}
@@ -795,7 +797,7 @@ export function RobotConfigPage() {
         title="配置对比"
         open={compareModalOpen}
         onCancel={closeCompareModal}
-        width={1080}
+        width={isLaptop ? 960 : 1080}
         footer={[
           <Button key="close" onClick={closeCompareModal}>
             关闭
@@ -823,12 +825,12 @@ export function RobotConfigPage() {
             </Col>
           </Row>
           <Row gutter={12}>
-            <Col span={6}>
+            <Col xs={24} md={isLaptop ? 8 : 6}>
               <Card size="small" title="对比分组" styles={{ body: { maxHeight: 560, overflowY: 'auto' } }}>
                 <Tree treeData={compareTreeData} defaultExpandAll selectedKeys={[compareCategory]} onSelect={(keys) => setCompareCategory(String(keys[0] ?? '__base'))} />
               </Card>
             </Col>
-            <Col span={18}>
+            <Col xs={24} md={isLaptop ? 16 : 18}>
               <Card size="small" title={`分组：${compareCategory === '__base' ? '基础信息' : compareCategory}`}>
                 <Table
                   rowKey="key"
