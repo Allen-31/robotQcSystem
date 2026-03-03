@@ -1,0 +1,20 @@
+html[data-app-theme='light'],
+html[data-app-theme='light'] body {
+  background: #f5f6f8;
+  color: #1f1f1f;
+}
+
+html[data-app-theme='dark'],
+html[data-app-theme='dark'] body {
+  background: #0f1115;
+  color: #f0f0f0;
+}
+
+body,
+.ant-layout,
+.ant-card,
+.ant-table,
+.ant-modal-content {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+

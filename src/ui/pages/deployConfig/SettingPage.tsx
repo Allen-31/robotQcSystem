@@ -4,6 +4,8 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { useTheme } from '../../../logic/theme/useTheme';
+import type { ThemeMode } from '../../../logic/theme/themeStore';
 
 interface LicenseRecord {
   deviceId: string;
@@ -52,17 +54,22 @@ const INITIAL_LANGUAGE_CONFIGS: LanguageConfigRecord[] = [
 const THEME_OPTIONS = ['light', 'dark', 'system'] as const;
 
 export function SettingPage() {
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
+  const { themeMode, setThemeMode } = useTheme();
   const [messageApi, contextHolder] = message.useMessage();
   const [licenseRecord, setLicenseRecord] = useState<LicenseRecord | null>(null);
-  const [theme, setTheme] = useState<(typeof THEME_OPTIONS)[number]>('light');
   const [languages, setLanguages] = useState<LanguageConfigRecord[]>(INITIAL_LANGUAGE_CONFIGS);
-  const [selectedLanguage, setSelectedLanguage] = useState('zh-CN');
   const [manageOpen, setManageOpen] = useState(false);
 
   const languageSelectOptions = useMemo(
-    () => languages.filter((item) => item.enabled).map((item) => ({ label: `${item.name} (${item.localeCode})`, value: item.localeCode })),
-    [languages],
+    () =>
+      languages
+        .filter((item) => item.enabled)
+        .map((item) => ({
+          label: item.localeCode === 'zh-CN' ? t('app.locale.zhCN') : item.localeCode === 'en-US' ? t('app.locale.enUS') : `${item.name} (${item.localeCode})`,
+          value: item.localeCode,
+        })),
+    [languages, t],
   );
 
   const importLicense: UploadProps['beforeUpload'] = () => {
@@ -253,17 +260,17 @@ export function SettingPage() {
             <Space>
               <Typography.Text>{t('setting.display.theme')}</Typography.Text>
               <Select
-                value={theme}
+                value={themeMode}
                 style={{ width: 220 }}
                 options={THEME_OPTIONS.map((item) => ({ value: item, label: t(`setting.display.theme.${item}`) }))}
-                onChange={setTheme}
+                onChange={(value) => setThemeMode(value as ThemeMode)}
               />
             </Space>
           </Col>
           <Col xs={24} lg={8}>
             <Space>
               <Typography.Text>{t('setting.display.language')}</Typography.Text>
-              <Select value={selectedLanguage} style={{ width: 220 }} options={languageSelectOptions} onChange={setSelectedLanguage} />
+              <Select value={locale} style={{ width: 220 }} options={languageSelectOptions} onChange={(value) => setLocale(value)} />
             </Space>
           </Col>
           <Col xs={24} lg={8}>
@@ -290,4 +297,3 @@ export function SettingPage() {
     </Space>
   );
 }
-
