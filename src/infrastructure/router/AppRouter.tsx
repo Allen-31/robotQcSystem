@@ -13,6 +13,7 @@ import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
 import { RobotConfigPage } from '../../ui/pages/deployConfig/RobotConfigPage';
 import { RobotGroupPage } from '../../ui/pages/deployConfig/RobotGroupPage';
 import { RobotPartsPage } from '../../ui/pages/deployConfig/RobotPartsPage';
+import { RobotTypeEditorPage } from '../../ui/pages/deployConfig/RobotTypeEditorPage';
 import { RobotTypePage } from '../../ui/pages/deployConfig/RobotTypePage';
 import { ReinspectionRecordPage } from '../../ui/pages/qcBusiness/ReinspectionRecordPage';
 import { WorkOrderManagePage } from '../../ui/pages/qcBusiness/WorkOrderManagePage';
@@ -146,6 +147,8 @@ export function AppRouter() {
             <Route path="/qualityInspection/workshopConfig" element={<WorkshopConfigPage />} />
             <Route path="/deployConfig/robot/robotList" element={<ConfigTemplatePage />} />
             <Route path="/deployConfig/robot/robotType" element={<RobotTypePage />} />
+            <Route path="/deployConfig/robot/robotType/new" element={<RobotTypeEditorPage />} />
+            <Route path="/deployConfig/robot/robotType/:typeId/edit" element={<RobotTypeEditorPage />} />
             <Route path="/deployConfig/robot/robotParts" element={<RobotPartsPage />} />
             <Route path="/deployConfig/robot/robotGroup" element={<RobotGroupPage />} />
 
