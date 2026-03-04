@@ -445,7 +445,6 @@ export function RobotConfigPage() {
     { title: '机器人类型', dataIndex: 'robotType', key: 'robotType', width: 140 },
     { title: '分组', dataIndex: 'group', key: 'group', width: 100 },
     { title: '适用固件版本', dataIndex: 'firmware', key: 'firmware', width: 140 },
-    { title: '当前版本', dataIndex: 'currentVersion', key: 'currentVersion', width: 120 },
     { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
     { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
     { title: '编辑人', dataIndex: 'updatedBy', key: 'updatedBy', width: 120 },
