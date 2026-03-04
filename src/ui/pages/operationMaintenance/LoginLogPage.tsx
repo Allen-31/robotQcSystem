@@ -20,7 +20,7 @@ function exportCsv(rows: LoginLogRecord[]) {
 }
 
 export function LoginLogPage() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
 
@@ -33,10 +33,10 @@ export function LoginLogPage() {
   }, [keyword]);
 
   const columns: ColumnsType<LoginLogRecord> = [
-    { title: '用户', dataIndex: 'user', key: 'user', width: 180 },
-    { title: '类型', dataIndex: 'type', key: 'type', width: 130 },
-    { title: 'IP地址', dataIndex: 'ip', key: 'ip', width: 180 },
-    { title: '时间', dataIndex: 'time', key: 'time', width: 220 },
+    { title: t('op.login.table.user'), dataIndex: 'user', key: 'user', width: 180 },
+    { title: t('op.login.table.type'), dataIndex: 'type', key: 'type', width: 130 },
+    { title: t('op.login.table.ip'), dataIndex: 'ip', key: 'ip', width: 180 },
+    { title: t('op.login.table.time'), dataIndex: 'time', key: 'time', width: 220 },
   ];
 
   return (
@@ -48,22 +48,15 @@ export function LoginLogPage() {
             {t('menu.loginLog')}
           </Typography.Title>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Input
-              allowClear
-              prefix={<SearchOutlined />}
-              placeholder={locale === 'en-US' ? 'Search by user, type, ip, time' : '按用户、类型、IP、时间搜索'}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              style={{ maxWidth: 420 }}
-            />
+            <Input allowClear prefix={<SearchOutlined />} placeholder={t('op.login.searchPlaceholder')} value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ maxWidth: 420 }} />
             <Button
               icon={<ExportOutlined />}
               onClick={() => {
                 exportCsv(filtered);
-                messageApi.success(locale === 'en-US' ? `Exported ${filtered.length} records` : `已导出 ${filtered.length} 条记录`);
+                messageApi.success(t('op.common.exportedCount', { count: filtered.length }));
               }}
             >
-              {locale === 'en-US' ? 'Export' : '导出'}
+              {t('op.common.export')}
             </Button>
           </Space>
         </Space>

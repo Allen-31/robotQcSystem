@@ -21,17 +21,9 @@ function exportCsv(rows: ExceptionNotificationRecord[]) {
 }
 
 export function ExceptionNotificationPage() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
-
-  const label = useMemo(
-    () =>
-      locale === 'en-US'
-        ? { search: 'Search by id, type, source, issue, robot', export: 'Export', pending: 'Pending', processing: 'Processing', closed: 'Closed' }
-        : { search: '按编号、类型、来源、问题、机器人搜索', export: '导出', pending: '待处理', processing: '处理中', closed: '已关闭' },
-    [locale],
-  );
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -44,21 +36,21 @@ export function ExceptionNotificationPage() {
   }, [keyword]);
 
   const columns: ColumnsType<ExceptionNotificationRecord> = [
-    { title: '编号', dataIndex: 'id', key: 'id', width: 170 },
-    { title: '等级', dataIndex: 'level', key: 'level', width: 80, render: (value) => <Tag color={value === 'P1' ? 'error' : value === 'P2' ? 'warning' : 'default'}>{value}</Tag> },
-    { title: '类型', dataIndex: 'type', key: 'type', width: 120 },
-    { title: '来源系统', dataIndex: 'sourceSystem', key: 'sourceSystem', width: 170 },
-    { title: '问题描述', dataIndex: 'issue', key: 'issue', width: 280 },
+    { title: t('op.exception.table.id'), dataIndex: 'id', key: 'id', width: 170 },
+    { title: t('op.exception.table.level'), dataIndex: 'level', key: 'level', width: 80, render: (value) => <Tag color={value === 'P1' ? 'error' : value === 'P2' ? 'warning' : 'default'}>{value}</Tag> },
+    { title: t('op.exception.table.type'), dataIndex: 'type', key: 'type', width: 120 },
+    { title: t('op.exception.table.sourceSystem'), dataIndex: 'sourceSystem', key: 'sourceSystem', width: 170 },
+    { title: t('op.exception.table.issue'), dataIndex: 'issue', key: 'issue', width: 280 },
     {
-      title: '状态',
+      title: t('op.exception.table.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (value) => <Tag color={value === 'pending' ? 'error' : value === 'processing' ? 'warning' : 'success'}>{value === 'pending' ? label.pending : value === 'processing' ? label.processing : label.closed}</Tag>,
+      render: (value) => <Tag color={value === 'pending' ? 'error' : value === 'processing' ? 'warning' : 'success'}>{t(`op.exception.status.${value}`)}</Tag>,
     },
-    { title: '关联任务', dataIndex: 'relatedTask', key: 'relatedTask', width: 160 },
-    { title: '机器人', dataIndex: 'robot', key: 'robot', width: 120 },
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+    { title: t('op.exception.table.relatedTask'), dataIndex: 'relatedTask', key: 'relatedTask', width: 160 },
+    { title: t('op.exception.table.robot'), dataIndex: 'robot', key: 'robot', width: 120 },
+    { title: t('op.exception.table.createdAt'), dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   ];
 
   return (
@@ -70,15 +62,15 @@ export function ExceptionNotificationPage() {
             {t('menu.exceptionNotification')}
           </Typography.Title>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Input allowClear prefix={<SearchOutlined />} placeholder={label.search} value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ maxWidth: 420 }} />
+            <Input allowClear prefix={<SearchOutlined />} placeholder={t('op.exception.searchPlaceholder')} value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ maxWidth: 420 }} />
             <Button
               icon={<ExportOutlined />}
               onClick={() => {
                 exportCsv(filtered);
-                messageApi.success(locale === 'en-US' ? `Exported ${filtered.length} records` : `已导出 ${filtered.length} 条记录`);
+                messageApi.success(t('op.common.exportedCount', { count: filtered.length }));
               }}
             >
-              {label.export}
+              {t('op.common.export')}
             </Button>
           </Space>
         </Space>

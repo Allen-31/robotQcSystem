@@ -20,7 +20,7 @@ function exportCsv(rows: ApiLogRecord[]) {
 }
 
 export function ApiLogPage() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
 
@@ -33,19 +33,19 @@ export function ApiLogPage() {
   }, [keyword]);
 
   const columns: ColumnsType<ApiLogRecord> = [
-    { title: '接口名称', dataIndex: 'apiName', key: 'apiName', width: 240 },
+    { title: t('op.api.table.apiName'), dataIndex: 'apiName', key: 'apiName', width: 240 },
     {
-      title: '调用结果',
+      title: t('op.api.table.callResult'),
       dataIndex: 'callResult',
       key: 'callResult',
       width: 100,
-      render: (value) => <Tag color={value === 'success' ? 'success' : 'error'}>{value === 'success' ? (locale === 'en-US' ? 'Success' : '成功') : locale === 'en-US' ? 'Failed' : '失败'}</Tag>,
+      render: (value) => <Tag color={value === 'success' ? 'success' : 'error'}>{value === 'success' ? t('op.common.success') : t('op.common.failed')}</Tag>,
     },
-    { title: '失败原因', dataIndex: 'failReason', key: 'failReason', width: 180 },
-    { title: '响应时长(ms)', dataIndex: 'responseTime', key: 'responseTime', width: 120 },
-    { title: '请求信息', dataIndex: 'requestInfo', key: 'requestInfo', width: 260 },
-    { title: '返回信息', dataIndex: 'responseInfo', key: 'responseInfo', width: 260 },
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+    { title: t('op.api.table.failReason'), dataIndex: 'failReason', key: 'failReason', width: 180 },
+    { title: t('op.api.table.responseTime'), dataIndex: 'responseTime', key: 'responseTime', width: 130 },
+    { title: t('op.api.table.requestInfo'), dataIndex: 'requestInfo', key: 'requestInfo', width: 260 },
+    { title: t('op.api.table.responseInfo'), dataIndex: 'responseInfo', key: 'responseInfo', width: 260 },
+    { title: t('op.api.table.createdAt'), dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   ];
 
   return (
@@ -57,22 +57,15 @@ export function ApiLogPage() {
             {t('menu.apiLog')}
           </Typography.Title>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Input
-              allowClear
-              prefix={<SearchOutlined />}
-              placeholder={locale === 'en-US' ? 'Search by api, result, request' : '按接口、结果、请求信息搜索'}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              style={{ maxWidth: 460 }}
-            />
+            <Input allowClear prefix={<SearchOutlined />} placeholder={t('op.api.searchPlaceholder')} value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ maxWidth: 460 }} />
             <Button
               icon={<ExportOutlined />}
               onClick={() => {
                 exportCsv(filtered);
-                messageApi.success(locale === 'en-US' ? `Exported ${filtered.length} records` : `已导出 ${filtered.length} 条记录`);
+                messageApi.success(t('op.common.exportedCount', { count: filtered.length }));
               }}
             >
-              {locale === 'en-US' ? 'Export' : '导出'}
+              {t('op.common.export')}
             </Button>
           </Space>
         </Space>

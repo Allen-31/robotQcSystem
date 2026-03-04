@@ -20,7 +20,7 @@ function exportCsv(rows: OperationLogRecord[]) {
 }
 
 export function OperationLogPage() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
 
@@ -35,21 +35,21 @@ export function OperationLogPage() {
   }, [keyword]);
 
   const columns: ColumnsType<OperationLogRecord> = [
-    { title: '用户', dataIndex: 'user', key: 'user', width: 120 },
-    { title: '操作类型', dataIndex: 'operationType', key: 'operationType', width: 140 },
+    { title: t('op.operation.table.user'), dataIndex: 'user', key: 'user', width: 120 },
+    { title: t('op.operation.table.operationType'), dataIndex: 'operationType', key: 'operationType', width: 140 },
     {
-      title: '操作结果',
+      title: t('op.operation.table.result'),
       dataIndex: 'result',
       key: 'result',
       width: 100,
-      render: (value) => <Tag color={value === 'success' ? 'success' : 'error'}>{value === 'success' ? (locale === 'en-US' ? 'Success' : '成功') : locale === 'en-US' ? 'Failed' : '失败'}</Tag>,
+      render: (value) => <Tag color={value === 'success' ? 'success' : 'error'}>{value === 'success' ? t('op.common.success') : t('op.common.failed')}</Tag>,
     },
-    { title: '失败原因', dataIndex: 'failReason', key: 'failReason', width: 180 },
-    { title: '响应时长(ms)', dataIndex: 'responseTime', key: 'responseTime', width: 120 },
-    { title: 'IP地址', dataIndex: 'ip', key: 'ip', width: 140 },
-    { title: '请求信息', dataIndex: 'requestInfo', key: 'requestInfo', width: 240 },
-    { title: '返回信息', dataIndex: 'responseInfo', key: 'responseInfo', width: 220 },
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+    { title: t('op.operation.table.failReason'), dataIndex: 'failReason', key: 'failReason', width: 180 },
+    { title: t('op.operation.table.responseTime'), dataIndex: 'responseTime', key: 'responseTime', width: 130 },
+    { title: t('op.operation.table.ip'), dataIndex: 'ip', key: 'ip', width: 140 },
+    { title: t('op.operation.table.requestInfo'), dataIndex: 'requestInfo', key: 'requestInfo', width: 240 },
+    { title: t('op.operation.table.responseInfo'), dataIndex: 'responseInfo', key: 'responseInfo', width: 220 },
+    { title: t('op.operation.table.createdAt'), dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   ];
 
   return (
@@ -61,28 +61,21 @@ export function OperationLogPage() {
             {t('menu.operationLog')}
           </Typography.Title>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Input
-              allowClear
-              prefix={<SearchOutlined />}
-              placeholder={locale === 'en-US' ? 'Search by user, type, ip, request' : '按用户、类型、IP、请求信息搜索'}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              style={{ maxWidth: 460 }}
-            />
+            <Input allowClear prefix={<SearchOutlined />} placeholder={t('op.operation.searchPlaceholder')} value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ maxWidth: 460 }} />
             <Button
               icon={<ExportOutlined />}
               onClick={() => {
                 exportCsv(filtered);
-                messageApi.success(locale === 'en-US' ? `Exported ${filtered.length} records` : `已导出 ${filtered.length} 条记录`);
+                messageApi.success(t('op.common.exportedCount', { count: filtered.length }));
               }}
             >
-              {locale === 'en-US' ? 'Export' : '导出'}
+              {t('op.common.export')}
             </Button>
           </Space>
         </Space>
       </Card>
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={filtered} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1680 }} />
+        <Table rowKey="id" columns={columns} dataSource={filtered} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1700 }} />
       </Card>
     </Space>
   );
