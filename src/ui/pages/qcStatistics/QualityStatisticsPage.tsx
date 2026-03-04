@@ -1,64 +1,36 @@
 import { Card, Col, Row, Select, Space, Statistic, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
-import { qualityStatsMock, type QualityStatRecord } from '../../../data/qcStatistics/qualityStatsMock';
+import { useMemo } from 'react';
+import { ALL_VALUE, type AggregatedRow, type MetricKey, useQualityStatistics } from '../../../logic/qcStatistics/useQualityStatistics';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { SimpleBarChart, SimpleLineChart } from '../../components/charts/SimpleCharts';
 
-type PeriodKey = 'all' | 'day3' | 'day7';
-type MetricKey = 'inspectionCount' | 'defectCount' | 'detectionRate' | 'reinspectionRate' | 'avgDurationMin';
-
-const ALL_VALUE = '__ALL__';
-
-interface AggregatedRow {
-  key: string;
-  groupValue: string;
-  wireHarnesses: string[];
-  inspectionCount: number;
-  defectCount: number;
-  reinspectionCount: number;
-  detectionRate: number;
-  reinspectionRate: number;
-  avgDurationMin: number;
-}
-
-function calcRate(numerator: number, denominator: number): number {
-  if (denominator === 0) {
-    return 0;
-  }
-  return Number(((numerator / denominator) * 100).toFixed(2));
-}
-
-function getLatestDate(records: QualityStatRecord[]): string {
-  const sorted = records.map((item) => item.date).sort();
-  return sorted.length > 0 ? sorted[sorted.length - 1] : '';
-}
-
-function applyPeriod(records: QualityStatRecord[], period: PeriodKey): QualityStatRecord[] {
-  if (period === 'all') {
-    return records;
-  }
-  const latest = getLatestDate(records);
-  if (!latest) {
-    return records;
-  }
-  const latestDate = new Date(`${latest}T00:00:00`);
-  const days = period === 'day3' ? 3 : 7;
-  return records.filter((item) => {
-    const date = new Date(`${item.date}T00:00:00`);
-    const diff = (latestDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff < days;
-  });
-}
-
 export function QualityStatisticsPage() {
   const { locale, t } = useI18n();
-  const [period, setPeriod] = useState<PeriodKey>('day7');
-  const [workshop, setWorkshop] = useState<string>(ALL_VALUE);
-  const [workstation, setWorkstation] = useState<string>(ALL_VALUE);
-  const [station, setStation] = useState<string>(ALL_VALUE);
-  const [wireHarness, setWireHarness] = useState<string>(ALL_VALUE);
-  const [metric, setMetric] = useState<MetricKey>('inspectionCount');
+  const {
+    period,
+    workshop,
+    workstation,
+    station,
+    wireHarness,
+    metric,
+    setPeriod,
+    setWireHarness,
+    setMetric,
+    changeWorkshop,
+    changeWorkstation,
+    changeStation,
+    workshopOptions,
+    workstationOptions,
+    stationOptions,
+    wireHarnessOptions,
+    groupDimension,
+    rows,
+    summary,
+    chartTopCount,
+    chartRows,
+    chartIsLine,
+  } = useQualityStatistics();
 
   const label = useMemo(() => {
     if (locale === 'en-US') {
@@ -105,77 +77,11 @@ export function QualityStatisticsPage() {
       metric: '指标切换',
       tableTitle: '质检统计列表',
       chartTitle: '指标图表',
-      chartTopHint: '图表仅展示前 {count} 条，完整数据请查看上方列表',
+      chartTopHint: '图表仅展示前 {count} 项，完整数据请查看上方列表',
       wireHarness: '线束类型',
       allWireHarness: '全部线束类型',
     };
   }, [locale]);
-
-  const periodFiltered = useMemo(() => applyPeriod(qualityStatsMock, period), [period]);
-
-  const workshopOptions = useMemo(() => Array.from(new Set(periodFiltered.map((item) => item.workshop))), [periodFiltered]);
-
-  const workstationOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          periodFiltered
-            .filter((item) => workshop === ALL_VALUE || item.workshop === workshop)
-            .map((item) => item.workstation),
-        ),
-      ),
-    [periodFiltered, workshop],
-  );
-
-  const stationOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          periodFiltered
-            .filter((item) => (workshop === ALL_VALUE || item.workshop === workshop) && (workstation === ALL_VALUE || item.workstation === workstation))
-            .map((item) => item.station),
-        ),
-      ),
-    [periodFiltered, workshop, workstation],
-  );
-  const wireHarnessOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          periodFiltered
-            .filter(
-              (item) =>
-                (workshop === ALL_VALUE || item.workshop === workshop) &&
-                (workstation === ALL_VALUE || item.workstation === workstation) &&
-                (station === ALL_VALUE || item.station === station),
-            )
-            .map((item) => item.wireHarness),
-        ),
-      ),
-    [periodFiltered, workshop, workstation, station],
-  );
-
-  const drilledRecords = useMemo(
-    () =>
-      periodFiltered.filter(
-        (item) =>
-          (workshop === ALL_VALUE || item.workshop === workshop) &&
-          (workstation === ALL_VALUE || item.workstation === workstation) &&
-          (station === ALL_VALUE || item.station === station) &&
-          (wireHarness === ALL_VALUE || item.wireHarness === wireHarness),
-      ),
-    [periodFiltered, workshop, workstation, station, wireHarness],
-  );
-
-  const groupDimension = useMemo<'workshop' | 'workstation' | 'station'>(() => {
-    if (workshop === ALL_VALUE) {
-      return 'workshop';
-    }
-    if (workstation === ALL_VALUE) {
-      return 'workstation';
-    }
-    return 'station';
-  }, [workshop, workstation]);
 
   const groupLabel = useMemo(() => {
     if (groupDimension === 'workshop') {
@@ -186,51 +92,6 @@ export function QualityStatisticsPage() {
     }
     return label.station;
   }, [groupDimension, label.station, label.workshop, label.workstation]);
-
-  const rows = useMemo<AggregatedRow[]>(() => {
-    const grouped = new Map<string, QualityStatRecord[]>();
-    drilledRecords.forEach((item) => {
-      const key = item[groupDimension];
-      grouped.set(key, [...(grouped.get(key) ?? []), item]);
-    });
-    return Array.from(grouped.entries())
-      .map(([stationKey, items]) => {
-        const inspectionCount = items.reduce((sum, row) => sum + row.inspectionCount, 0);
-        const defectCount = items.reduce((sum, row) => sum + row.defectCount, 0);
-        const reinspectionCount = items.reduce((sum, row) => sum + row.reinspectionCount, 0);
-        const avgDurationMin =
-          inspectionCount === 0
-            ? 0
-            : Number((items.reduce((sum, row) => sum + row.avgDurationMin * row.inspectionCount, 0) / inspectionCount).toFixed(2));
-        return {
-          key: stationKey,
-          groupValue: stationKey,
-          wireHarnesses: Array.from(new Set(items.map((row) => row.wireHarness))),
-          inspectionCount,
-          defectCount,
-          reinspectionCount,
-          detectionRate: calcRate(defectCount, inspectionCount),
-          reinspectionRate: calcRate(reinspectionCount, inspectionCount),
-          avgDurationMin,
-        };
-      })
-      .sort((a, b) => b.inspectionCount - a.inspectionCount);
-  }, [drilledRecords, groupDimension]);
-
-  const summary = useMemo(() => {
-    const inspectionCount = rows.reduce((sum, row) => sum + row.inspectionCount, 0);
-    const defectCount = rows.reduce((sum, row) => sum + row.defectCount, 0);
-    const reinspectionCount = rows.reduce((sum, row) => sum + row.reinspectionCount, 0);
-    const avgDurationMin =
-      inspectionCount === 0 ? 0 : Number((rows.reduce((sum, row) => sum + row.avgDurationMin * row.inspectionCount, 0) / inspectionCount).toFixed(2));
-    return {
-      inspectionCount,
-      defectCount,
-      detectionRate: calcRate(defectCount, inspectionCount),
-      reinspectionRate: calcRate(reinspectionCount, inspectionCount),
-      avgDurationMin,
-    };
-  }, [rows]);
 
   const columns: ColumnsType<AggregatedRow> = [
     { title: groupLabel, dataIndex: 'groupValue', key: 'groupValue', width: 180 },
@@ -249,11 +110,6 @@ export function QualityStatisticsPage() {
     reinspectionRate: label.reinspectionRate,
     avgDurationMin: label.avgDuration,
   };
-
-  const metricValues = rows.map((row) => row[metric]);
-  const chartIsLine = metric === 'detectionRate' || metric === 'reinspectionRate';
-  const chartTopCount = 12;
-  const chartRows = rows.slice(0, chartTopCount);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -275,11 +131,7 @@ export function QualityStatisticsPage() {
             />
             <Select
               value={workshop}
-              onChange={(value) => {
-                setWorkshop(value);
-                setWorkstation(ALL_VALUE);
-                setStation(ALL_VALUE);
-              }}
+              onChange={changeWorkshop}
               options={[
                 { label: label.allWorkshop, value: ALL_VALUE },
                 ...workshopOptions.map((item) => ({ label: item, value: item })),
@@ -289,10 +141,7 @@ export function QualityStatisticsPage() {
             {workshop !== ALL_VALUE ? (
               <Select
                 value={workstation}
-                onChange={(value) => {
-                  setWorkstation(value);
-                  setStation(ALL_VALUE);
-                }}
+                onChange={changeWorkstation}
                 options={[
                   { label: label.allWorkstation, value: ALL_VALUE },
                   ...workstationOptions.map((item) => ({ label: item, value: item })),
@@ -303,7 +152,7 @@ export function QualityStatisticsPage() {
             {workshop !== ALL_VALUE && workstation !== ALL_VALUE ? (
               <Select
                 value={station}
-                onChange={setStation}
+                onChange={changeStation}
                 options={[
                   { label: label.allStation, value: ALL_VALUE },
                   ...stationOptions.map((item) => ({ label: item, value: item })),
@@ -392,7 +241,7 @@ export function QualityStatisticsPage() {
                 name: row.groupValue,
                 value: Number(row[metric]),
               }))}
-              unit={metric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 分钟') : undefined}
+              unit={metric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 鍒嗛挓') : undefined}
             />
           )}
         </Space>
