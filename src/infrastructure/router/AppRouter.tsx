@@ -30,6 +30,11 @@ import { TerminalConfigPage } from '../../ui/pages/qcConfig/TerminalConfigPage';
 import { WireHarnessTypePage } from '../../ui/pages/qcConfig/WireHarnessTypePage';
 import { WorkstationConfigPage } from '../../ui/pages/qcConfig/WorkstationConfigPage';
 import { WorkshopConfigPage } from '../../ui/pages/qcConfig/WorkshopConfigPage';
+import { FileManagePage } from '../../ui/pages/operationMaintenance/FileManagePage';
+import { PackageManagePage } from '../../ui/pages/operationMaintenance/PackageManagePage';
+import { PublishManagePage } from '../../ui/pages/operationMaintenance/PublishManagePage';
+import { ServiceManagePage } from '../../ui/pages/operationMaintenance/ServiceManagePage';
+import { TaskManagePage } from '../../ui/pages/operationMaintenance/TaskManagePage';
 
 const allRoutes = collectRoutes(menuList);
 const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
@@ -44,6 +49,11 @@ const mapManagePath = '/deployConfig/scene/mapManage';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
 const chargeStrategyPath = '/deployConfig/robot/chargeStrategy';
 const homingStrategyPath = '/deployConfig/robot/homingStrategy';
+const fileManagePath = '/operationMaintenance/file/fileManage';
+const serviceManagePath = '/operationMaintenance/service/serviceManage';
+const packageManagePath = '/operationMaintenance/upgrade/packageManage';
+const publishManagePath = '/operationMaintenance/upgrade/publishManage';
+const taskManagePath = '/operationMaintenance/task/taskManage';
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
@@ -70,6 +80,11 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== configTemplatePath &&
     route.path !== chargeStrategyPath &&
     route.path !== homingStrategyPath &&
+    route.path !== fileManagePath &&
+    route.path !== serviceManagePath &&
+    route.path !== packageManagePath &&
+    route.path !== publishManagePath &&
+    route.path !== taskManagePath &&
     !qualityConfigPaths.includes(route.path) &&
     !deployRobotPaths.includes(route.path),
 );
@@ -119,6 +134,11 @@ export function AppRouter() {
             <Route path={configTemplatePath} element={<RobotConfigPage />} />
             <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
             <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
+            <Route path={fileManagePath} element={<FileManagePage />} />
+            <Route path={serviceManagePath} element={<ServiceManagePage />} />
+            <Route path={packageManagePath} element={<PackageManagePage />} />
+            <Route path={publishManagePath} element={<PublishManagePage />} />
+            <Route path={taskManagePath} element={<TaskManagePage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
