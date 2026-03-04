@@ -1,10 +1,10 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined, UploadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tabs, Tree, Typography, Upload, message } from 'antd';
+import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tree, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
-import type { Key } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loadConfigTemplateSnapshots, saveConfigTemplateSnapshots } from '../../../logic/deployConfig/configTemplateStore';
 
 type ConfigParam = {
   id: string;
@@ -28,6 +28,15 @@ type RobotConfigRecord = {
 };
 
 type RobotConfigFormValues = Omit<RobotConfigRecord, 'id' | 'params'>;
+
+type ConfigCompareRow = {
+  key: string;
+  categoryKey: string;
+  field: string;
+  currentValue: string;
+  targetValue: string;
+  different: boolean;
+};
 
 const robotTypes = ['巡检机器人', '搬运机器人', '协作机械臂'];
 const groups = ['A组', 'B组', 'C组'];
@@ -180,21 +189,35 @@ function nowText() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
 
+function displayIp(ip: string, id: string) {
+  const trimmed = ip.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 200;
+  }
+  return `192.168.10.${hash + 20}`;
+}
+
 export function ConfigTemplatePage() {
   const navigate = useNavigate();
   const [form] = Form.useForm<RobotConfigFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
+  const [modalApi, modalContextHolder] = Modal.useModal();
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
 
-  const [list, setList] = useState<RobotConfigRecord[]>(initialList);
+  const [list, setList] = useState<RobotConfigRecord[]>(() => {
+    const stored = loadConfigTemplateSnapshots();
+    return stored.length ? stored : initialList;
+  });
   const [keyword, setKeyword] = useState('');
   const [editing, setEditing] = useState<RobotConfigRecord | null>(null);
-  const [editTab, setEditTab] = useState<'base' | 'params'>('base');
-  const [draftParams, setDraftParams] = useState<ConfigParam[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('算法/SLAM');
   const [compareBase, setCompareBase] = useState<RobotConfigRecord | null>(null);
   const [compareTargetId, setCompareTargetId] = useState<string>();
+  const [compareCategory, setCompareCategory] = useState<string>('__base');
 
   const filteredList = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -204,20 +227,17 @@ export function ConfigTemplatePage() {
     return list.filter((item) => `${item.code} ${item.serialNo} ${item.ip} ${item.robotType} ${item.group}`.toLowerCase().includes(k));
   }, [keyword, list]);
 
-  const filteredParams = draftParams.filter((item) => item.categoryPath === selectedCategory);
+  useEffect(() => {
+    saveConfigTemplateSnapshots(list);
+  }, [list]);
 
   const closeEdit = () => {
     setEditing(null);
-    setEditTab('base');
-    setDraftParams([]);
-    setSelectedCategory('算法/SLAM');
     form.resetFields();
   };
 
-  const openEdit = (record: RobotConfigRecord, tab: 'base' | 'params' = 'base') => {
+  const openEdit = (record: RobotConfigRecord) => {
     setEditing(record);
-    setEditTab(tab);
-    setDraftParams(buildDetailedParams(record.params));
     form.setFieldsValue({
       code: record.code,
       serialNo: record.serialNo,
@@ -228,38 +248,29 @@ export function ConfigTemplatePage() {
     });
   };
 
-  const updateParamValue = (id: string, value: string) => {
-    setDraftParams((prev) => prev.map((item) => (item.id === id ? { ...item, value } : item)));
-  };
-
-  const restoreOneParamDefault = (id: string) => {
-    setDraftParams((prev) => prev.map((item) => (item.id === id ? { ...item, value: item.defaultValue } : item)));
-  };
-
-  const restoreCategoryDefaults = () => {
-    setDraftParams((prev) => prev.map((item) => (item.categoryPath === selectedCategory ? { ...item, value: item.defaultValue } : item)));
-    messageApi.success('已恢复当前分类默认值');
-  };
-
   const saveEdit = async () => {
     const values = await form.validateFields();
     if (!editing) {
       return;
     }
-    setList((prev) => prev.map((item) => (item.id === editing.id ? { ...item, ...values, params: cloneParams(draftParams) } : item)));
+    setList((prev) => prev.map((item) => (item.id === editing.id ? { ...item, group: values.group } : item)));
     messageApi.success('已保存');
     closeEdit();
   };
 
   const deleteRecord = (record: RobotConfigRecord) => {
-    Modal.confirm({
+    modalApi.confirm({
       title: '确认删除该配置吗？',
       icon: <ExclamationCircleFilled />,
       content: `${record.code} - ${record.serialNo}`,
       okText: '删除',
       okButtonProps: { danger: true },
       cancelText: '取消',
-      onOk: () => setList((prev) => prev.filter((item) => item.id !== record.id)),
+      onOk: () => {
+        setList((prev) => prev.filter((item) => item.id !== record.id));
+        const nextTemplates = loadConfigTemplateSnapshots().filter((item) => item.id !== record.id);
+        saveConfigTemplateSnapshots(nextTemplates);
+      },
     });
   };
 
@@ -313,22 +324,113 @@ export function ConfigTemplatePage() {
     },
   };
 
-  const compareTargetRecord = list.find((item) => item.id === compareTargetId) ?? null;
-  const compareRows = compareBase && compareTargetRecord
-    ? [
-        ['Id', compareBase.code, compareTargetRecord.code],
-        ['序列号', compareBase.serialNo, compareTargetRecord.serialNo],
-        ['IP', compareBase.ip, compareTargetRecord.ip],
-        ['类型', compareBase.robotType, compareTargetRecord.robotType],
-        ['分组', compareBase.group, compareTargetRecord.group],
-        ['注册时间', compareBase.registeredAt, compareTargetRecord.registeredAt],
-      ]
-    : [];
+  const compareTargetRecord = useMemo(() => list.find((item) => item.id === compareTargetId) ?? null, [compareTargetId, list]);
+  const compareTemplateOptions = useMemo(
+    () => list.filter((item) => item.id !== compareBase?.id).map((item) => ({ label: `${item.code} - ${item.serialNo}`, value: item.id })),
+    [compareBase?.id, list],
+  );
 
-  const columns: ColumnsType<RobotConfigRecord> = [
+  useEffect(() => {
+    if (!compareBase) {
+      return;
+    }
+    const valid = compareTemplateOptions.some((item) => item.value === compareTargetId);
+    if (!valid) {
+      setCompareTargetId(compareTemplateOptions[0]?.value);
+    }
+  }, [compareBase, compareTargetId, compareTemplateOptions]);
+
+  const compareRows = useMemo<ConfigCompareRow[]>(() => {
+    if (!compareBase || !compareTargetRecord) {
+      return [];
+    }
+    const normalize = (value: unknown) => {
+      const text = String(value ?? '').trim();
+      return text ? text : '-';
+    };
+    const baseRows: ConfigCompareRow[] = [
+      { key: 'code', categoryKey: '__base', field: 'Id', currentValue: normalize(compareBase.code), targetValue: normalize(compareTargetRecord.code), different: compareBase.code !== compareTargetRecord.code },
+      { key: 'serialNo', categoryKey: '__base', field: '序列号', currentValue: normalize(compareBase.serialNo), targetValue: normalize(compareTargetRecord.serialNo), different: compareBase.serialNo !== compareTargetRecord.serialNo },
+      {
+        key: 'ip',
+        categoryKey: '__base',
+        field: 'IP',
+        currentValue: displayIp(compareBase.ip, compareBase.id),
+        targetValue: displayIp(compareTargetRecord.ip, compareTargetRecord.id),
+        different: displayIp(compareBase.ip, compareBase.id) !== displayIp(compareTargetRecord.ip, compareTargetRecord.id),
+      },
+      { key: 'robotType', categoryKey: '__base', field: '类型', currentValue: normalize(compareBase.robotType), targetValue: normalize(compareTargetRecord.robotType), different: compareBase.robotType !== compareTargetRecord.robotType },
+      { key: 'group', categoryKey: '__base', field: '分组', currentValue: normalize(compareBase.group), targetValue: normalize(compareTargetRecord.group), different: compareBase.group !== compareTargetRecord.group },
+      { key: 'registeredAt', categoryKey: '__base', field: '注册时间', currentValue: normalize(compareBase.registeredAt), targetValue: normalize(compareTargetRecord.registeredAt), different: compareBase.registeredAt !== compareTargetRecord.registeredAt },
+      { key: 'paramsCount', categoryKey: '__base', field: '参数数量', currentValue: normalize(compareBase.params.length), targetValue: normalize(compareTargetRecord.params.length), different: compareBase.params.length !== compareTargetRecord.params.length },
+    ];
+
+    const baseParamMap = new Map(compareBase.params.map((item) => [`${item.categoryPath}|${item.name}`, item.value]));
+    const targetParamMap = new Map(compareTargetRecord.params.map((item) => [`${item.categoryPath}|${item.name}`, item.value]));
+    const paramKeys = Array.from(new Set([...baseParamMap.keys(), ...targetParamMap.keys()])).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    const paramRows = paramKeys.map((key) => {
+      const [categoryPath, paramName] = key.split('|');
+      const currentValue = baseParamMap.get(key) ?? '-';
+      const targetValue = targetParamMap.get(key) ?? '-';
+      return {
+        key: `param-${categoryPath}-${paramName}`,
+        categoryKey: categoryPath,
+        field: paramName,
+        currentValue,
+        targetValue,
+        different: currentValue !== targetValue,
+      };
+    });
+
+    return [...baseRows, ...paramRows];
+  }, [compareBase, compareTargetRecord]);
+
+  const compareDiffCategoryKeys = useMemo(() => {
+    const keys = new Set<string>();
+    compareRows
+      .filter((row) => row.different)
+      .forEach((row) => {
+        if (row.categoryKey === '__base') {
+          keys.add('__base');
+          return;
+        }
+        const segments = row.categoryKey.split('/');
+        let path = '';
+        segments.forEach((segment) => {
+          path = path ? `${path}/${segment}` : segment;
+          keys.add(path);
+        });
+      });
+    return keys;
+  }, [compareRows]);
+
+  const compareTreeData = useMemo(() => {
+    const withDiffStyle = (nodes: any[]): any[] =>
+      nodes.map((node) => ({
+        ...node,
+        title: <span style={compareDiffCategoryKeys.has(String(node.key)) ? { color: '#ff4d4f' } : undefined}>{node.title}</span>,
+        children: node.children ? withDiffStyle(node.children as any[]) : undefined,
+      }));
+
+    return [
+      {
+        title: <span style={compareDiffCategoryKeys.has('__base') ? { color: '#ff4d4f' } : undefined}>基础信息</span>,
+        key: '__base',
+      },
+      ...withDiffStyle(categoryTree as any[]),
+    ];
+  }, [compareDiffCategoryKeys]);
+
+  const filteredCompareRows = useMemo(() => {
+    if (!compareCategory) {
+      return compareRows;
+    }
+    return compareRows.filter((row) => row.categoryKey === compareCategory || row.categoryKey.startsWith(`${compareCategory}/`));
+  }, [compareCategory, compareRows]);
+const columns: ColumnsType<RobotConfigRecord> = [
     { title: 'Id', dataIndex: 'code', key: 'code', width: 120 },
     { title: '序列号', dataIndex: 'serialNo', key: 'serialNo', width: 140 },
-    { title: 'IP', dataIndex: 'ip', key: 'ip', width: 150 },
+    { title: 'IP', dataIndex: 'ip', key: 'ip', width: 150, render: (value: string, record) => displayIp(value, record.id) },
     { title: '类型', dataIndex: 'robotType', key: 'robotType', width: 140 },
     { title: '分组', dataIndex: 'group', key: 'group', width: 110 },
     { title: '注册时间', dataIndex: 'registeredAt', key: 'registeredAt', width: 180 },
@@ -345,14 +447,11 @@ export function ConfigTemplatePage() {
           <Button type="link" onClick={() => messageApi.success(`开始建图：${record.serialNo}`)}>
             建图
           </Button>
-          <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record, 'base')}>
+          <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             编辑
           </Button>
           <Button type="link" danger icon={<DeleteOutlined />} onClick={() => deleteRecord(record)}>
             删除
-          </Button>
-          <Button type="link" onClick={() => openEdit(record, 'params')}>
-            配置
           </Button>
           <Button
             type="link"
@@ -360,6 +459,7 @@ export function ConfigTemplatePage() {
               const options = list.filter((item) => item.id !== record.id);
               setCompareBase(record);
               setCompareTargetId(options[0]?.id);
+              setCompareCategory('__base');
             }}
           >
             对比配置
@@ -372,6 +472,7 @@ export function ConfigTemplatePage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
+      {modalContextHolder}
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
@@ -421,155 +522,116 @@ export function ConfigTemplatePage() {
         ]}
         destroyOnClose
       >
-        <Tabs
-          size="large"
-          activeKey={editTab}
-          onChange={(key) => setEditTab(key as 'base' | 'params')}
-          items={[
-            {
-              key: 'base',
-              label: '基础信息',
-              children: (
-                <Form form={form} layout="vertical">
-                  <Row gutter={12}>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="Id" name="code" rules={[{ required: true, message: '请输入Id' }]}>
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="序列号" name="serialNo" rules={[{ required: true, message: '请输入序列号' }]}>
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="IP" name="ip" rules={[{ required: true, message: '请输入IP' }]}>
-                        <Input disabled />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="类型" name="robotType" rules={[{ required: true, message: '请选择类型' }]}>
-                        <Select options={robotTypes.map((item) => ({ label: item, value: item }))} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="分组" name="group" rules={[{ required: true, message: '请选择分组' }]}>
-                        <Select options={groups.map((item) => ({ label: item, value: item }))} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="注册时间" name="registeredAt" rules={[{ required: true, message: '请输入注册时间' }]}>
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Form>
-              ),
-            },
-            {
-              key: 'params',
-              label: '参数配置',
-              children: (
-                <Row gutter={12}>
-                  <Col xs={24} md={isLaptop ? 7 : 5}>
-                    <Card size="small" title="参数分类" styles={{ body: { maxHeight: 620, overflowY: 'auto' } }}>
-                      <Tree treeData={categoryTree} defaultExpandAll selectedKeys={[selectedCategory]} onSelect={(keys: Key[]) => setSelectedCategory(String(keys[0] ?? ''))} />
-                    </Card>
-                  </Col>
-                  <Col xs={24} md={isLaptop ? 17 : 19}>
-                    <Card
-                      size="small"
-                      title={`分类：${selectedCategory}`}
-                      extra={
-                        <Space>
-                          <Button size="small" onClick={restoreCategoryDefaults}>
-                            分类恢复默认
-                          </Button>
-                        </Space>
-                      }
-                      styles={{ body: { maxHeight: 620, overflowY: 'auto' } }}
-                    >
-                      <Space direction="vertical" size={10} style={{ width: '100%' }}>
-                        {filteredParams.map((item) => (
-                          <Card
-                            key={item.id}
-                            size="small"
-                            title={item.name}
-                            extra={
-                              <Button type="link" size="small" onClick={() => restoreOneParamDefault(item.id)}>
-                                恢复默认
-                              </Button>
-                            }
-                          >
-                            <Row gutter={[12, 8]}>
-                              <Col xs={24} md={10}>
-                                <Typography.Text type="secondary">参数值</Typography.Text>
-                                <Input value={item.value} onChange={(event) => updateParamValue(item.id, event.target.value)} />
-                              </Col>
-                              <Col xs={24} md={6}>
-                                <Typography.Text type="secondary">默认值</Typography.Text>
-                                <Input value={item.defaultValue} disabled />
-                              </Col>
-                              <Col xs={24} md={4}>
-                                <Typography.Text type="secondary">单位</Typography.Text>
-                                <Input value={item.unit} disabled />
-                              </Col>
-                              <Col xs={24} md={4}>
-                                <Typography.Text type="secondary">范围</Typography.Text>
-                                <Input value={item.range} disabled />
-                              </Col>
-                            </Row>
-                          </Card>
-                        ))}
-                        {!filteredParams.length && <Typography.Text type="secondary">当前分类暂无参数</Typography.Text>}
-                      </Space>
-                    </Card>
-                  </Col>
-                </Row>
-              ),
-            },
-          ]}
-        />
+        <Form form={form} layout="vertical">
+          <Row gutter={12}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Id" name="code">
+                <Input disabled />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="序列号" name="serialNo">
+                <Input disabled />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="IP" name="ip">
+                <Input disabled />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="类型" name="robotType">
+                <Select disabled options={robotTypes.map((item) => ({ label: item, value: item }))} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="分组" name="group" rules={[{ required: true, message: '请选择分组' }]}>
+                <Select options={groups.map((item) => ({ label: item, value: item }))} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="注册时间" name="registeredAt">
+                <Input disabled />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
       </Modal>
 
-      <Modal
-        title="对比配置"
+            <Modal
+        title="配置对比"
         open={Boolean(compareBase)}
         onCancel={() => {
           setCompareBase(null);
           setCompareTargetId(undefined);
+          setCompareCategory('__base');
         }}
-        footer={null}
+        width={isLaptop ? 960 : 1080}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setCompareBase(null);
+              setCompareTargetId(undefined);
+              setCompareCategory('__base');
+            }}
+          >
+            关闭
+          </Button>,
+        ]}
         destroyOnClose
       >
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Select
-            style={{ width: '100%' }}
-            placeholder="选择对比对象"
-            value={compareTargetId}
-            options={list.filter((item) => item.id !== compareBase?.id).map((item) => ({ label: `${item.code} - ${item.serialNo}`, value: item.id }))}
-            onChange={setCompareTargetId}
-          />
-          <Table
-            rowKey={(row) => row[0]}
-            pagination={false}
-            dataSource={compareRows}
-            columns={[
-              { title: '字段', dataIndex: 0, key: 'field', width: 160 },
-              {
-                title: '当前配置',
-                dataIndex: 1,
-                key: 'base',
-                render: (value: string, row: string[]) => <Typography.Text type={row[1] !== row[2] ? 'danger' : undefined}>{value}</Typography.Text>,
-              },
-              {
-                title: '对比配置',
-                dataIndex: 2,
-                key: 'target',
-                render: (value: string, row: string[]) => <Typography.Text type={row[1] !== row[2] ? 'danger' : undefined}>{value}</Typography.Text>,
-              },
-            ]}
-          />
+          <Row gutter={12}>
+            <Col span={12}>
+              <Typography.Text type="secondary">当前配置</Typography.Text>
+              <Input value={compareBase ? `${compareBase.code} - ${compareBase.serialNo}` : ''} disabled />
+            </Col>
+            <Col span={12}>
+              <Typography.Text type="secondary">对比模板</Typography.Text>
+              <Select
+                style={{ width: '100%' }}
+                placeholder="选择对比模板"
+                value={compareTargetId}
+                showSearch
+                optionFilterProp="label"
+                options={compareTemplateOptions}
+                onChange={setCompareTargetId}
+              />
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col xs={24} md={isLaptop ? 8 : 6}>
+              <Card size="small" title="对比分组" styles={{ body: { maxHeight: 560, overflowY: 'auto' } }}>
+                <Tree treeData={compareTreeData} defaultExpandAll selectedKeys={[compareCategory]} onSelect={(keys) => setCompareCategory(String(keys[0] ?? '__base'))} />
+              </Card>
+            </Col>
+            <Col xs={24} md={isLaptop ? 16 : 18}>
+              <Card size="small" title={`分组：${compareCategory === '__base' ? '基础信息' : compareCategory}`}>
+                <Table
+                  rowKey="key"
+                  dataSource={filteredCompareRows}
+                  pagination={{ pageSize: 12, showSizeChanger: false }}
+                  locale={{ emptyText: '该分组暂无可对比字段' }}
+                  columns={[
+                    { title: '字段', dataIndex: 'field', key: 'field', width: 240 },
+                    {
+                      title: compareBase?.code ?? '当前配置',
+                      dataIndex: 'currentValue',
+                      key: 'currentValue',
+                      render: (value: string, record: ConfigCompareRow) => <Typography.Text type={record.different ? 'danger' : undefined}>{value}</Typography.Text>,
+                    },
+                    {
+                      title: compareTargetRecord?.code ?? '对比模板',
+                      dataIndex: 'targetValue',
+                      key: 'targetValue',
+                      render: (value: string, record: ConfigCompareRow) => <Typography.Text type={record.different ? 'danger' : undefined}>{value}</Typography.Text>,
+                    },
+                  ]}
+                />
+              </Card>
+            </Col>
+          </Row>
         </Space>
       </Modal>
     </Space>

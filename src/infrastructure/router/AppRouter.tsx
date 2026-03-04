@@ -116,7 +116,7 @@ export function AppRouter() {
             <Route path={roleManagePath} element={<RoleManagePage />} />
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
-            <Route path={configTemplatePath} element={<ConfigTemplatePage />} />
+            <Route path={configTemplatePath} element={<RobotConfigPage />} />
             <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
             <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
@@ -124,7 +124,7 @@ export function AppRouter() {
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
             <Route path="/qualityInspection/terminalConfig" element={<TerminalConfigPage />} />
             <Route path="/qualityInspection/workshopConfig" element={<WorkshopConfigPage />} />
-            <Route path="/deployConfig/robot/robotList" element={<RobotConfigPage />} />
+            <Route path="/deployConfig/robot/robotList" element={<ConfigTemplatePage />} />
             <Route path="/deployConfig/robot/robotType" element={<RobotTypePage />} />
             <Route path="/deployConfig/robot/robotParts" element={<RobotPartsPage />} />
             <Route path="/deployConfig/robot/robotGroup" element={<RobotGroupPage />} />
