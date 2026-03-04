@@ -1,16 +1,17 @@
 import { EditOutlined, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, RedoOutlined, SwapOutlined } from '@ant-design/icons';
-import { Button, Card, Descriptions, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { robotManageList, type RobotControlStatus, type RobotDispatchMode, type RobotExceptionStatus, type RobotManageRecord } from '../../../data/operationMaintenance/robotManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 export function RobotManagePage() {
+  const navigate = useNavigate();
   const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [list, setList] = useState<RobotManageRecord[]>(robotManageList);
   const [keyword, setKeyword] = useState('');
-  const [detailRecord, setDetailRecord] = useState<RobotManageRecord | null>(null);
   const [logRecord, setLogRecord] = useState<RobotManageRecord | null>(null);
 
   const onlineText = (status: RobotManageRecord['onlineStatus']) => (status === 'online' ? t('op.robotManage.online.online') : t('op.robotManage.online.offline'));
@@ -67,7 +68,7 @@ export function RobotManagePage() {
       fixed: 'right',
       render: (_, record) => (
         <Space size={2}>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => setDetailRecord(record)}>
+          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/operationMaintenance/robot/robotManage/${record.id}/detail`)}>
             {t('op.robotManage.action.detail')}
           </Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => setLogRecord(record)}>
@@ -109,33 +110,6 @@ export function RobotManagePage() {
       <Card>
         <Table rowKey="id" columns={columns} dataSource={filtered} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1900 }} />
       </Card>
-
-      <Modal title={t('op.robotManage.modal.detailTitle')} open={Boolean(detailRecord)} onCancel={() => setDetailRecord(null)} footer={null} width={980}>
-        {detailRecord ? (
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <Descriptions column={2} size="small" bordered>
-              <Descriptions.Item label={t('op.robotManage.table.code')}>{detailRecord.code}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.onlineStatus')}>{onlineText(detailRecord.onlineStatus)}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.location')}>{detailRecord.location}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.battery')}>{detailRecord.battery}%</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.currentMap')}>{detailRecord.currentMap}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.dispatchMode')}>{dispatchText(detailRecord.dispatchMode)}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.controlStatus')}>{controlText(detailRecord.controlStatus)}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.exceptionStatus')}>{exceptionText(detailRecord.exceptionStatus)}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.type')}>{detailRecord.type}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.group')}>{detailRecord.group}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.table.ip')}>{detailRecord.ip}</Descriptions.Item>
-              <Descriptions.Item label={t('op.robotManage.detail.video')}>{detailRecord.videoUrl}</Descriptions.Item>
-            </Descriptions>
-            <Typography.Text strong>{t('op.robotManage.detail.exceptionLogs')}</Typography.Text>
-            <Space direction="vertical" size={4} style={{ width: '100%' }}>
-              {detailRecord.exceptionLogs.map((item) => (
-                <Typography.Text key={item}>{item}</Typography.Text>
-              ))}
-            </Space>
-          </Space>
-        ) : null}
-      </Modal>
 
       <Modal title={t('op.robotManage.modal.logTitle')} open={Boolean(logRecord)} onCancel={() => setLogRecord(null)} footer={null} width={900}>
         {logRecord ? (
@@ -192,4 +166,3 @@ export function RobotManagePage() {
     </Space>
   );
 }
-
