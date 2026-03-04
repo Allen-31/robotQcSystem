@@ -36,6 +36,8 @@ import { PackageManagePage } from '../../ui/pages/operationMaintenance/PackageMa
 import { PublishManagePage } from '../../ui/pages/operationMaintenance/PublishManagePage';
 import { ServiceManagePage } from '../../ui/pages/operationMaintenance/ServiceManagePage';
 import { TaskManagePage } from '../../ui/pages/operationMaintenance/TaskManagePage';
+import { QualityReportPage } from '../../ui/pages/qcStatistics/QualityReportPage';
+import { QualityStatisticsPage } from '../../ui/pages/qcStatistics/QualityStatisticsPage';
 
 const allRoutes = collectRoutes(menuList);
 const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
@@ -55,6 +57,8 @@ const serviceManagePath = '/operationMaintenance/service/serviceManage';
 const packageManagePath = '/operationMaintenance/upgrade/packageManage';
 const publishManagePath = '/operationMaintenance/upgrade/publishManage';
 const taskManagePath = '/operationMaintenance/task/taskManage';
+const qualityStatisticsPath = '/qualityInspection/qualityStatistics';
+const qualityReportPath = '/qualityInspection/qualityReport';
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
@@ -86,6 +90,8 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== packageManagePath &&
     route.path !== publishManagePath &&
     route.path !== taskManagePath &&
+    route.path !== qualityStatisticsPath &&
+    route.path !== qualityReportPath &&
     !qualityConfigPaths.includes(route.path) &&
     !deployRobotPaths.includes(route.path),
 );
@@ -140,6 +146,8 @@ export function AppRouter() {
             <Route path={packageManagePath} element={<PackageManagePage />} />
             <Route path={publishManagePath} element={<PublishManagePage />} />
             <Route path={taskManagePath} element={<TaskManagePage />} />
+            <Route path={qualityStatisticsPath} element={<QualityStatisticsPage />} />
+            <Route path={qualityReportPath} element={<QualityReportPage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
