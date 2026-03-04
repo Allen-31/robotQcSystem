@@ -1,4 +1,4 @@
-import { DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
@@ -117,6 +117,7 @@ export function PackageManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [tableData, setTableData] = useState<PackageManageRecord[]>(packageManageList);
+  const [keyword, setKeyword] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -171,6 +172,7 @@ export function PackageManagePage() {
         reuploadField: 'Re-upload Package (Optional)',
         reuploadHint: 'Drop new package to replace current one',
         partsReadonlyHint: 'Target components are auto-extracted from the uploaded package and cannot be edited manually.',
+        searchPlaceholder: 'Search by name, type, component, MD5, uploader',
       };
     }
     return {
@@ -212,6 +214,7 @@ export function PackageManagePage() {
       reuploadField: '重新上传安装包（可选）',
       reuploadHint: '拖拽新安装包可替换当前文件',
       partsReadonlyHint: '目标部件由安装包自动提取，不支持手动编辑。',
+      searchPlaceholder: '按名称、类型、部件、MD5、上传者搜索',
     };
   }, [locale]);
 
@@ -381,10 +384,22 @@ export function PackageManagePage() {
     form.resetFields();
   };
 
+  const filteredData = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase();
+    if (!normalized) {
+      return tableData;
+    }
+    return tableData.filter((item) => {
+      const partsText = item.targetParts.map((part) => `${part.part} ${part.version}`).join(' ');
+      const text = `${item.name} ${typeText(item.type)} ${partsText} ${item.description} ${item.md5} ${item.uploader} ${item.uploadedAt}`.toLowerCase();
+      return text.includes(normalized);
+    });
+  }, [keyword, tableData]);
+
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));
-    return tableData.filter((item) => keySet.has(item.id));
-  }, [selectedRowKeys, tableData]);
+    return filteredData.filter((item) => keySet.has(item.id));
+  }, [selectedRowKeys, filteredData]);
 
   const downloadSelected = () => {
     if (selectedRows.length === 0) {
@@ -480,6 +495,13 @@ export function PackageManagePage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('menu.packageManage')}
           </Typography.Title>
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder={label.searchPlaceholder}
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
             <Button icon={<DownloadOutlined />} onClick={downloadSelected}>
               {label.batchDownload}
@@ -496,7 +518,7 @@ export function PackageManagePage() {
           rowKey="id"
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           columns={columns}
-          dataSource={tableData}
+          dataSource={filteredData}
           pagination={{ pageSize: 8, showSizeChanger: false }}
           scroll={{ x: 1850 }}
         />

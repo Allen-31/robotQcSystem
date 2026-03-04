@@ -34,6 +34,7 @@ import { FileManagePage } from '../../ui/pages/operationMaintenance/FileManagePa
 import { PackageManagePage } from '../../ui/pages/operationMaintenance/PackageManagePage';
 import { PublishManagePage } from '../../ui/pages/operationMaintenance/PublishManagePage';
 import { ServiceManagePage } from '../../ui/pages/operationMaintenance/ServiceManagePage';
+import { TaskManagePage } from '../../ui/pages/operationMaintenance/TaskManagePage';
 
 const allRoutes = collectRoutes(menuList);
 const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
@@ -52,6 +53,7 @@ const fileManagePath = '/operationMaintenance/file/fileManage';
 const serviceManagePath = '/operationMaintenance/service/serviceManage';
 const packageManagePath = '/operationMaintenance/upgrade/packageManage';
 const publishManagePath = '/operationMaintenance/upgrade/publishManage';
+const taskManagePath = '/operationMaintenance/task/taskManage';
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
@@ -82,6 +84,7 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== serviceManagePath &&
     route.path !== packageManagePath &&
     route.path !== publishManagePath &&
+    route.path !== taskManagePath &&
     !qualityConfigPaths.includes(route.path) &&
     !deployRobotPaths.includes(route.path),
 );
@@ -135,6 +138,7 @@ export function AppRouter() {
             <Route path={serviceManagePath} element={<ServiceManagePage />} />
             <Route path={packageManagePath} element={<PackageManagePage />} />
             <Route path={publishManagePath} element={<PublishManagePage />} />
+            <Route path={taskManagePath} element={<TaskManagePage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />

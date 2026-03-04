@@ -1,5 +1,5 @@
-import { FileTextOutlined, PauseCircleOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { FileTextOutlined, PauseCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Card, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import {
@@ -28,6 +28,7 @@ export function ServiceManagePage() {
   const [serviceList, setServiceList] = useState<ServiceManageRecord[]>(serviceManageList);
   const [historyService, setHistoryService] = useState<ServiceManageRecord | null>(null);
   const [previewLog, setPreviewLog] = useState<ServiceLogRecord | null>(null);
+  const [keyword, setKeyword] = useState('');
 
   const label = useMemo(() => {
     if (locale === 'en-US') {
@@ -61,6 +62,7 @@ export function ServiceManagePage() {
         download: 'Download',
         downloadDone: 'Log downloaded',
         previewTitle: 'Log Preview',
+        searchPlaceholder: 'Search by name, type, version, IP, status',
       };
     }
     return {
@@ -93,6 +95,7 @@ export function ServiceManagePage() {
       download: '下载',
       downloadDone: '日志下载成功',
       previewTitle: '日志预览',
+      searchPlaceholder: '按名称、类型、版本、IP、状态搜索',
     };
   }, [locale]);
 
@@ -198,6 +201,17 @@ export function ServiceManagePage() {
     },
   ];
 
+  const filteredServiceList = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase();
+    if (!normalized) {
+      return serviceList;
+    }
+    return serviceList.filter((item) => {
+      const text = `${item.name} ${item.type} ${item.version} ${item.ip} ${getStatusText(item.status)} ${item.status}`.toLowerCase();
+      return text.includes(normalized);
+    });
+  }, [keyword, serviceList]);
+
   const historyColumns: ColumnsType<ServiceLogRecord> = [
     { title: label.logName, dataIndex: 'logName', key: 'logName', width: 240 },
     { title: label.logType, dataIndex: 'type', key: 'type', width: 140 },
@@ -231,16 +245,25 @@ export function ServiceManagePage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
       <Card>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          {t('menu.serviceManage')}
-        </Typography.Title>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            {t('menu.serviceManage')}
+          </Typography.Title>
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder={label.searchPlaceholder}
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+        </Space>
       </Card>
 
       <Card>
         <Table
           rowKey="id"
           columns={columns}
-          dataSource={serviceList}
+          dataSource={filteredServiceList}
           pagination={{ pageSize: 8, showSizeChanger: false }}
           scroll={{ x: 1400 }}
         />

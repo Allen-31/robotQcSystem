@@ -84,6 +84,7 @@ export function PublishManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [tableData, setTableData] = useState<PublishManageRecord[]>(publishManageList);
+  const [keyword, setKeyword] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [progressTask, setProgressTask] = useState<PublishManageRecord | null>(null);
   const [form] = Form.useForm<{
@@ -152,6 +153,7 @@ export function PublishManagePage() {
         selectTypeFirst: 'Select robot type first, then robot group, then robot',
         selectGroupFirst: 'Select robot group before selecting robots',
         selectAllRobots: 'Select All',
+        searchPlaceholder: 'Search by name, package, target, strategy, creator',
       };
     }
     return {
@@ -205,6 +207,7 @@ export function PublishManagePage() {
       selectTypeFirst: '先选择机器人类型，再选择机器人组，最后选择机器人',
       selectGroupFirst: '请先选择机器人组后再选择机器人',
       selectAllRobots: '全选机器人',
+      searchPlaceholder: '按名称、安装包、目标、策略、创建人搜索',
     };
   }, [locale]);
 
@@ -258,6 +261,17 @@ export function PublishManagePage() {
     }
     return label.strategyHoming;
   };
+
+  const filteredTableData = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase();
+    if (!normalized) {
+      return tableData;
+    }
+    return tableData.filter((item) => {
+      const text = `${item.name} ${item.packageName} ${item.targetRobots.join(' ')} ${item.targetRobotGroups.join(' ')} ${item.targetRobotTypes.join(' ')} ${strategyText(item.strategy)} ${item.creator} ${item.status}`.toLowerCase();
+      return text.includes(normalized);
+    });
+  }, [keyword, tableData]);
 
   const statusText = (value: PublishStatus | DeviceUpgradeStatus) => {
     if (value === 'pending') {
@@ -580,6 +594,12 @@ export function PublishManagePage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('menu.publishManage')}
           </Typography.Title>
+          <Input
+            allowClear
+            placeholder={label.searchPlaceholder}
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
               {label.create}
@@ -592,7 +612,7 @@ export function PublishManagePage() {
         <Table
           rowKey="id"
           columns={columns}
-          dataSource={tableData}
+          dataSource={filteredTableData}
           pagination={{ pageSize: 8, showSizeChanger: false }}
           scroll={{ x: 2200 }}
         />
