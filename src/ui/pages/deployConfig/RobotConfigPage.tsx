@@ -3,7 +3,8 @@ import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table,
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
 import type { Key } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { loadConfigTemplateSnapshots, type ConfigTemplateSnapshot } from '../../../logic/deployConfig/configTemplateStore';
 
 type ConfigStatus = '草稿' | '已发布';
 
@@ -41,6 +42,21 @@ interface ConfigCompareRow {
   currentValue: string;
   targetValue: string;
   different: boolean;
+}
+
+interface CompareTargetRecord {
+  configNo: string;
+  configName: string;
+  robotType: string;
+  group: string;
+  firmware: string;
+  status: string;
+  description?: string;
+  params: Array<{
+    name: string;
+    value: string;
+    categoryPath: string;
+  }>;
 }
 
 interface RobotConfigRecord {
@@ -284,6 +300,7 @@ type ConfigFormValues = {
 export function RobotConfigPage() {
   const [form] = Form.useForm<ConfigFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
+  const [modalApi, modalContextHolder] = Modal.useModal();
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
   const [list, setList] = useState<RobotConfigRecord[]>(initialList);
@@ -297,6 +314,7 @@ export function RobotConfigPage() {
   const [baseCompareId, setBaseCompareId] = useState<string | null>(null);
   const [targetCompareId, setTargetCompareId] = useState<string | undefined>();
   const [compareCategory, setCompareCategory] = useState<string>('__base');
+  const [templateList, setTemplateList] = useState<ConfigTemplateSnapshot[]>([]);
 
   const openCreate = () => {
     setEditing(null);
@@ -413,7 +431,9 @@ export function RobotConfigPage() {
   };
 
   const openCompareModal = (record: RobotConfigRecord) => {
-    const options = list.filter((item) => item.id !== record.id);
+    const templates = loadConfigTemplateSnapshots();
+    const options = templates.filter((item) => item.id !== record.id);
+    setTemplateList(templates);
     setBaseCompareId(record.id);
     setTargetCompareId(options[0]?.id);
     setCompareCategory('__base');
@@ -425,10 +445,18 @@ export function RobotConfigPage() {
     setBaseCompareId(null);
     setTargetCompareId(undefined);
     setCompareCategory('__base');
+    setTemplateList([]);
   };
 
+  useEffect(() => {
+    if (!compareModalOpen || !baseCompareId) {
+      return;
+    }
+    setTemplateList(loadConfigTemplateSnapshots());
+  }, [baseCompareId, compareModalOpen]);
+
   const deleteRecord = (record: RobotConfigRecord) => {
-    Modal.confirm({
+    modalApi.confirm({
       title: '确认删除该配置吗？',
       icon: <ExclamationCircleFilled />,
       content: `${record.configNo} - ${record.configName}`,
@@ -470,7 +498,40 @@ export function RobotConfigPage() {
   ];
 
   const baseCompareRecord = useMemo(() => list.find((item) => item.id === baseCompareId) ?? null, [baseCompareId, list]);
-  const targetCompareRecord = useMemo(() => list.find((item) => item.id === targetCompareId) ?? null, [targetCompareId, list]);
+  const targetCompareRecord = useMemo<CompareTargetRecord | null>(() => {
+    const matched = templateList.find((item) => item.id === targetCompareId);
+    if (!matched) {
+      return null;
+    }
+    return {
+      configNo: matched.code,
+      configName: matched.serialNo,
+      robotType: matched.robotType,
+      group: matched.group,
+      firmware: '-',
+      status: '-',
+      description: '-',
+      params: matched.params.map((item) => ({
+        name: item.name,
+        value: item.value,
+        categoryPath: item.categoryPath,
+      })),
+    };
+  }, [targetCompareId, templateList]);
+  const compareTemplateOptions = useMemo(
+    () => templateList.filter((item) => item.id !== baseCompareId).map((item) => ({ label: `${item.code} - ${item.serialNo}`, value: item.id })),
+    [baseCompareId, templateList],
+  );
+
+  useEffect(() => {
+    if (!compareModalOpen || !baseCompareId) {
+      return;
+    }
+    const valid = compareTemplateOptions.some((item) => item.value === targetCompareId);
+    if (!valid) {
+      setTargetCompareId(compareTemplateOptions[0]?.value);
+    }
+  }, [baseCompareId, compareModalOpen, compareTemplateOptions, targetCompareId]);
 
   const compareRows = useMemo<ConfigCompareRow[]>(() => {
     if (!baseCompareRecord || !targetCompareRecord) {
@@ -858,6 +919,7 @@ export function RobotConfigPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
+      {modalContextHolder}
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
@@ -1071,9 +1133,9 @@ export function RobotConfigPage() {
                 style={{ width: '100%' }}
                 placeholder="选择其他配置"
                 value={targetCompareId}
-                options={list
-                  .filter((item) => item.id !== baseCompareId)
-                  .map((item) => ({ label: `${item.configNo} - ${item.configName}`, value: item.id }))}
+                showSearch
+                optionFilterProp="label"
+                options={compareTemplateOptions}
                 onChange={setTargetCompareId}
               />
             </Col>
