@@ -70,6 +70,16 @@ function getActionsByNode(pathOrId: string, title: string): PermissionAction[] {
 }
 
 export function PermissionManagePage() {
+  return <PermissionManagePageInner />;
+}
+
+interface PermissionManagePageProps {
+  fixedRole?: string;
+  hideHeaderCard?: boolean;
+  onSaved?: () => void;
+}
+
+export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, onSaved }: PermissionManagePageProps = {}) {
   const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
@@ -97,6 +107,12 @@ export function PermissionManagePage() {
   } = usePermissionManage();
 
   const rawTreeData = useMemo(() => toTreeData(rootNodes, t), [rootNodes, t, toTreeData]);
+
+  useEffect(() => {
+    if (fixedRole && fixedRole !== selectedRole) {
+      setSelectedRole(fixedRole);
+    }
+  }, [fixedRole, selectedRole, setSelectedRole]);
 
   useEffect(() => {
     setExpandedKeys(allKeys);
@@ -278,6 +294,7 @@ export function PermissionManagePage() {
       },
     }));
     messageApi.success(t('permissionManage.saveSuccess'));
+    onSaved?.();
   };
 
   const rollbackChanges = () => {
@@ -290,6 +307,9 @@ export function PermissionManagePage() {
   };
 
   const switchRole = (role: string) => {
+    if (fixedRole) {
+      return;
+    }
     if (role === selectedRole) {
       return;
     }
@@ -355,36 +375,38 @@ export function PermissionManagePage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
-      <Card>
-        <Row gutter={[12, 12]} align="middle" justify="space-between">
-          <Col xs={24} lg={5}>
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              {t('permissionManage.pageTitle')}
-            </Typography.Title>
-          </Col>
-          <Col xs={24} lg={7}>
-            <Space>
-              <Typography.Text>{t('permissionManage.roleLabel')}</Typography.Text>
-              <Select style={{ width: 220 }} value={selectedRole} options={roleOptions} onChange={switchRole} />
-              <Tag color="processing">{t('permissionManage.summary.memberCount', { count: memberCount })}</Tag>
-              <Tag color="blue">{t('permissionManage.summary.totalCount', { count: selectedMenuCount + selectedButtonCount })}</Tag>
-            </Space>
-          </Col>
-          <Col xs={24} lg={12}>
-            <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Tag color="geekblue">
-                {t('permissionManage.summary.menuCount')}: {selectedMenuCount}
-              </Tag>
-              <Tag color="cyan">
-                {t('permissionManage.summary.buttonCount')}: {selectedButtonCount}
-              </Tag>
-              <Button type="primary" onClick={saveChanges}>
-                {t('permissionManage.save')}
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+      {hideHeaderCard ? null : (
+        <Card>
+          <Row gutter={[12, 12]} align="middle" justify="space-between">
+            <Col xs={24} lg={5}>
+              <Typography.Title level={4} style={{ margin: 0 }}>
+                {t('permissionManage.pageTitle')}
+              </Typography.Title>
+            </Col>
+            <Col xs={24} lg={7}>
+              <Space>
+                <Typography.Text>{t('permissionManage.roleLabel')}</Typography.Text>
+                <Select style={{ width: 220 }} value={selectedRole} options={roleOptions} onChange={switchRole} disabled={Boolean(fixedRole)} />
+                <Tag color="processing">{t('permissionManage.summary.memberCount', { count: memberCount })}</Tag>
+                <Tag color="blue">{t('permissionManage.summary.totalCount', { count: selectedMenuCount + selectedButtonCount })}</Tag>
+              </Space>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Tag color="geekblue">
+                  {t('permissionManage.summary.menuCount')}: {selectedMenuCount}
+                </Tag>
+                <Tag color="cyan">
+                  {t('permissionManage.summary.buttonCount')}: {selectedButtonCount}
+                </Tag>
+                <Button type="primary" onClick={saveChanges}>
+                  {t('permissionManage.save')}
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
+      )}
 
       <Card title={t('permissionManage.menuTreeTitle')} styles={{ body: { minHeight: 460 } }}>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>

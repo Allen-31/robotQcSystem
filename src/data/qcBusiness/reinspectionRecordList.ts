@@ -4,10 +4,12 @@ export type ReinspectionResult = 'ok' | 'ng' | 'pending';
 
 export interface ReinspectionRecordItem {
   id: string;
+  reinspectionNo: string;
   workOrderNo: string;
   harnessCode: string;
   harnessType: string;
   stationCode: string;
+  qualityResult: ReinspectionResult;
   status: ReinspectionStatus;
   reinspectionResult: ReinspectionResult;
   reinspectionTime: string;
@@ -19,10 +21,12 @@ export interface ReinspectionRecordItem {
 export const reinspectionRecordList: ReinspectionRecordItem[] = [
   {
     id: 'RI-001',
+    reinspectionNo: 'RO-20260228-001',
     workOrderNo: 'WO-20260228-193',
     harnessCode: 'HB-20260228-001',
     harnessType: 'Harness-L3',
     stationCode: 'A1-03',
+    qualityResult: 'ok',
     status: 'completed',
     reinspectionResult: 'ok',
     reinspectionTime: '2026-02-28 10:25:14',
@@ -32,10 +36,12 @@ export const reinspectionRecordList: ReinspectionRecordItem[] = [
   },
   {
     id: 'RI-002',
+    reinspectionNo: 'RO-20260228-002',
     workOrderNo: 'WO-20260228-187',
     harnessCode: 'HB-20260228-007',
     harnessType: 'Harness-L1',
     stationCode: 'A1-02',
+    qualityResult: 'ng',
     status: 'completed',
     reinspectionResult: 'ng',
     reinspectionTime: '2026-02-28 09:58:43',
@@ -45,10 +51,12 @@ export const reinspectionRecordList: ReinspectionRecordItem[] = [
   },
   {
     id: 'RI-003',
+    reinspectionNo: 'RO-20260228-003',
     workOrderNo: 'WO-20260228-180',
     harnessCode: 'HB-20260228-012',
     harnessType: 'Harness-L4',
     stationCode: 'B2-01',
+    qualityResult: 'pending',
     status: 'pending',
     reinspectionResult: 'pending',
     reinspectionTime: '2026-02-28 09:31:10',
@@ -58,10 +66,12 @@ export const reinspectionRecordList: ReinspectionRecordItem[] = [
   },
   {
     id: 'RI-004',
+    reinspectionNo: 'RO-20260227-001',
     workOrderNo: 'WO-20260227-332',
     harnessCode: 'HB-20260227-102',
     harnessType: 'Harness-L2',
     stationCode: 'B2-03',
+    qualityResult: 'pending',
     status: 'cancelled',
     reinspectionResult: 'pending',
     reinspectionTime: '2026-02-27 17:55:26',

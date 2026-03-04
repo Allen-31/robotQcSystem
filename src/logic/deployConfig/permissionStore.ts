@@ -28,6 +28,26 @@ function normalizeConfig(config: RolePermissionConfig): RolePermissionConfig {
   };
 }
 
+function mergeWithDefaults(base: RolePermissionConfig, defaults?: RolePermissionConfig): RolePermissionConfig {
+  const mergedCheckedKeys = Array.from(new Set([...(defaults?.checkedKeys ?? []), ...(base.checkedKeys ?? [])]));
+  const mergedPermissionMap: Record<string, PermissionAction[]> = { ...(defaults?.permissionMap ?? {}) };
+  Object.entries(base.permissionMap ?? {}).forEach(([key, actions]) => {
+    mergedPermissionMap[key] = Array.from(new Set([...(mergedPermissionMap[key] ?? []), ...(actions ?? [])]));
+  });
+
+  // Ensure visible menus always have basic display permission.
+  mergedCheckedKeys.forEach((key) => {
+    if (!mergedPermissionMap[key] || mergedPermissionMap[key].length === 0) {
+      mergedPermissionMap[key] = ['display'];
+    }
+  });
+
+  return {
+    checkedKeys: mergedCheckedKeys,
+    permissionMap: mergedPermissionMap,
+  };
+}
+
 function collectKeysByNode(nodes: typeof menuList): string[] {
   const keys: string[] = [];
   const walk = (items: typeof menuList) => {
@@ -109,7 +129,7 @@ export function getStoredPermissionConfig(): PermissionConfigByRole {
       if (!config || !Array.isArray(config.checkedKeys)) {
         return;
       }
-      normalized[role] = normalizeConfig(config);
+      normalized[role] = mergeWithDefaults(normalizeConfig(config), defaults[role]);
     });
     return normalized;
   } catch {

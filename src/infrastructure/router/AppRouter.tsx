@@ -18,7 +18,6 @@ import { ReinspectionRecordPage } from '../../ui/pages/qcBusiness/ReinspectionRe
 import { WorkOrderManagePage } from '../../ui/pages/qcBusiness/WorkOrderManagePage';
 import { WorkstationManagePage } from '../../ui/pages/qcBusiness/WorkstationManagePage';
 import { WorkstationPositionManagePage } from '../../ui/pages/qcBusiness/WorkstationPositionManagePage';
-import { PermissionManagePage } from '../../ui/pages/deployConfig/PermissionManagePage';
 import { RoleManagePage } from '../../ui/pages/deployConfig/RoleManagePage';
 import { ChargeStrategyPage } from '../../ui/pages/deployConfig/ChargeStrategyPage';
 import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
@@ -30,6 +29,7 @@ import { StationConfigPage } from '../../ui/pages/qcConfig/StationConfigPage';
 import { TerminalConfigPage } from '../../ui/pages/qcConfig/TerminalConfigPage';
 import { WireHarnessTypePage } from '../../ui/pages/qcConfig/WireHarnessTypePage';
 import { WorkstationConfigPage } from '../../ui/pages/qcConfig/WorkstationConfigPage';
+import { WorkshopConfigPage } from '../../ui/pages/qcConfig/WorkshopConfigPage';
 
 const allRoutes = collectRoutes(menuList);
 const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
@@ -39,7 +39,6 @@ const workOrderManagePath = '/qualityInspection/workOrderManage';
 const reinspectionRecordPath = '/qualityInspection/reinspectionRecord';
 const userManagePath = '/deployConfig/user/userManage';
 const roleManagePath = '/deployConfig/user/roleManage';
-const permissionManagePath = '/deployConfig/user/permissionManage';
 const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
@@ -50,6 +49,7 @@ const qualityConfigPaths = [
   '/qualityInspection/workstationPositionConfig',
   '/qualityInspection/wireHarnessType',
   '/qualityInspection/terminalConfig',
+  '/qualityInspection/workshopConfig',
 ];
 const deployRobotPaths = [
   '/deployConfig/robot/robotList',
@@ -65,7 +65,6 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== reinspectionRecordPath &&
     route.path !== userManagePath &&
     route.path !== roleManagePath &&
-    route.path !== permissionManagePath &&
     route.path !== settingPath &&
     route.path !== mapManagePath &&
     route.path !== configTemplatePath &&
@@ -115,17 +114,17 @@ export function AppRouter() {
             <Route path={reinspectionRecordPath} element={<ReinspectionRecordPage />} />
             <Route path={userManagePath} element={<UserManagePage />} />
             <Route path={roleManagePath} element={<RoleManagePage />} />
-            <Route path={permissionManagePath} element={<PermissionManagePage />} />
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
-            <Route path={configTemplatePath} element={<RobotConfigPage />} />
+            <Route path={configTemplatePath} element={<ConfigTemplatePage />} />
             <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
             <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
             <Route path="/qualityInspection/terminalConfig" element={<TerminalConfigPage />} />
-            <Route path="/deployConfig/robot/robotList" element={<ConfigTemplatePage />} />
+            <Route path="/qualityInspection/workshopConfig" element={<WorkshopConfigPage />} />
+            <Route path="/deployConfig/robot/robotList" element={<RobotConfigPage />} />
             <Route path="/deployConfig/robot/robotType" element={<RobotTypePage />} />
             <Route path="/deployConfig/robot/robotParts" element={<RobotPartsPage />} />
             <Route path="/deployConfig/robot/robotGroup" element={<RobotGroupPage />} />

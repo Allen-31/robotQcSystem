@@ -27,7 +27,7 @@ export function useTerminalConfig() {
     }
 
     return records.filter((item) =>
-      `${item.terminalId} ${item.workstationId} ${item.boundStationIds.join(' ')} ${item.currentUser}`
+      `${item.id} ${item.sn} ${item.terminalType} ${item.terminalIp} ${item.workstationId} ${item.boundStationIds.join(' ')} ${item.currentUser}`
         .toLowerCase()
         .includes(normalized),
     );
@@ -38,21 +38,11 @@ export function useTerminalConfig() {
   };
 
   const updateRecord = (payload: TerminalConfigPayload) => {
-    setRecords((prev) => prev.map((item) => (item.terminalId === payload.terminalId ? payload : item)));
+    setRecords((prev) => prev.map((item) => (item.id === payload.id ? payload : item)));
   };
 
-  const removeRecord = (terminalId: string) => {
-    setRecords((prev) => prev.filter((item) => item.terminalId !== terminalId));
-  };
-
-  const toggleOnline = (terminalId: string) => {
-    setRecords((prev) =>
-      prev.map((item) =>
-        item.terminalId === terminalId
-          ? { ...item, online: !item.online, currentUser: item.online ? '-' : item.currentUser || 'operator' }
-          : item,
-      ),
-    );
+  const removeRecord = (id: string) => {
+    setRecords((prev) => prev.filter((item) => item.id !== id));
   };
 
   return {
@@ -63,7 +53,6 @@ export function useTerminalConfig() {
     createRecord,
     updateRecord,
     removeRecord,
-    toggleOnline,
     workstationOptions,
     stationOptions,
   };

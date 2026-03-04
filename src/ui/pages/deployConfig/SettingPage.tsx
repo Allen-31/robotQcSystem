@@ -257,30 +257,31 @@ export function SettingPage() {
       </Card>
 
       <Card title={t('setting.display.title')}>
-        <Row gutter={[12, 12]} align="middle">
-          <Col xs={24} lg={8}>
-            <Space>
-              <Typography.Text>{t('setting.display.theme')}</Typography.Text>
-              <Select
-                value={themeMode}
-                style={{ width: isLaptop ? 180 : 220 }}
-                options={THEME_OPTIONS.map((item) => ({ value: item, label: t(`setting.display.theme.${item}`) }))}
-                onChange={(value) => setThemeMode(value as ThemeMode)}
-              />
-            </Space>
-          </Col>
-          <Col xs={24} lg={8}>
-            <Space>
-              <Typography.Text>{t('setting.display.language')}</Typography.Text>
-              <Select value={locale} style={{ width: isLaptop ? 180 : 220 }} options={languageSelectOptions} onChange={(value) => setLocale(value)} />
-            </Space>
-          </Col>
-          <Col xs={24} lg={8}>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => setManageOpen(true)}>{t('setting.display.manage')}</Button>
-            </Space>
-          </Col>
-        </Row>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Card size="small" title={t('setting.display.theme')}>
+            <Select
+              value={themeMode}
+              style={{ width: 260 }}
+              options={THEME_OPTIONS.map((item) => ({ value: item, label: t(`setting.display.theme.${item}`) }))}
+              onChange={(value) => setThemeMode(value as ThemeMode)}
+            />
+          </Card>
+          <Card size="small" title={t('setting.display.multilingual')}>
+            <Row gutter={[12, 12]} align="middle">
+              <Col xs={24} lg={18}>
+                <Space>
+                  <Typography.Text>{t('setting.display.language')}</Typography.Text>
+                  <Select value={locale} style={{ width: 260 }} options={languageSelectOptions} onChange={(value) => setLocale(value)} />
+                </Space>
+              </Col>
+              <Col xs={24} lg={6}>
+                <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button onClick={() => setManageOpen(true)}>{t('setting.display.manage')}</Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        </Space>
       </Card>
 
       <Modal

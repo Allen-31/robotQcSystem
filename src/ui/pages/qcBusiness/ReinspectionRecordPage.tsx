@@ -4,13 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { normalizeHarnessType, normalizeStationCode } from '../../../data/qcBusiness/qcConfigReference';
 import { useI18n } from '../../../i18n/I18nProvider';
-import { reinspectionRecordList, type ReinspectionRecordItem, type ReinspectionResult, type ReinspectionStatus } from '../../../data/qcBusiness/reinspectionRecordList';
-
-const statusColorMap: Record<ReinspectionStatus, string> = {
-  pending: 'default',
-  completed: 'success',
-  cancelled: 'warning',
-};
+import { reinspectionRecordList, type ReinspectionRecordItem, type ReinspectionResult } from '../../../data/qcBusiness/reinspectionRecordList';
 
 const resultColorMap: Record<ReinspectionResult, string> = {
   ok: 'success',
@@ -27,14 +21,15 @@ function escapeCsv(value: string | number): string {
 }
 
 function buildCsv(rows: ReinspectionRecordItem[]): string {
-  const headers = ['workOrderNo', 'harnessCode', 'harnessType', 'stationCode', 'status', 'reinspectionResult', 'reinspectionTime', 'reviewer'];
+  const headers = ['reinspectionNo', 'workOrderNo', 'harnessCode', 'harnessType', 'stationCode', 'qualityResult', 'reinspectionResult', 'reinspectionTime', 'reviewer'];
   const lines = rows.map((row) =>
     [
+      row.reinspectionNo,
       row.workOrderNo,
       row.harnessCode,
       row.harnessType,
       row.stationCode,
-      row.status,
+      row.qualityResult,
       row.reinspectionResult,
       row.reinspectionTime,
       row.reviewer,
@@ -81,7 +76,7 @@ export function ReinspectionRecordPage() {
     }
     return linkedRecords.filter((item) => {
       const text =
-        `${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.status} ${item.reinspectionResult} ${item.reinspectionTime} ${item.reviewer}`.toLowerCase();
+        `${item.reinspectionNo} ${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.qualityResult} ${item.reinspectionResult} ${item.reinspectionTime} ${item.reviewer}`.toLowerCase();
       return text.includes(normalized);
     });
   }, [keyword, linkedRecords]);
@@ -102,16 +97,17 @@ export function ReinspectionRecordPage() {
   };
 
   const columns: ColumnsType<ReinspectionRecordItem> = [
+    { title: t('reinspection.table.reinspectionNo'), dataIndex: 'reinspectionNo', key: 'reinspectionNo', width: 170 },
     { title: t('reinspection.table.workOrderNo'), dataIndex: 'workOrderNo', key: 'workOrderNo', width: 170 },
     { title: t('reinspection.table.harnessCode'), dataIndex: 'harnessCode', key: 'harnessCode', width: 170 },
     { title: t('reinspection.table.harnessType'), dataIndex: 'harnessType', key: 'harnessType', width: 150 },
     { title: t('reinspection.table.stationCode'), dataIndex: 'stationCode', key: 'stationCode', width: 120 },
     {
-      title: t('reinspection.table.status'),
-      dataIndex: 'status',
-      key: 'status',
+      title: t('reinspection.table.qualityResult'),
+      dataIndex: 'qualityResult',
+      key: 'qualityResult',
       width: 120,
-      render: (status: ReinspectionStatus) => <Tag color={statusColorMap[status]}>{t(`reinspection.status.${status}`)}</Tag>,
+      render: (result: ReinspectionResult) => <Tag color={resultColorMap[result]}>{t(`reinspection.result.${result}`)}</Tag>,
     },
     {
       title: t('reinspection.table.result'),
@@ -176,7 +172,7 @@ export function ReinspectionRecordPage() {
           columns={columns}
           dataSource={dataSource}
           pagination={{ pageSize: 8, showSizeChanger: false }}
-          scroll={{ x: 1450 }}
+          scroll={{ x: 1600 }}
         />
       </Card>
 

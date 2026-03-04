@@ -1,6 +1,7 @@
 export interface WorkstationConfig {
   id: string;
   name: string;
+  workshopCode: string;
   wireHarnessType: string;
   robotGroup: string;
   enabled: boolean;
@@ -23,7 +24,10 @@ export interface WireHarnessTypeConfig {
 }
 
 export interface TerminalConfig {
-  terminalId: string;
+  id: string;
+  sn: string;
+  terminalType: string;
+  terminalIp: string;
   workstationId: string;
   boundStationIds: string[];
   online: boolean;

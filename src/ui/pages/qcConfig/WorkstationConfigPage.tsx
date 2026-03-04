@@ -2,6 +2,7 @@
 import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
+import { workshopConfigList } from '../../../data/qcConfig/workshopConfigList';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useWorkstationConfig } from '../../../logic/qcConfig/useWorkstationConfig';
 import type { WorkstationConfig } from '../../../shared/types/qcConfig';
@@ -10,6 +11,7 @@ type FormValues = WorkstationConfig;
 
 const wireHarnessOptions = ['主驱线束-A', '控制线束-B', '高压线束-C', '通用线束-D'];
 const robotGroupOptions = ['RG-01', 'RG-02', 'RG-03', 'RG-04'];
+const workshopOptions = workshopConfigList.map((item) => ({ label: `${item.code} - ${item.name}`, value: item.code }));
 
 export function WorkstationConfigPage() {
   const [form] = Form.useForm<FormValues>();
@@ -21,7 +23,7 @@ export function WorkstationConfigPage() {
 
   const openCreate = () => {
     form.resetFields();
-    form.setFieldsValue({ enabled: true });
+    form.setFieldsValue({ enabled: true, workshopCode: workshopOptions[0]?.value });
     setCreateOpen(true);
   };
 
@@ -53,6 +55,7 @@ export function WorkstationConfigPage() {
   const columns: ColumnsType<WorkstationConfig> = [
     { title: t('qcConfig.workstation.table.id'), dataIndex: 'id', key: 'id', width: 140 },
     { title: t('qcConfig.workstation.table.name'), dataIndex: 'name', key: 'name', width: 220 },
+    { title: t('qcConfig.workstation.table.workshopCode'), dataIndex: 'workshopCode', key: 'workshopCode', width: 160 },
     { title: t('qcConfig.workstation.table.robotGroup'), dataIndex: 'robotGroup', key: 'robotGroup', width: 160 },
     {
       title: t('qcConfig.workstation.table.enabled'),
@@ -147,6 +150,13 @@ export function WorkstationConfigPage() {
           </Form.Item>
           <Form.Item label={t('qcConfig.workstation.form.name')} name="name" rules={[{ required: true, message: t('qcConfig.workstation.form.nameRequired') }]}>
             <Input />
+          </Form.Item>
+          <Form.Item
+            label={t('qcConfig.workstation.form.workshopCode')}
+            name="workshopCode"
+            rules={[{ required: true, message: t('qcConfig.workstation.form.workshopCodeRequired') }]}
+          >
+            <Select options={workshopOptions} />
           </Form.Item>
           {createOpen ? (
             <Form.Item
