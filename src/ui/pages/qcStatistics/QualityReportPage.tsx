@@ -1,10 +1,12 @@
 import { DownloadOutlined, FileAddOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useMemo, useState } from 'react';
-import { getCurrentUser } from '../../../logic/auth/authStore';
 import { qualityStatsMock, type QualityStatRecord } from '../../../data/qcStatistics/qualityStatsMock';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { getCurrentUser } from '../../../logic/auth/authStore';
 import { SimpleBarChart } from '../../components/charts/SimpleCharts';
 
 type ReportType = 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -63,38 +65,51 @@ function filterByReportType(records: QualityStatRecord[], reportType: ReportType
   });
 }
 
-function buildCsv(rows: AggregatedRow[]): string {
-  const header = ['dimension', 'inspectionCount', 'defectCount', 'reinspectionCount', 'detectionRate', 'reinspectionRate', 'avgDurationMin'];
-  const lines = rows.map((row) =>
-    [row.dimensionValue, row.inspectionCount, row.defectCount, row.reinspectionCount, row.detectionRate, row.reinspectionRate, row.avgDurationMin].join(','),
-  );
-  return `${header.join(',')}\n${lines.join('\n')}`;
-}
+function downloadPdf(
+  rows: AggregatedRow[],
+  fileName: string,
+  options?: {
+    title?: string;
+    reportRecord?: ReportRecord;
+  },
+): void {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const title = options?.title ?? 'Quality Report';
 
-function buildReportRecordCsv(record: ReportRecord, rows: AggregatedRow[]): string {
-  const meta = [
-    ['reportNo', record.reportNo],
-    ['reportType', record.reportType],
-    ['periodLabel', record.periodLabel],
-    ['dimension', record.dimension],
-    ['creator', record.creator],
-    ['createdAt', record.createdAt],
-  ]
-    .map((item) => item.join(','))
-    .join('\n');
-  return `${meta}\n\n${buildCsv(rows)}`;
-}
+  doc.setFontSize(16);
+  doc.text(title, 40, 40);
 
-function downloadCsv(content: string, fileName: string): void {
-  const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
+  let startY = 58;
+  if (options?.reportRecord) {
+    const record = options.reportRecord;
+    doc.setFontSize(10);
+    doc.text(`Report No: ${record.reportNo}`, 40, startY);
+    doc.text(`Type: ${record.reportType}`, 260, startY);
+    doc.text(`Period: ${record.periodLabel}`, 420, startY);
+    doc.text(`Dimension: ${record.dimension}`, 40, startY + 16);
+    doc.text(`Creator: ${record.creator}`, 260, startY + 16);
+    doc.text(`Created At: ${record.createdAt}`, 420, startY + 16);
+    startY += 34;
+  }
+
+  autoTable(doc, {
+    startY,
+    head: [['Dimension', 'Inspections', 'Defects', 'Reinspections', 'Detection Rate', 'Reinspection Rate', 'Avg Duration(min)']],
+    body: rows.map((row) => [
+      row.dimensionValue,
+      row.inspectionCount,
+      row.defectCount,
+      row.reinspectionCount,
+      `${row.detectionRate}%`,
+      `${row.reinspectionRate}%`,
+      row.avgDurationMin,
+    ]),
+    theme: 'striped',
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [22, 119, 255] },
+  });
+
+  doc.save(fileName);
 }
 
 export function QualityReportPage() {
@@ -134,11 +149,15 @@ export function QualityReportPage() {
         abnormalTitle: 'Abnormal Detail',
         historyTitle: 'Report History',
         createReport: 'Generate Report',
-        exportReport: 'Export Detail',
+        exportReport: 'Export PDF',
         detailChartTitle: 'Report Overview by Dimension',
-        actionDownload: 'Download',
+        actionDownload: 'Download PDF',
+        reportDownloaded: 'Report downloaded',
+        reportExported: 'Report detail exported',
+        reportGenerated: 'Report generated',
       };
     }
+
     return {
       reportType: '报表类型',
       reportDimension: '统计维度',
@@ -156,11 +175,25 @@ export function QualityReportPage() {
       abnormalTitle: '异常明细',
       historyTitle: '报表记录',
       createReport: '生成报表',
-      exportReport: '导出明细',
+      exportReport: '导出 PDF',
       detailChartTitle: '报表维度总览',
-      actionDownload: '下载',
+      actionDownload: '下载 PDF',
+      reportDownloaded: '报表下载成功',
+      reportExported: '报表明细导出成功',
+      reportGenerated: '报表生成成功',
     };
   }, [locale]);
+
+  const dimensionTextMap: Record<ReportDimension, string> = useMemo(
+    () => ({
+      workshop: locale === 'en-US' ? 'Workshop' : '车间',
+      workstation: locale === 'en-US' ? 'Inspection Zone' : '质检区',
+      station: locale === 'en-US' ? 'Inspection Bench' : '质检台',
+      inspector: locale === 'en-US' ? 'Inspector' : '质检员',
+      wireHarness: locale === 'en-US' ? 'Harness' : '线束',
+    }),
+    [locale],
+  );
 
   const filtered = useMemo(() => filterByReportType(qualityStatsMock, reportType), [reportType]);
 
@@ -169,25 +202,27 @@ export function QualityReportPage() {
     filtered.forEach((item) => {
       grouped.set(item[dimension], [...(grouped.get(item[dimension]) ?? []), item]);
     });
-    return Array.from(grouped.entries()).map(([key, rows]) => {
-      const inspectionCount = rows.reduce((sum, row) => sum + row.inspectionCount, 0);
-      const defectCount = rows.reduce((sum, row) => sum + row.defectCount, 0);
-      const reinspectionCount = rows.reduce((sum, row) => sum + row.reinspectionCount, 0);
-      const avgDurationMin =
-        inspectionCount === 0
-          ? 0
-          : Number((rows.reduce((sum, row) => sum + row.avgDurationMin * row.inspectionCount, 0) / inspectionCount).toFixed(2));
-      return {
-        key,
-        dimensionValue: key,
-        inspectionCount,
-        defectCount,
-        reinspectionCount,
-        detectionRate: calcRate(defectCount, inspectionCount),
-        reinspectionRate: calcRate(reinspectionCount, inspectionCount),
-        avgDurationMin,
-      };
-    });
+    return Array.from(grouped.entries())
+      .map(([key, rows]) => {
+        const inspectionCount = rows.reduce((sum, row) => sum + row.inspectionCount, 0);
+        const defectCount = rows.reduce((sum, row) => sum + row.defectCount, 0);
+        const reinspectionCount = rows.reduce((sum, row) => sum + row.reinspectionCount, 0);
+        const avgDurationMin =
+          inspectionCount === 0
+            ? 0
+            : Number((rows.reduce((sum, row) => sum + row.avgDurationMin * row.inspectionCount, 0) / inspectionCount).toFixed(2));
+        return {
+          key,
+          dimensionValue: key,
+          inspectionCount,
+          defectCount,
+          reinspectionCount,
+          detectionRate: calcRate(defectCount, inspectionCount),
+          reinspectionRate: calcRate(reinspectionCount, inspectionCount),
+          avgDurationMin,
+        };
+      })
+      .sort((a, b) => b.inspectionCount - a.inspectionCount);
   }, [dimension, filtered]);
 
   const summary = useMemo(() => {
@@ -229,20 +264,8 @@ export function QualityReportPage() {
     [aggregatedRows, locale],
   );
 
-  const dimensionTitle = useMemo(
-    () =>
-      ({
-        workshop: locale === 'en-US' ? 'Workshop' : '车间',
-        workstation: locale === 'en-US' ? 'Inspection Zone' : '质检区',
-        station: locale === 'en-US' ? 'Inspection Bench' : '质检台',
-        inspector: locale === 'en-US' ? 'Inspector' : '质检员',
-        wireHarness: locale === 'en-US' ? 'Harness' : '线束',
-      })[dimension],
-    [dimension, locale],
-  );
-
   const detailColumns: ColumnsType<AggregatedRow> = [
-    { title: dimensionTitle, dataIndex: 'dimensionValue', key: 'dimensionValue', width: 180 },
+    { title: dimensionTextMap[dimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 180 },
     { title: label.totalInspection, dataIndex: 'inspectionCount', key: 'inspectionCount', width: 130 },
     { title: label.totalDefect, dataIndex: 'defectCount', key: 'defectCount', width: 120 },
     { title: label.detectionRate, dataIndex: 'detectionRate', key: 'detectionRate', width: 120, render: (value: number) => `${value}%` },
@@ -251,7 +274,7 @@ export function QualityReportPage() {
   ];
 
   const abnormalColumns: ColumnsType<(typeof abnormalRows)[number]> = [
-    { title: dimensionTitle, dataIndex: 'dimensionValue', key: 'dimensionValue', width: 180 },
+    { title: dimensionTextMap[dimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 180 },
     { title: locale === 'en-US' ? 'Issue' : '异常项', dataIndex: 'issue', key: 'issue', width: 180, render: (value: string) => <Tag color="error">{value}</Tag> },
     { title: label.detectionRate, dataIndex: 'detectionRate', key: 'detectionRate', width: 120, render: (value: number) => `${value}%` },
     { title: label.reinspectionRate, dataIndex: 'reinspectionRate', key: 'reinspectionRate', width: 120, render: (value: number) => `${value}%` },
@@ -260,25 +283,45 @@ export function QualityReportPage() {
 
   const historyColumns: ColumnsType<ReportRecord> = [
     { title: locale === 'en-US' ? 'Report No' : '报表编号', dataIndex: 'reportNo', key: 'reportNo', width: 170 },
-    { title: label.reportType, dataIndex: 'reportType', key: 'reportType', width: 120, render: (value: ReportType) => ({ daily: label.daily, weekly: label.weekly, monthly: label.monthly, custom: label.custom })[value] },
+    {
+      title: label.reportType,
+      dataIndex: 'reportType',
+      key: 'reportType',
+      width: 120,
+      render: (value: ReportType) => ({ daily: label.daily, weekly: label.weekly, monthly: label.monthly, custom: label.custom })[value],
+    },
     { title: locale === 'en-US' ? 'Period' : '周期', dataIndex: 'periodLabel', key: 'periodLabel', width: 130 },
-    { title: label.reportDimension, dataIndex: 'dimension', key: 'dimension', width: 130, render: (value: ReportDimension) => ({ workshop: locale === 'en-US' ? 'Workshop' : '车间', workstation: locale === 'en-US' ? 'Inspection Zone' : '质检区', station: locale === 'en-US' ? 'Inspection Bench' : '质检台', inspector: locale === 'en-US' ? 'Inspector' : '质检员', wireHarness: locale === 'en-US' ? 'Harness' : '线束' })[value] },
+    {
+      title: label.reportDimension,
+      dataIndex: 'dimension',
+      key: 'dimension',
+      width: 130,
+      render: (value: ReportDimension) => dimensionTextMap[value],
+    },
     { title: locale === 'en-US' ? 'Creator' : '创建人', dataIndex: 'creator', key: 'creator', width: 100 },
     { title: locale === 'en-US' ? 'Created At' : '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-    { title: locale === 'en-US' ? 'Status' : '状态', dataIndex: 'status', key: 'status', width: 100, render: () => <Tag color="success">{locale === 'en-US' ? 'Generated' : '已生成'}</Tag> },
+    {
+      title: locale === 'en-US' ? 'Status' : '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: () => <Tag color="success">{locale === 'en-US' ? 'Generated' : '已生成'}</Tag>,
+    },
     {
       title: locale === 'en-US' ? 'Action' : '操作',
       key: 'action',
-      width: 120,
+      width: 140,
       fixed: 'right',
       render: (_, record) => (
         <Button
           type="link"
           icon={<DownloadOutlined />}
           onClick={() => {
-            const content = buildReportRecordCsv(record, aggregatedRows);
-            downloadCsv(content, `${record.reportNo}.csv`);
-            messageApi.success(locale === 'en-US' ? 'Report downloaded' : '报表下载成功');
+            downloadPdf(aggregatedRows, `${record.reportNo}.pdf`, {
+              title: record.reportNo,
+              reportRecord: record,
+            });
+            messageApi.success(label.reportDownloaded);
           }}
         >
           {label.actionDownload}
@@ -290,11 +333,13 @@ export function QualityReportPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
+
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('menu.qualityReport')}
           </Typography.Title>
+
           <Space wrap>
             <Select
               value={reportType}
@@ -307,18 +352,20 @@ export function QualityReportPage() {
                 { label: label.custom, value: 'custom' },
               ]}
             />
+
             <Select
               value={dimension}
               onChange={setDimension}
               style={{ width: 170 }}
               options={[
-                { label: locale === 'en-US' ? 'Workshop' : '车间', value: 'workshop' },
-                { label: locale === 'en-US' ? 'Inspection Zone' : '质检区', value: 'workstation' },
-                { label: locale === 'en-US' ? 'Inspection Bench' : '质检台', value: 'station' },
-                { label: locale === 'en-US' ? 'Inspector' : '质检员', value: 'inspector' },
-                { label: locale === 'en-US' ? 'Harness' : '线束', value: 'wireHarness' },
+                { label: dimensionTextMap.workshop, value: 'workshop' },
+                { label: dimensionTextMap.workstation, value: 'workstation' },
+                { label: dimensionTextMap.station, value: 'station' },
+                { label: dimensionTextMap.inspector, value: 'inspector' },
+                { label: dimensionTextMap.wireHarness, value: 'wireHarness' },
               ]}
             />
+
             <Button
               icon={<FileAddOutlined />}
               onClick={() => {
@@ -334,16 +381,19 @@ export function QualityReportPage() {
                   status: 'generated',
                 };
                 setReportHistory((current) => [next, ...current]);
-                messageApi.success(locale === 'en-US' ? 'Report generated' : '报表生成成功');
+                messageApi.success(label.reportGenerated);
               }}
             >
               {label.createReport}
             </Button>
+
             <Button
               icon={<DownloadOutlined />}
               onClick={() => {
-                downloadCsv(buildCsv(aggregatedRows), `quality-report-${new Date().toISOString().slice(0, 10)}.csv`);
-                messageApi.success(locale === 'en-US' ? 'Report detail exported' : '报表明细导出成功');
+                downloadPdf(aggregatedRows, `quality-report-${new Date().toISOString().slice(0, 10)}.pdf`, {
+                  title: locale === 'en-US' ? 'Quality Report Detail' : '质检报表明细',
+                });
+                messageApi.success(label.reportExported);
               }}
             >
               {label.exportReport}
