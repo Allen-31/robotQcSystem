@@ -32,8 +32,13 @@ import { WireHarnessTypePage } from '../../ui/pages/qcConfig/WireHarnessTypePage
 import { WorkstationConfigPage } from '../../ui/pages/qcConfig/WorkstationConfigPage';
 import { WorkshopConfigPage } from '../../ui/pages/qcConfig/WorkshopConfigPage';
 import { FileManagePage } from '../../ui/pages/operationMaintenance/FileManagePage';
+import { ApiLogPage } from '../../ui/pages/operationMaintenance/ApiLogPage';
+import { ExceptionNotificationPage } from '../../ui/pages/operationMaintenance/ExceptionNotificationPage';
+import { LoginLogPage } from '../../ui/pages/operationMaintenance/LoginLogPage';
+import { OperationLogPage } from '../../ui/pages/operationMaintenance/OperationLogPage';
 import { PackageManagePage } from '../../ui/pages/operationMaintenance/PackageManagePage';
 import { PublishManagePage } from '../../ui/pages/operationMaintenance/PublishManagePage';
+import { RobotManagePage } from '../../ui/pages/operationMaintenance/RobotManagePage';
 import { ServiceManagePage } from '../../ui/pages/operationMaintenance/ServiceManagePage';
 import { TaskManagePage } from '../../ui/pages/operationMaintenance/TaskManagePage';
 import { QualityReportPage } from '../../ui/pages/qcStatistics/QualityReportPage';
@@ -57,6 +62,11 @@ const serviceManagePath = '/operationMaintenance/service/serviceManage';
 const packageManagePath = '/operationMaintenance/upgrade/packageManage';
 const publishManagePath = '/operationMaintenance/upgrade/publishManage';
 const taskManagePath = '/operationMaintenance/task/taskManage';
+const robotManagePath = '/operationMaintenance/robot/robotManage';
+const exceptionNotificationPath = '/operationMaintenance/notification/exceptionNotification';
+const loginLogPath = '/operationMaintenance/notification/loginLog';
+const operationLogPath = '/operationMaintenance/notification/operationLog';
+const apiLogPath = '/operationMaintenance/notification/apiLog';
 const qualityStatisticsPath = '/qualityInspection/qualityStatistics';
 const qualityReportPath = '/qualityInspection/qualityReport';
 const qualityConfigPaths = [
@@ -90,6 +100,11 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== packageManagePath &&
     route.path !== publishManagePath &&
     route.path !== taskManagePath &&
+    route.path !== robotManagePath &&
+    route.path !== exceptionNotificationPath &&
+    route.path !== loginLogPath &&
+    route.path !== operationLogPath &&
+    route.path !== apiLogPath &&
     route.path !== qualityStatisticsPath &&
     route.path !== qualityReportPath &&
     !qualityConfigPaths.includes(route.path) &&
@@ -146,6 +161,11 @@ export function AppRouter() {
             <Route path={packageManagePath} element={<PackageManagePage />} />
             <Route path={publishManagePath} element={<PublishManagePage />} />
             <Route path={taskManagePath} element={<TaskManagePage />} />
+            <Route path={robotManagePath} element={<RobotManagePage />} />
+            <Route path={exceptionNotificationPath} element={<ExceptionNotificationPage />} />
+            <Route path={loginLogPath} element={<LoginLogPage />} />
+            <Route path={operationLogPath} element={<OperationLogPage />} />
+            <Route path={apiLogPath} element={<ApiLogPage />} />
             <Route path={qualityStatisticsPath} element={<QualityStatisticsPage />} />
             <Route path={qualityReportPath} element={<QualityReportPage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
