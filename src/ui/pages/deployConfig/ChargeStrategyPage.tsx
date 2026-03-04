@@ -7,8 +7,8 @@ import { useI18n } from '../../../i18n/I18nProvider';
 import { useChargeStrategyManage, type ChargeStrategyFormValues } from '../../../logic/deployConfig/useChargeStrategyManage';
 import type { ChargeMethod, ChargeStrategyRecord } from '../../../shared/types/deployConfig';
 
-const ROBOT_TYPE_OPTIONS = ['AMR', 'AGV', '复合机器人'];
-const ROBOT_GROUP_OPTIONS = ['总装一线', '质检二线', '物流转运', '电测区域'];
+const ROBOT_TYPE_OPTION_KEYS = ['amr', 'agv', 'composite'] as const;
+const ROBOT_GROUP_OPTION_KEYS = ['assemblyLine1', 'qualityLine2', 'logisticsTransfer', 'electricalTestArea'] as const;
 const ROBOT_OPTIONS = ['RB-A101-1', 'RB-B203-2', 'RB-C301-4', 'RB-C301-5', 'RB-D402-1'];
 
 export function ChargeStrategyPage() {
@@ -18,6 +18,14 @@ export function ChargeStrategyPage() {
   const { records, filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useChargeStrategyManage();
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ChargeStrategyRecord | null>(null);
+  const robotTypeOptions = useMemo(
+    () => ROBOT_TYPE_OPTION_KEYS.map((key) => ({ value: t(`deployConfig.option.robotType.${key}`), label: t(`deployConfig.option.robotType.${key}`) })),
+    [t],
+  );
+  const robotGroupOptions = useMemo(
+    () => ROBOT_GROUP_OPTION_KEYS.map((key) => ({ value: t(`deployConfig.option.robotGroup.${key}`), label: t(`deployConfig.option.robotGroup.${key}`) })),
+    [t],
+  );
 
   const chargeMethodOptions = useMemo(
     () => [
@@ -241,10 +249,10 @@ export function ChargeStrategyPage() {
             />
           </Form.Item>
           <Form.Item label={t('chargeStrategy.form.robotType')} name="robotType" rules={[{ required: true, message: t('chargeStrategy.form.robotTypeRequired') }]}>
-            <Select mode="multiple" options={ROBOT_TYPE_OPTIONS.map((item) => ({ value: item, label: item }))} />
+            <Select mode="multiple" options={robotTypeOptions} />
           </Form.Item>
           <Form.Item label={t('chargeStrategy.form.robotGroup')} name="robotGroup" rules={[{ required: true, message: t('chargeStrategy.form.robotGroupRequired') }]}>
-            <Select mode="multiple" options={ROBOT_GROUP_OPTIONS.map((item) => ({ value: item, label: item }))} />
+            <Select mode="multiple" options={robotGroupOptions} />
           </Form.Item>
           <Form.Item label={t('chargeStrategy.form.robot')} name="robot" rules={[{ required: true, message: t('chargeStrategy.form.robotRequired') }]}>
             <Select mode="multiple" options={ROBOT_OPTIONS.map((item) => ({ value: item, label: item }))} />
@@ -276,4 +284,3 @@ export function ChargeStrategyPage() {
     </Space>
   );
 }
-

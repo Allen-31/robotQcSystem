@@ -2,13 +2,13 @@ import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, Se
 import { Button, Card, Col, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useHomingStrategyManage, type HomingStrategyFormValues } from '../../../logic/deployConfig/useHomingStrategyManage';
 import type { HomingStrategyRecord } from '../../../shared/types/deployConfig';
 
-const ROBOT_TYPE_OPTIONS = ['AMR', 'AGV', '复合机器人'];
-const ROBOT_GROUP_OPTIONS = ['总装一线', '质检二线', '物流转运', '电测区域'];
+const ROBOT_TYPE_OPTION_KEYS = ['amr', 'agv', 'composite'] as const;
+const ROBOT_GROUP_OPTION_KEYS = ['assemblyLine1', 'qualityLine2', 'logisticsTransfer', 'electricalTestArea'] as const;
 const ROBOT_OPTIONS = ['RB-A101-1', 'RB-B203-2', 'RB-C301-4', 'RB-C301-5', 'RB-D402-1'];
 
 export function HomingStrategyPage() {
@@ -18,6 +18,14 @@ export function HomingStrategyPage() {
   const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useHomingStrategyManage();
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<HomingStrategyRecord | null>(null);
+  const robotTypeOptions = useMemo(
+    () => ROBOT_TYPE_OPTION_KEYS.map((key) => ({ value: t(`deployConfig.option.robotType.${key}`), label: t(`deployConfig.option.robotType.${key}`) })),
+    [t],
+  );
+  const robotGroupOptions = useMemo(
+    () => ROBOT_GROUP_OPTION_KEYS.map((key) => ({ value: t(`deployConfig.option.robotGroup.${key}`), label: t(`deployConfig.option.robotGroup.${key}`) })),
+    [t],
+  );
 
   const openCreate = () => {
     form.resetFields();
@@ -218,10 +226,10 @@ export function HomingStrategyPage() {
             />
           </Form.Item>
           <Form.Item label={t('homingStrategy.form.robotType')} name="robotType" rules={[{ required: true, message: t('homingStrategy.form.robotTypeRequired') }]}>
-            <Select mode="multiple" options={ROBOT_TYPE_OPTIONS.map((item) => ({ value: item, label: item }))} />
+            <Select mode="multiple" options={robotTypeOptions} />
           </Form.Item>
           <Form.Item label={t('homingStrategy.form.robotGroup')} name="robotGroup" rules={[{ required: true, message: t('homingStrategy.form.robotGroupRequired') }]}>
-            <Select mode="multiple" options={ROBOT_GROUP_OPTIONS.map((item) => ({ value: item, label: item }))} />
+            <Select mode="multiple" options={robotGroupOptions} />
           </Form.Item>
           <Form.Item label={t('homingStrategy.form.robot')} name="robot" rules={[{ required: true, message: t('homingStrategy.form.robotRequired') }]}>
             <Select mode="multiple" options={ROBOT_OPTIONS.map((item) => ({ value: item, label: item }))} />
@@ -239,4 +247,3 @@ export function HomingStrategyPage() {
     </Space>
   );
 }
-
