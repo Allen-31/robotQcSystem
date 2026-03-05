@@ -441,7 +441,7 @@ const columns: ColumnsType<RobotConfigRecord> = [
       fixed: 'right',
       render: (_, record) => (
         <Space size={4} wrap>
-          <Button type="link" onClick={() => navigate('/deployConfig/scene/configTemplate')}>
+          <Button type="link" onClick={() => navigate(`/operationMaintenance/robot/robotManage/${record.serialNo}/detail`)}>
             控制
           </Button>
           <Button type="link" onClick={() => messageApi.success(`开始建图：${record.serialNo}`)}>
