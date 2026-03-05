@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { chargeStrategyList } from '../../data/deployConfig/chargeStrategyList';
+import { useEffect, useMemo, useState } from 'react';
+import { getChargeStrategyList } from '../../data/deployConfig/chargeStrategyList';
 import type { ChargeMethod, ChargeStrategyRecord, ChargeStrategyStatus } from '../../shared/types/deployConfig';
+import type { DataLocale } from '../../data/localized';
 
 export interface ChargeStrategyFormValues {
   code: string;
@@ -16,9 +17,13 @@ export interface ChargeStrategyFormValues {
   };
 }
 
-export function useChargeStrategyManage() {
-  const [records, setRecords] = useState<ChargeStrategyRecord[]>(chargeStrategyList);
+export function useChargeStrategyManage(locale: DataLocale) {
+  const [records, setRecords] = useState<ChargeStrategyRecord[]>(() => getChargeStrategyList(locale));
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    setRecords(getChargeStrategyList(locale));
+  }, [locale]);
 
   const filteredList = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();

@@ -1,3 +1,5 @@
+import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
+
 export type PackageType = 'cloud' | 'robot';
 
 export interface PackagePartItem {
@@ -17,7 +19,11 @@ export interface PackageManageRecord {
   uploadedAt: string;
 }
 
-export const packageManageList: PackageManageRecord[] = [
+interface LocalizedPackageManageRecord extends Omit<PackageManageRecord, 'description'> {
+  description: LocalizedText;
+}
+
+const localizedPackageManageList: LocalizedPackageManageRecord[] = [
   {
     id: 'PKG-001',
     name: 'cloud-release-20260304.zip',
@@ -27,7 +33,10 @@ export const packageManageList: PackageManageRecord[] = [
       { part: 'report-service', version: 'v2.8.0' },
       { part: 'dispatch-engine', version: 'v1.5.3' },
     ],
-    description: '云平台补丁包，修复调度拥塞问题并优化报表查询',
+    description: {
+      zh: '云平台补丁包，修复调度拥塞问题并优化报表查询',
+      en: 'Cloud patch package fixing scheduling congestion and improving report query performance',
+    },
     size: '124.6 MB',
     md5: '9f8a2e7d40f11bc7e42a9d8228f8a0a4',
     uploader: 'admin',
@@ -42,10 +51,22 @@ export const packageManageList: PackageManageRecord[] = [
       { part: 'camera-driver', version: 'v2.4.6' },
       { part: 'arm-firmware', version: 'v5.1.0' },
     ],
-    description: '机器人端升级包，提升视觉稳定性和运动控制精度',
+    description: {
+      zh: '机器人端升级包，提升视觉稳定性和运动控制精度',
+      en: 'Robot upgrade package improving visual stability and motion control precision',
+    },
     size: '86.2 MB',
     md5: '34ea1cb9f06d45b689d2a6c1ed5f3b21',
     uploader: 'ops',
     uploadedAt: '2026-03-04 10:12:08',
   },
 ];
+
+export function getPackageManageList(locale: DataLocale): PackageManageRecord[] {
+  return localizedPackageManageList.map((item) => ({
+    ...item,
+    description: resolveLocalizedText(item.description, locale),
+  }));
+}
+
+export const packageManageList: PackageManageRecord[] = getPackageManageList('zh-CN');

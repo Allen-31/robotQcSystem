@@ -12,10 +12,10 @@ const ROBOT_GROUP_OPTION_KEYS = ['assemblyLine1', 'qualityLine2', 'logisticsTran
 const ROBOT_OPTIONS = ['RB-A101-1', 'RB-B203-2', 'RB-C301-4', 'RB-C301-5', 'RB-D402-1'];
 
 export function HomingStrategyPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<HomingStrategyFormValues>();
-  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useHomingStrategyManage();
+  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useHomingStrategyManage(locale);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<HomingStrategyRecord | null>(null);
   const robotTypeOptions = useMemo(

@@ -2,7 +2,7 @@ import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { exceptionNotificationList, type ExceptionNotificationRecord } from '../../../data/operationMaintenance/exceptionNotificationList';
+import { getExceptionNotificationList, type ExceptionNotificationRecord } from '../../../data/operationMaintenance/exceptionNotificationList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 function exportCsv(rows: ExceptionNotificationRecord[]) {
@@ -21,9 +21,10 @@ function exportCsv(rows: ExceptionNotificationRecord[]) {
 }
 
 export function ExceptionNotificationPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
+  const exceptionNotificationList = useMemo(() => getExceptionNotificationList(locale), [locale]);
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -81,4 +82,3 @@ export function ExceptionNotificationPage() {
     </Space>
   );
 }
-

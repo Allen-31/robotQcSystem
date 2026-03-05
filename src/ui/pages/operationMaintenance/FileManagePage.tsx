@@ -2,7 +2,7 @@ import { EyeOutlined, ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { fileManageList, type FileManageRecord } from '../../../data/operationMaintenance/fileManageList';
+import { getFileManageList, type FileManageRecord } from '../../../data/operationMaintenance/fileManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 function escapeCsv(value: string): string {
@@ -37,6 +37,7 @@ function downloadCsv(rows: FileManageRecord[]): void {
 export function FileManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
+  const fileManageList = useMemo(() => getFileManageList(locale), [locale]);
   const [previewRecord, setPreviewRecord] = useState<FileManageRecord | null>(null);
   const [keyword, setKeyword] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);

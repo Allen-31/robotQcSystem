@@ -8,10 +8,10 @@ import { useMapManage, type MapManageFormValues } from '../../../logic/deployCon
 import type { MapManageRecord } from '../../../shared/types/deployConfig';
 
 export function MapManagePage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<MapManageFormValues>();
-  const { records, filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useMapManage();
+  const { records, filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useMapManage(locale);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MapManageRecord | null>(null);
 

@@ -1,3 +1,5 @@
+import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
+
 export type UpgradeStrategy = 'immediate' | 'idle' | 'homing';
 export type PublishStatus = 'pending' | 'running' | 'completed' | 'cancelled';
 export type DeviceUpgradeStatus = 'pending' | 'upgrading' | 'completed' | 'cancelled';
@@ -39,18 +41,38 @@ export interface UpgradeDeviceTemplate {
   currentVersion: string;
 }
 
-export const robotOptions = ['RB-A101', 'RB-A102', 'RB-B201', 'RB-C301', 'RB-D401'];
-export const robotGroupOptions = ['总装一线', '总装二线', '质检一线', '物流转运'];
-export const robotTypeOptions = ['AMR', 'AGV', '机械臂'];
+interface LocalizedUpgradeDeviceTemplate extends Omit<UpgradeDeviceTemplate, 'robotGroup' | 'robotType'> {
+  robotGroup: LocalizedText;
+  robotType: LocalizedText;
+}
 
-export const upgradeDeviceCatalog: UpgradeDeviceTemplate[] = [
+interface LocalizedPublishManageRecord extends Omit<PublishManageRecord, 'name' | 'targetRobotGroups' | 'targetRobotTypes'> {
+  name: LocalizedText;
+  targetRobotGroups: LocalizedText[];
+  targetRobotTypes: LocalizedText[];
+}
+
+const localizedRobotGroupOptions: LocalizedText[] = [
+  { zh: '总装一线', en: 'Assembly Line 1' },
+  { zh: '总装二线', en: 'Assembly Line 2' },
+  { zh: '质检一线', en: 'Quality Line 1' },
+  { zh: '物流转运', en: 'Logistics Transfer' },
+];
+
+const localizedRobotTypeOptions: LocalizedText[] = [
+  { zh: 'AMR', en: 'AMR' },
+  { zh: 'AGV', en: 'AGV' },
+  { zh: '机械臂', en: 'Robot Arm' },
+];
+
+const localizedUpgradeDeviceCatalog: LocalizedUpgradeDeviceTemplate[] = [
   {
     id: 'DEV-001',
     deviceName: 'robot-rb-a101',
     ip: '10.10.11.101',
     robot: 'RB-A101',
-    robotGroup: '总装一线',
-    robotType: 'AMR',
+    robotGroup: { zh: '总装一线', en: 'Assembly Line 1' },
+    robotType: { zh: 'AMR', en: 'AMR' },
     currentVersion: 'v5.0.1',
   },
   {
@@ -58,8 +80,8 @@ export const upgradeDeviceCatalog: UpgradeDeviceTemplate[] = [
     deviceName: 'robot-rb-a102',
     ip: '10.10.11.102',
     robot: 'RB-A102',
-    robotGroup: '总装一线',
-    robotType: 'AMR',
+    robotGroup: { zh: '总装一线', en: 'Assembly Line 1' },
+    robotType: { zh: 'AMR', en: 'AMR' },
     currentVersion: 'v5.0.1',
   },
   {
@@ -67,8 +89,8 @@ export const upgradeDeviceCatalog: UpgradeDeviceTemplate[] = [
     deviceName: 'robot-rb-b201',
     ip: '10.10.12.201',
     robot: 'RB-B201',
-    robotGroup: '质检一线',
-    robotType: 'AGV',
+    robotGroup: { zh: '质检一线', en: 'Quality Line 1' },
+    robotType: { zh: 'AGV', en: 'AGV' },
     currentVersion: 'v3.2.4',
   },
   {
@@ -76,8 +98,8 @@ export const upgradeDeviceCatalog: UpgradeDeviceTemplate[] = [
     deviceName: 'robot-rb-c301',
     ip: '10.10.13.44',
     robot: 'RB-C301',
-    robotGroup: '总装二线',
-    robotType: '机械臂',
+    robotGroup: { zh: '总装二线', en: 'Assembly Line 2' },
+    robotType: { zh: '机械臂', en: 'Robot Arm' },
     currentVersion: 'v2.1.7',
   },
   {
@@ -85,8 +107,8 @@ export const upgradeDeviceCatalog: UpgradeDeviceTemplate[] = [
     deviceName: 'robot-rb-d401',
     ip: '10.10.14.11',
     robot: 'RB-D401',
-    robotGroup: '物流转运',
-    robotType: 'AGV',
+    robotGroup: { zh: '物流转运', en: 'Logistics Transfer' },
+    robotType: { zh: 'AGV', en: 'AGV' },
     currentVersion: 'v3.2.3',
   },
   {
@@ -94,20 +116,20 @@ export const upgradeDeviceCatalog: UpgradeDeviceTemplate[] = [
     deviceName: 'cloud-upgrade-gateway',
     ip: '10.10.2.12',
     robot: '-',
-    robotGroup: '云平台',
-    robotType: 'SERVER',
+    robotGroup: { zh: '云平台', en: 'Cloud Platform' },
+    robotType: { zh: 'SERVER', en: 'SERVER' },
     currentVersion: 'v2.9.0',
   },
 ];
 
-export const publishManageList: PublishManageRecord[] = [
+const localizedPublishManageList: LocalizedPublishManageRecord[] = [
   {
     id: 'PUB-001',
-    name: '总装一线机器人夜间升级',
+    name: { zh: '总装一线机器人夜间升级', en: 'Night Upgrade for Assembly Line 1 Robots' },
     packageName: 'robot-rb-series-v5.1.0.zip',
     targetRobots: ['RB-A101', 'RB-A102'],
-    targetRobotGroups: ['总装一线'],
-    targetRobotTypes: ['AMR'],
+    targetRobotGroups: [{ zh: '总装一线', en: 'Assembly Line 1' }],
+    targetRobotTypes: [{ zh: 'AMR', en: 'AMR' }],
     strategy: 'idle',
     restartAfterUpgrade: true,
     status: 'running',
@@ -139,7 +161,7 @@ export const publishManageList: PublishManageRecord[] = [
   },
   {
     id: 'PUB-002',
-    name: '云平台补丁全量发布',
+    name: { zh: '云平台补丁全量发布', en: 'Full Patch Release for Cloud Platform' },
     packageName: 'cloud-release-20260304.zip',
     targetRobots: [],
     targetRobotGroups: [],
@@ -164,3 +186,35 @@ export const publishManageList: PublishManageRecord[] = [
     ],
   },
 ];
+
+export const robotOptions = ['RB-A101', 'RB-A102', 'RB-B201', 'RB-C301', 'RB-D401'];
+
+export function getRobotGroupOptions(locale: DataLocale): string[] {
+  return localizedRobotGroupOptions.map((item) => resolveLocalizedText(item, locale));
+}
+
+export function getRobotTypeOptions(locale: DataLocale): string[] {
+  return localizedRobotTypeOptions.map((item) => resolveLocalizedText(item, locale));
+}
+
+export function getUpgradeDeviceCatalog(locale: DataLocale): UpgradeDeviceTemplate[] {
+  return localizedUpgradeDeviceCatalog.map((item) => ({
+    ...item,
+    robotGroup: resolveLocalizedText(item.robotGroup, locale),
+    robotType: resolveLocalizedText(item.robotType, locale),
+  }));
+}
+
+export function getPublishManageList(locale: DataLocale): PublishManageRecord[] {
+  return localizedPublishManageList.map((item) => ({
+    ...item,
+    name: resolveLocalizedText(item.name, locale),
+    targetRobotGroups: item.targetRobotGroups.map((group) => resolveLocalizedText(group, locale)),
+    targetRobotTypes: item.targetRobotTypes.map((type) => resolveLocalizedText(type, locale)),
+  }));
+}
+
+export const robotGroupOptions = getRobotGroupOptions('zh-CN');
+export const robotTypeOptions = getRobotTypeOptions('zh-CN');
+export const upgradeDeviceCatalog: UpgradeDeviceTemplate[] = getUpgradeDeviceCatalog('zh-CN');
+export const publishManageList: PublishManageRecord[] = getPublishManageList('zh-CN');

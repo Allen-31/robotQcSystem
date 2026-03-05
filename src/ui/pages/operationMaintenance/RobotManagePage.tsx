@@ -3,13 +3,13 @@ import { Button, Card, Input, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { robotManageList, type RobotControlStatus, type RobotDispatchMode, type RobotExceptionStatus, type RobotManageRecord } from '../../../data/operationMaintenance/robotManageList';
+import { getRobotManageList, type RobotControlStatus, type RobotDispatchMode, type RobotExceptionStatus, type RobotManageRecord } from '../../../data/operationMaintenance/robotManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 export function RobotManagePage() {
   const navigate = useNavigate();
-  const { t } = useI18n();
-  const list = robotManageList;
+  const { locale, t } = useI18n();
+  const list = useMemo(() => getRobotManageList(locale), [locale]);
   const [keyword, setKeyword] = useState('');
 
   const onlineText = (status: RobotManageRecord['onlineStatus']) => (status === 'online' ? t('op.robotManage.online.online') : t('op.robotManage.online.offline'));

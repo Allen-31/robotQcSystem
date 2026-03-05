@@ -4,8 +4,8 @@ import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import robot2DImage from '../../../assets/gpt_robot_image.png';
-import { exceptionNotificationList, type ExceptionNotificationRecord } from '../../../data/operationMaintenance/exceptionNotificationList';
-import { robotManageList } from '../../../data/operationMaintenance/robotManageList';
+import { getExceptionNotificationList, type ExceptionNotificationRecord } from '../../../data/operationMaintenance/exceptionNotificationList';
+import { getRobotManageList } from '../../../data/operationMaintenance/robotManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 type SelectorKind = 'dispatch' | 'map' | 'mode';
@@ -15,10 +15,12 @@ type OperationMode = 'mapping' | 'teach' | 'auto';
 export function RobotManageDetailPage() {
   const navigate = useNavigate();
   const { robotId } = useParams<{ robotId: string }>();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
+  const exceptionNotificationList = useMemo(() => getExceptionNotificationList(locale), [locale]);
+  const robotManageList = useMemo(() => getRobotManageList(locale), [locale]);
 
-  const robot = useMemo(() => robotManageList.find((item) => item.id === robotId), [robotId]);
+  const robot = useMemo(() => robotManageList.find((item) => item.id === robotId), [robotId, robotManageList]);
   const [dispatchMode, setDispatchMode] = useState<'auto' | 'semi-auto' | 'manual'>('auto');
   const [controlStatus, setControlStatus] = useState<'running' | 'paused'>('running');
   const [isCharging, setIsCharging] = useState(false);
@@ -46,12 +48,12 @@ export function RobotManageDetailPage() {
   }, [robot]);
   const operationModeText = (mode: OperationMode, target: ModeTarget) => {
     if (mode === 'auto') {
-      return '自动模式';
+      return t('op.robotManage.mode.auto');
     }
     if (target === 'chassis') {
-      return '建图模式';
+      return t('op.robotManage.mode.mapping');
     }
-    return '示教模式';
+    return t('op.robotManage.mode.teach');
   };
 
   if (!robot) {
@@ -70,10 +72,10 @@ export function RobotManageDetailPage() {
     );
   }
 
-  const robotExceptionLogs = useMemo(() => exceptionNotificationList.filter((item) => item.robot === robot.code), [robot.code]);
+  const robotExceptionLogs = useMemo(() => exceptionNotificationList.filter((item) => item.robot === robot.code), [exceptionNotificationList, robot.code]);
 
   const exceptionColumns: ColumnsType<ExceptionNotificationRecord> = [
-    { title: '编号', dataIndex: 'id', key: 'id', width: 170 },
+    { title: t('op.exception.table.id'), dataIndex: 'id', key: 'id', width: 170 },
     {
       title: t('op.exception.table.level'),
       dataIndex: 'level',
@@ -152,13 +154,13 @@ export function RobotManageDetailPage() {
     }
     if (modeTarget === 'chassis') {
       return [
-        { key: 'mapping', label: '建图模式' },
-        { key: 'auto', label: '自动模式' },
+        { key: 'mapping', label: t('op.robotManage.mode.mapping') },
+        { key: 'auto', label: t('op.robotManage.mode.auto') },
       ];
     }
     return [
-      { key: 'teach', label: '示教模式' },
-      { key: 'auto', label: '自动模式' },
+      { key: 'teach', label: t('op.robotManage.mode.teach') },
+      { key: 'auto', label: t('op.robotManage.mode.auto') },
     ];
   }, [mapOptions, modeTarget, selectorKind, t]);
 
@@ -354,8 +356,8 @@ export function RobotManageDetailPage() {
                 <Descriptions.Item label={t('op.robotManage.table.type')}>{robot.type}</Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.group')}>{robot.group}</Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.ip')}>{robot.ip}</Descriptions.Item>
-                <Descriptions.Item label="底盘操作模式">{operationModeText(chassisMode, 'chassis')}</Descriptions.Item>
-                <Descriptions.Item label="机械臂操作模式">{operationModeText(armMode, 'arm')}</Descriptions.Item>
+                <Descriptions.Item label={t('op.robotManage.table.chassisMode')}>{operationModeText(chassisMode, 'chassis')}</Descriptions.Item>
+                <Descriptions.Item label={t('op.robotManage.table.armMode')}>{operationModeText(armMode, 'arm')}</Descriptions.Item>
               </Descriptions>
 
               <Divider style={{ margin: '4px 0' }} />
@@ -394,7 +396,7 @@ export function RobotManageDetailPage() {
                   +
                 </Button>
                 <Button size="small" onClick={resetZoom} disabled={imageScale === 1 && imageOffset.x === 0 && imageOffset.y === 0}>
-                  重置
+                  {t('op.robotManage.image.reset')}
                 </Button>
                 <Typography.Text type="secondary">{Math.round(imageScale * 100)}%</Typography.Text>
               </Space>
@@ -433,7 +435,7 @@ export function RobotManageDetailPage() {
                   }}
                 />
               </div>
-              <Typography.Text type="secondary">按住 Ctrl + 鼠标左键拖拽（放大后生效）</Typography.Text>
+              <Typography.Text type="secondary">{t('op.robotManage.image.panHint')}</Typography.Text>
 
               <Divider style={{ margin: '4px 0' }} />
               <Typography.Text strong>{t('op.robotManage.section.sensorInfo')}</Typography.Text>
@@ -481,7 +483,7 @@ export function RobotManageDetailPage() {
           size="small"
           pagination={false}
           dataSource={selectorRows}
-          columns={[{ title: t('op.robotManage.table.type'), dataIndex: 'label', key: 'label' }]}
+          columns={[{ title: t('op.robotManage.selector.option'), dataIndex: 'label', key: 'label' }]}
           rowSelection={{
             type: 'radio',
             selectedRowKeys: selectorValue ? [selectorValue] : [],

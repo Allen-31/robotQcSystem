@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { userList } from '../../data/deployConfig/userList';
+import { useEffect, useMemo, useState } from 'react';
+import { getUserList } from '../../data/deployConfig/userList';
+import type { DataLocale } from '../../data/localized';
 import type { UserManageRecord, UserStatus } from '../../shared/types/deployConfig';
 
 export interface UserManageFormValues {
@@ -11,9 +12,13 @@ export interface UserManageFormValues {
   roles: string[];
 }
 
-export function useUserManage() {
-  const [records, setRecords] = useState<UserManageRecord[]>(userList);
+export function useUserManage(locale: DataLocale) {
+  const [records, setRecords] = useState<UserManageRecord[]>(() => getUserList(locale));
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    setRecords(getUserList(locale));
+  }, [locale]);
 
   const filteredList = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -28,9 +33,13 @@ export function useUserManage() {
   const roleOptions = useMemo(() => {
     const roleSet = new Set<string>();
     records.forEach((item) => item.roles.forEach((role) => roleSet.add(role)));
-    ['管理员', '质检主管', '质检员', '维护人员', '产品经理'].forEach((item) => roleSet.add(item));
+    const fallbackRoles =
+      locale === 'en-US'
+        ? ['Administrator', 'QA Supervisor', 'Quality Inspector', 'Maintainer', 'Product Manager']
+        : ['管理员', '质检主管', '质检员', '维护人员', '产品经理'];
+    fallbackRoles.forEach((item) => roleSet.add(item));
     return Array.from(roleSet).map((role) => ({ label: role, value: role }));
-  }, [records]);
+  }, [locale, records]);
 
   const createRecord = (payload: UserManageFormValues) => {
     const next: UserManageRecord = {
