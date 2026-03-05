@@ -373,13 +373,6 @@ export const menuList: MenuNode[] = [
     icon: 'BarChartOutlined',
     children: [
       {
-        id: '6-1',
-        name: 'menu.qualityStatistics',
-        code: 'qualityStatistics',
-        path: '/dataStatistics/qualityStatistics',
-        permission: 'dataStatistics:qualityStatistics:view',
-      },
-      {
         id: '6-2',
         name: 'menu.deviceStatistics',
         code: 'deviceStatistics',

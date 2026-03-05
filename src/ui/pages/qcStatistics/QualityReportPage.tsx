@@ -5,11 +5,10 @@ import { useMemo, useState } from 'react';
 import { qualityStatsMock, type QualityStatRecord } from '../../../data/qcStatistics/qualityStatsMock';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { getCurrentUser } from '../../../logic/auth/authStore';
-import { ALL_VALUE } from '../../../logic/qcStatistics/useQualityStatistics';
 import { SimpleBarChart } from '../../components/charts/SimpleCharts';
 
 type ReportType = 'daily' | 'weekly' | 'monthly' | 'custom';
-type ReportDimension = 'workshop' | 'workstation' | 'station';
+type ReportDimension = 'workshop' | 'workstation' | 'station' | 'wireHarness' | 'workOrder' | 'inspector';
 type ReportMetric = 'inspectionCount' | 'detectionRate' | 'reinspectionRate' | 'falseDetectionRate' | 'avgDurationMin' | 'abnormalCount';
 
 interface ReportRecord {
@@ -96,6 +95,13 @@ function formatTypeSummary(typeCounts: Record<string, number>, locale: string): 
     .join(locale === 'en-US' ? ', ' : '、');
 }
 
+function getDimensionValue(record: QualityStatRecord, dimension: ReportDimension): string {
+  if (dimension === 'workOrder') {
+    return `WO-${record.date.replace(/-/g, '')}-${record.station}`;
+  }
+  return record[dimension];
+}
+
 function downloadPdf(
   rows: AggregatedRow[],
   fileName: string,
@@ -137,10 +143,7 @@ export function QualityReportPage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [reportType, setReportType] = useState<ReportType>('weekly');
-  const [workshop, setWorkshop] = useState<string>(ALL_VALUE);
-  const [workstation, setWorkstation] = useState<string>(ALL_VALUE);
-  const [station, setStation] = useState<string>(ALL_VALUE);
-  const [wireHarness, setWireHarness] = useState<string>(ALL_VALUE);
+  const [dimension, setDimension] = useState<ReportDimension>('workshop');
   const [reportMetric, setReportMetric] = useState<ReportMetric>('inspectionCount');
   const [reportHistory, setReportHistory] = useState<ReportRecord[]>([
     {
@@ -159,6 +162,7 @@ export function QualityReportPage() {
     if (locale === 'en-US') {
       return {
         reportType: 'Report Type',
+        reportDimension: 'Dimension',
         daily: 'Daily',
         weekly: 'Weekly',
         monthly: 'Monthly',
@@ -167,10 +171,8 @@ export function QualityReportPage() {
         workstation: 'Inspection Zone',
         station: 'Inspection Bench',
         wireHarness: 'Wire Harness',
-        allWorkshop: 'All Workshops',
-        allWorkstation: 'All Zones',
-        allStation: 'All Benches',
-        allWireHarness: 'All Harness Types',
+        workOrder: 'Work Order',
+        inspector: 'Inspector',
         inspectionCount: 'Inspection Count',
         detectionRate: 'Detection Rate',
         reinspectionRate: 'Reinspection Rate',
@@ -188,12 +190,12 @@ export function QualityReportPage() {
         reportDownloaded: 'Report downloaded',
         reportExported: 'Report detail exported',
         reportGenerated: 'Report generated',
-        reportDimension: 'Dimension',
       };
     }
 
     return {
       reportType: '报表类型',
+      reportDimension: '统计维度',
       daily: '日报',
       weekly: '周报',
       monthly: '月报',
@@ -201,11 +203,9 @@ export function QualityReportPage() {
       workshop: '车间',
       workstation: '质检区',
       station: '质检台',
-      wireHarness: '线束类型',
-      allWorkshop: '全部车间',
-      allWorkstation: '全部质检区',
-      allStation: '全部质检台',
-      allWireHarness: '全部线束类型',
+      wireHarness: '线束',
+      workOrder: '工单',
+      inspector: '质检员',
       inspectionCount: '质检数量',
       detectionRate: '检出率',
       reinspectionRate: '复检率',
@@ -223,93 +223,26 @@ export function QualityReportPage() {
       reportDownloaded: '报表下载成功',
       reportExported: '报表明细导出成功',
       reportGenerated: '报表生成成功',
-      reportDimension: '统计维度',
     };
   }, [locale]);
 
-  const filteredByPeriod = useMemo(() => filterByReportType(qualityStatsMock, reportType), [reportType]);
+  const dimensionTextMap: Record<ReportDimension, string> = {
+    workshop: label.workshop,
+    workstation: label.workstation,
+    station: label.station,
+    wireHarness: label.wireHarness,
+    workOrder: label.workOrder,
+    inspector: label.inspector,
+  };
 
-  const workshopOptions = useMemo(() => Array.from(new Set(filteredByPeriod.map((item) => item.workshop))), [filteredByPeriod]);
-
-  const workstationOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          filteredByPeriod
-            .filter((item) => workshop === ALL_VALUE || item.workshop === workshop)
-            .map((item) => item.workstation),
-        ),
-      ),
-    [filteredByPeriod, workshop],
-  );
-
-  const stationOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          filteredByPeriod
-            .filter((item) => (workshop === ALL_VALUE || item.workshop === workshop) && (workstation === ALL_VALUE || item.workstation === workstation))
-            .map((item) => item.station),
-        ),
-      ),
-    [filteredByPeriod, workshop, workstation],
-  );
-
-  const wireHarnessOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          filteredByPeriod
-            .filter(
-              (item) =>
-                (workshop === ALL_VALUE || item.workshop === workshop) &&
-                (workstation === ALL_VALUE || item.workstation === workstation) &&
-                (station === ALL_VALUE || item.station === station),
-            )
-            .map((item) => item.wireHarness),
-        ),
-      ),
-    [filteredByPeriod, workshop, workstation, station],
-  );
-
-  const drilledRecords = useMemo(
-    () =>
-      filteredByPeriod.filter(
-        (item) =>
-          (workshop === ALL_VALUE || item.workshop === workshop) &&
-          (workstation === ALL_VALUE || item.workstation === workstation) &&
-          (station === ALL_VALUE || item.station === station) &&
-          (wireHarness === ALL_VALUE || item.wireHarness === wireHarness),
-      ),
-    [filteredByPeriod, workshop, workstation, station, wireHarness],
-  );
-
-  const groupDimension = useMemo<ReportDimension>(() => {
-    if (workshop === ALL_VALUE) {
-      return 'workshop';
-    }
-    if (workstation === ALL_VALUE) {
-      return 'workstation';
-    }
-    return 'station';
-  }, [workshop, workstation]);
-
-  const dimensionTextMap: Record<ReportDimension, string> = useMemo(
-    () => ({
-      workshop: label.workshop,
-      workstation: label.workstation,
-      station: label.station,
-    }),
-    [label.station, label.workshop, label.workstation],
-  );
+  const filtered = useMemo(() => filterByReportType(qualityStatsMock, reportType), [reportType]);
 
   const aggregatedRows = useMemo<AggregatedRow[]>(() => {
     const grouped = new Map<string, QualityStatRecord[]>();
-    drilledRecords.forEach((item) => {
-      const key = item[groupDimension];
+    filtered.forEach((item) => {
+      const key = getDimensionValue(item, dimension);
       grouped.set(key, [...(grouped.get(key) ?? []), item]);
     });
-
     return Array.from(grouped.entries())
       .map(([key, rows]) => {
         const inspectionCount = rows.reduce((sum, row) => sum + row.inspectionCount, 0);
@@ -320,13 +253,11 @@ export function QualityReportPage() {
           inspectionCount === 0
             ? 0
             : Number((rows.reduce((sum, row) => sum + row.avgDurationMin * row.inspectionCount, 0) / inspectionCount).toFixed(2));
-
         let abnormalTypeCounts: Record<string, number> = {};
         rows.forEach((row) => {
           abnormalTypeCounts = mergeTypeCounts(abnormalTypeCounts, buildAbnormalTypeCounts(row.defectCount));
         });
         const abnormalCount = Object.values(abnormalTypeCounts).reduce((sum, count) => sum + count, 0);
-
         return {
           key,
           dimensionValue: key,
@@ -341,7 +272,7 @@ export function QualityReportPage() {
         };
       })
       .sort((a, b) => b.inspectionCount - a.inspectionCount);
-  }, [drilledRecords, groupDimension, locale]);
+  }, [dimension, filtered, locale]);
 
   const summary = useMemo(() => {
     const inspectionCount = aggregatedRows.reduce((sum, row) => sum + row.inspectionCount, 0);
@@ -394,95 +325,22 @@ export function QualityReportPage() {
 
   const chartRows = useMemo(() => aggregatedRows.slice(0, 12), [aggregatedRows]);
 
-  const detailColumns = useMemo<ColumnsType<AggregatedRow>>(() => {
-    const baseColumns: ColumnsType<AggregatedRow> = [
-      { title: dimensionTextMap[groupDimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 180 },
-      {
-        title: label.inspectionCount,
-        dataIndex: 'inspectionCount',
-        key: 'inspectionCount',
-        width: 130,
-        sorter: (a, b) => a.inspectionCount - b.inspectionCount,
-      },
-      {
-        title: label.detectionRate,
-        dataIndex: 'detectionRate',
-        key: 'detectionRate',
-        width: 120,
-        sorter: (a, b) => a.detectionRate - b.detectionRate,
-        render: (value: number) => `${value}%`,
-      },
-      {
-        title: label.reinspectionRate,
-        dataIndex: 'reinspectionRate',
-        key: 'reinspectionRate',
-        width: 120,
-        sorter: (a, b) => a.reinspectionRate - b.reinspectionRate,
-        render: (value: number) => `${value}%`,
-      },
-      {
-        title: label.falseDetectionRate,
-        dataIndex: 'falseDetectionRate',
-        key: 'falseDetectionRate',
-        width: 120,
-        sorter: (a, b) => a.falseDetectionRate - b.falseDetectionRate,
-        render: (value: number) => `${value}%`,
-      },
-      {
-        title: label.avgDuration,
-        dataIndex: 'avgDurationMin',
-        key: 'avgDurationMin',
-        width: 140,
-        sorter: (a, b) => a.avgDurationMin - b.avgDurationMin,
-        render: (value: number) => `${value} ${label.avgDurationUnit}`,
-      },
-      {
-        title: label.abnormalSummary,
-        dataIndex: 'abnormalSummary',
-        key: 'abnormalSummary',
-        width: 280,
-        sorter: (a, b) => a.abnormalCount - b.abnormalCount,
-      },
-    ];
-    if (wireHarness !== ALL_VALUE) {
-      baseColumns.splice(1, 0, {
-        title: label.wireHarness,
-        dataIndex: 'dimensionValue',
-        key: 'wireHarnessHint',
-        width: 160,
-        render: () => wireHarness,
-      });
-    }
-    return baseColumns;
-  }, [dimensionTextMap, groupDimension, label, wireHarness]);
+  const detailColumns: ColumnsType<AggregatedRow> = [
+    { title: dimensionTextMap[dimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 220 },
+    { title: label.inspectionCount, dataIndex: 'inspectionCount', key: 'inspectionCount', width: 130, sorter: (a, b) => a.inspectionCount - b.inspectionCount },
+    { title: label.detectionRate, dataIndex: 'detectionRate', key: 'detectionRate', width: 120, sorter: (a, b) => a.detectionRate - b.detectionRate, render: (value: number) => `${value}%` },
+    { title: label.reinspectionRate, dataIndex: 'reinspectionRate', key: 'reinspectionRate', width: 120, sorter: (a, b) => a.reinspectionRate - b.reinspectionRate, render: (value: number) => `${value}%` },
+    { title: label.falseDetectionRate, dataIndex: 'falseDetectionRate', key: 'falseDetectionRate', width: 120, sorter: (a, b) => a.falseDetectionRate - b.falseDetectionRate, render: (value: number) => `${value}%` },
+    { title: label.avgDuration, dataIndex: 'avgDurationMin', key: 'avgDurationMin', width: 140, sorter: (a, b) => a.avgDurationMin - b.avgDurationMin, render: (value: number) => `${value} ${label.avgDurationUnit}` },
+    { title: label.abnormalSummary, dataIndex: 'abnormalSummary', key: 'abnormalSummary', width: 280, sorter: (a, b) => a.abnormalCount - b.abnormalCount },
+  ];
 
   const abnormalColumns: ColumnsType<(typeof abnormalRows)[number]> = [
-    { title: dimensionTextMap[groupDimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 180 },
+    { title: dimensionTextMap[dimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 220 },
     { title: locale === 'en-US' ? 'Issue' : '异常项', dataIndex: 'issue', key: 'issue', width: 180, render: (value: string) => <Tag color="error">{value}</Tag> },
-    {
-      title: label.falseDetectionRate,
-      dataIndex: 'falseDetectionRate',
-      key: 'falseDetectionRate',
-      width: 140,
-      sorter: (a, b) => a.falseDetectionRate - b.falseDetectionRate,
-      render: (value: number) => `${value}%`,
-    },
-    {
-      title: label.reinspectionRate,
-      dataIndex: 'reinspectionRate',
-      key: 'reinspectionRate',
-      width: 130,
-      sorter: (a, b) => a.reinspectionRate - b.reinspectionRate,
-      render: (value: number) => `${value}%`,
-    },
-    {
-      title: label.avgDuration,
-      dataIndex: 'avgDurationMin',
-      key: 'avgDurationMin',
-      width: 150,
-      sorter: (a, b) => a.avgDurationMin - b.avgDurationMin,
-      render: (value: number) => `${value} ${label.avgDurationUnit}`,
-    },
+    { title: label.falseDetectionRate, dataIndex: 'falseDetectionRate', key: 'falseDetectionRate', width: 140, sorter: (a, b) => a.falseDetectionRate - b.falseDetectionRate, render: (value: number) => `${value}%` },
+    { title: label.reinspectionRate, dataIndex: 'reinspectionRate', key: 'reinspectionRate', width: 130, sorter: (a, b) => a.reinspectionRate - b.reinspectionRate, render: (value: number) => `${value}%` },
+    { title: label.avgDuration, dataIndex: 'avgDurationMin', key: 'avgDurationMin', width: 150, sorter: (a, b) => a.avgDurationMin - b.avgDurationMin, render: (value: number) => `${value} ${label.avgDurationUnit}` },
   ];
 
   const historyColumns: ColumnsType<ReportRecord> = [
@@ -495,22 +353,10 @@ export function QualityReportPage() {
       render: (value: ReportType) => ({ daily: label.daily, weekly: label.weekly, monthly: label.monthly, custom: label.custom })[value],
     },
     { title: locale === 'en-US' ? 'Period' : '周期', dataIndex: 'periodLabel', key: 'periodLabel', width: 130 },
-    {
-      title: label.reportDimension,
-      dataIndex: 'dimension',
-      key: 'dimension',
-      width: 130,
-      render: (value: ReportDimension) => dimensionTextMap[value],
-    },
+    { title: label.reportDimension, dataIndex: 'dimension', key: 'dimension', width: 130, render: (value: ReportDimension) => dimensionTextMap[value] },
     { title: locale === 'en-US' ? 'Creator' : '创建人', dataIndex: 'creator', key: 'creator', width: 100 },
     { title: locale === 'en-US' ? 'Created At' : '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-    {
-      title: locale === 'en-US' ? 'Status' : '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: () => <Tag color="success">{locale === 'en-US' ? 'Generated' : '已生成'}</Tag>,
-    },
+    { title: locale === 'en-US' ? 'Status' : '状态', dataIndex: 'status', key: 'status', width: 100, render: () => <Tag color="success">{locale === 'en-US' ? 'Generated' : '已生成'}</Tag> },
     {
       title: locale === 'en-US' ? 'Action' : '操作',
       key: 'action',
@@ -521,10 +367,7 @@ export function QualityReportPage() {
           type="link"
           icon={<DownloadOutlined />}
           onClick={() => {
-            downloadPdf(aggregatedRows, `${record.reportNo}.pdf`, {
-              title: record.reportNo,
-              reportRecord: record,
-            });
+            downloadPdf(aggregatedRows, `${record.reportNo}.pdf`, { title: record.reportNo, reportRecord: record });
             messageApi.success(label.reportDownloaded);
           }}
         >
@@ -537,13 +380,11 @@ export function QualityReportPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
-
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('menu.qualityReport')}
           </Typography.Title>
-
           <Space wrap>
             <Select
               value={reportType}
@@ -556,63 +397,19 @@ export function QualityReportPage() {
                 { label: label.custom, value: 'custom' },
               ]}
             />
-
             <Select
-              value={workshop}
-              onChange={(value: string) => {
-                setWorkshop(value);
-                setWorkstation(ALL_VALUE);
-                setStation(ALL_VALUE);
-                setWireHarness(ALL_VALUE);
-              }}
-              style={{ width: 160 }}
-              options={[
-                { label: label.allWorkshop, value: ALL_VALUE },
-                ...workshopOptions.map((item) => ({ label: item, value: item })),
-              ]}
-            />
-
-            {workshop !== ALL_VALUE ? (
-              <Select
-                value={workstation}
-                onChange={(value: string) => {
-                  setWorkstation(value);
-                  setStation(ALL_VALUE);
-                  setWireHarness(ALL_VALUE);
-                }}
-                style={{ width: 160 }}
-                options={[
-                  { label: label.allWorkstation, value: ALL_VALUE },
-                  ...workstationOptions.map((item) => ({ label: item, value: item })),
-                ]}
-              />
-            ) : null}
-
-            {workshop !== ALL_VALUE && workstation !== ALL_VALUE ? (
-              <Select
-                value={station}
-                onChange={(value: string) => {
-                  setStation(value);
-                  setWireHarness(ALL_VALUE);
-                }}
-                style={{ width: 160 }}
-                options={[
-                  { label: label.allStation, value: ALL_VALUE },
-                  ...stationOptions.map((item) => ({ label: item, value: item })),
-                ]}
-              />
-            ) : null}
-
-            <Select
-              value={wireHarness}
-              onChange={setWireHarness}
+              value={dimension}
+              onChange={setDimension}
               style={{ width: 180 }}
               options={[
-                { label: label.allWireHarness, value: ALL_VALUE },
-                ...wireHarnessOptions.map((item) => ({ label: item, value: item })),
+                { label: label.workshop, value: 'workshop' },
+                { label: label.workstation, value: 'workstation' },
+                { label: label.station, value: 'station' },
+                { label: label.wireHarness, value: 'wireHarness' },
+                { label: label.workOrder, value: 'workOrder' },
+                { label: label.inspector, value: 'inspector' },
               ]}
             />
-
             <Button
               icon={<FileAddOutlined />}
               onClick={() => {
@@ -622,7 +419,7 @@ export function QualityReportPage() {
                   reportNo: `QCR-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 900 + 100)}`,
                   reportType,
                   periodLabel: reportType === 'daily' ? 'D-1' : reportType === 'weekly' ? 'W-1' : reportType === 'monthly' ? 'M-1' : 'custom',
-                  dimension: groupDimension,
+                  dimension,
                   creator,
                   createdAt: nowText(),
                   status: 'generated',
@@ -633,7 +430,6 @@ export function QualityReportPage() {
             >
               {label.createReport}
             </Button>
-
             <Button
               icon={<DownloadOutlined />}
               onClick={() => {
@@ -700,18 +496,15 @@ export function QualityReportPage() {
           />
           <SimpleBarChart
             title={label.detailChartTitle}
-            data={chartRows.map((item) => ({
-              name: item.dimensionValue,
-              value: Number(item[reportMetric]),
-            }))}
+            data={chartRows.map((item) => ({ name: item.dimensionValue, value: Number(item[reportMetric]) }))}
             unit={reportMetric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 分钟') : undefined}
           />
-          <Table rowKey="key" columns={detailColumns} dataSource={aggregatedRows} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1200 }} />
+          <Table rowKey="key" columns={detailColumns} dataSource={aggregatedRows} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1300 }} />
         </Space>
       </Card>
 
       <Card title={label.abnormalTitle}>
-        <Table rowKey="key" columns={abnormalColumns} dataSource={abnormalRows} pagination={{ pageSize: 6, showSizeChanger: false }} scroll={{ x: 980 }} />
+        <Table rowKey="key" columns={abnormalColumns} dataSource={abnormalRows} pagination={{ pageSize: 6, showSizeChanger: false }} scroll={{ x: 1050 }} />
       </Card>
 
       <Card title={label.historyTitle}>

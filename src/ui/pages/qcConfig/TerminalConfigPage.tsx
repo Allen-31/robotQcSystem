@@ -132,7 +132,7 @@ export function TerminalConfigPage() {
             <Col xs={24} lg={14}>
               <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
                 <Button icon={<SearchOutlined />} onClick={() => setOnlyLoggedInDevices((prev) => !prev)} type={onlyLoggedInDevices ? 'primary' : 'default'}>
-                  {onlyLoggedInDevices ? '显示全部终端' : '筛选在线且有登录用户'}
+                  {onlyLoggedInDevices ? '显示全部终端' : '仅看在线已登录'}
                 </Button>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增终端

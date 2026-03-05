@@ -1,4 +1,5 @@
-import { Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
+import { Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
@@ -6,8 +7,16 @@ import { ALL_VALUE, type AggregatedRow, type MetricKey, useQualityStatistics } f
 import { useI18n } from '../../../i18n/I18nProvider';
 import { SimpleBarChart, SimpleLineChart } from '../../components/charts/SimpleCharts';
 
+function escapeCsv(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
 export function QualityStatisticsPage() {
   const { locale, t } = useI18n();
+  const [messageApi, contextHolder] = message.useMessage();
   const {
     period,
     customRange,
@@ -64,13 +73,16 @@ export function QualityStatisticsPage() {
         chartTopHint: 'Chart shows top {count} items; full data is in the table',
         wireHarness: 'Wire Harness',
         allWireHarness: 'All Harness Types',
+        export: 'Export',
+        exportDone: 'Exported successfully',
+        exportEmpty: 'No data to export',
       };
     }
 
     return {
       period3: '近3天',
       period7: '近7天',
-      periodMonth: '近一个月',
+      periodMonth: '近1个月',
       periodCustom: '自定义',
       workshop: '车间',
       workstation: '质检区',
@@ -92,6 +104,9 @@ export function QualityStatisticsPage() {
       chartTopHint: '图表仅展示前 {count} 项，完整数据请查看上方列表',
       wireHarness: '线束类型',
       allWireHarness: '全部线束类型',
+      export: '导出',
+      exportDone: '导出成功',
+      exportEmpty: '暂无可导出数据',
     };
   }, [locale]);
 
@@ -197,8 +212,53 @@ export function QualityStatisticsPage() {
     },
   ];
 
+  const exportRows = () => {
+    if (rows.length === 0) {
+      messageApi.warning(label.exportEmpty);
+      return;
+    }
+    const headers = [
+      groupLabel,
+      ...(wireHarness !== ALL_VALUE ? [label.wireHarness] : []),
+      label.inspectionCount,
+      label.detectionRate,
+      label.reinspectionRate,
+      label.falseDetectionRate,
+      label.avgDuration,
+      label.abnormalSummary,
+    ];
+    const csv = [
+      headers.join(','),
+      ...rows.map((row) =>
+        [
+          row.groupValue,
+          ...(wireHarness !== ALL_VALUE ? [wireHarness] : []),
+          String(row.inspectionCount),
+          `${row.detectionRate}%`,
+          `${row.reinspectionRate}%`,
+          `${row.falseDetectionRate}%`,
+          `${row.avgDurationMin}`,
+          row.abnormalSummary,
+        ]
+          .map((item) => escapeCsv(item))
+          .join(','),
+      ),
+    ].join('\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `quality-analysis-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    messageApi.success(label.exportDone);
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      {contextHolder}
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
@@ -270,6 +330,9 @@ export function QualityStatisticsPage() {
               ]}
               style={{ width: 180 }}
             />
+            <Button icon={<DownloadOutlined />} onClick={exportRows}>
+              {label.export}
+            </Button>
           </Space>
         </Space>
       </Card>
@@ -342,7 +405,7 @@ export function QualityStatisticsPage() {
                 },
               ]}
               yAxisLabel={metricLabelMap[metric]}
-              valueSuffix={metric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 分钟') : metric === 'inspectionCount' || metric === 'abnormalCount' ? '' : '%'}
+              valueSuffix="%"
             />
           ) : (
             <SimpleBarChart

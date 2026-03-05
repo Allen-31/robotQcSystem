@@ -42,6 +42,8 @@ import { RobotManagePage } from '../../ui/pages/operationMaintenance/RobotManage
 import { RobotManageDetailPage } from '../../ui/pages/operationMaintenance/RobotManageDetailPage';
 import { ServiceManagePage } from '../../ui/pages/operationMaintenance/ServiceManagePage';
 import { TaskManagePage } from '../../ui/pages/operationMaintenance/TaskManagePage';
+import { DeviceStatisticsPage } from '../../ui/pages/dataStatistics/DeviceStatisticsPage';
+import { ExceptionStatisticsPage } from '../../ui/pages/dataStatistics/ExceptionStatisticsPage';
 import { QualityReportPage } from '../../ui/pages/qcStatistics/QualityReportPage';
 import { QualityStatisticsPage } from '../../ui/pages/qcStatistics/QualityStatisticsPage';
 
@@ -71,6 +73,8 @@ const operationLogPath = '/operationMaintenance/notification/operationLog';
 const apiLogPath = '/operationMaintenance/notification/apiLog';
 const qualityStatisticsPath = '/qualityInspection/qualityStatistics';
 const qualityReportPath = '/qualityInspection/qualityReport';
+const deviceStatisticsPath = '/dataStatistics/deviceStatistics';
+const exceptionStatisticsPath = '/dataStatistics/exceptionStatistics';
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
@@ -110,6 +114,8 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== apiLogPath &&
     route.path !== qualityStatisticsPath &&
     route.path !== qualityReportPath &&
+    route.path !== deviceStatisticsPath &&
+    route.path !== exceptionStatisticsPath &&
     !qualityConfigPaths.includes(route.path) &&
     !deployRobotPaths.includes(route.path),
 );
@@ -172,6 +178,8 @@ export function AppRouter() {
             <Route path={apiLogPath} element={<ApiLogPage />} />
             <Route path={qualityStatisticsPath} element={<QualityStatisticsPage />} />
             <Route path={qualityReportPath} element={<QualityReportPage />} />
+            <Route path={deviceStatisticsPath} element={<DeviceStatisticsPage />} />
+            <Route path={exceptionStatisticsPath} element={<ExceptionStatisticsPage />} />
             <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
             <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
             <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
