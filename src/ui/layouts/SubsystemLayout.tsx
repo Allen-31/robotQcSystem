@@ -18,22 +18,44 @@ export function SubsystemLayout() {
   const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole, permissionVersion]);
   const topNode = getTopMenuNodeByPath(visibleMenuTree, pathname);
   const menuNodes = topNode?.children ?? [];
+  const isOperationMonitoring = pathname === '/operationMonitoring';
 
   if (menuNodes.length === 0) {
     return (
-      <Content style={{ padding: isLaptop ? 12 : 16, minWidth: 0 }}>
-        <Outlet />
+      <Content
+        style={{
+          padding: isOperationMonitoring ? 0 : isLaptop ? 12 : 16,
+          minWidth: 0,
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <Outlet />
+        </div>
       </Content>
     );
   }
 
   return (
-    <Layout>
+    <Layout style={{ flex: 1, minHeight: 0 }}>
       <Sider width={isLaptop ? 220 : 260} theme="light">
         <SubsystemMenu nodes={menuNodes} />
       </Sider>
-      <Content style={{ margin: isLaptop ? 12 : 16, minWidth: 0 }}>
-        <Outlet />
+      <Content
+        style={{
+          margin: isOperationMonitoring ? 0 : isLaptop ? 12 : 16,
+          minWidth: 0,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <Outlet />
+        </div>
       </Content>
     </Layout>
   );
