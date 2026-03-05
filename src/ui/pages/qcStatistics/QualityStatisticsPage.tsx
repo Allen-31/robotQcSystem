@@ -1,7 +1,7 @@
 import { Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ALL_VALUE, type AggregatedRow, type MetricKey, useQualityStatistics } from '../../../logic/qcStatistics/useQualityStatistics';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { SimpleBarChart, SimpleLineChart } from '../../components/charts/SimpleCharts';
@@ -35,6 +35,7 @@ export function QualityStatisticsPage() {
     chartIsLine,
     trendPoints,
   } = useQualityStatistics();
+  const [trendMetric, setTrendMetric] = useState<MetricKey>('inspectionCount');
 
   const label = useMemo(() => {
     if (locale === 'en-US') {
@@ -104,16 +105,67 @@ export function QualityStatisticsPage() {
     return label.station;
   }, [groupDimension, label.station, label.workshop, label.workstation]);
 
-  const columns: ColumnsType<AggregatedRow> = [
-    { title: groupLabel, dataIndex: 'groupValue', key: 'groupValue', width: 170 },
-    { title: label.inspectionCount, dataIndex: 'inspectionCount', key: 'inspectionCount', width: 130 },
-    { title: label.detectionRate, dataIndex: 'detectionRate', key: 'detectionRate', width: 120, render: (value: number) => `${value}%` },
-    { title: label.reinspectionRate, dataIndex: 'reinspectionRate', key: 'reinspectionRate', width: 120, render: (value: number) => `${value}%` },
-    { title: label.falseDetectionRate, dataIndex: 'falseDetectionRate', key: 'falseDetectionRate', width: 120, render: (value: number) => `${value}%` },
-    { title: label.avgDuration, dataIndex: 'avgDurationMin', key: 'avgDurationMin', width: 130, render: (value: number) => `${value} ${label.avgDurationUnit}` },
-    { title: label.abnormalSummary, dataIndex: 'abnormalSummary', key: 'abnormalSummary', width: 260 },
-    { title: label.wireHarness, dataIndex: 'groupValue', key: 'wireHarnessHint', width: 160, render: () => wireHarness === ALL_VALUE ? '-' : wireHarness },
-  ];
+  const columns = useMemo<ColumnsType<AggregatedRow>>(() => {
+    const baseColumns: ColumnsType<AggregatedRow> = [
+      { title: groupLabel, dataIndex: 'groupValue', key: 'groupValue', width: 170 },
+      {
+        title: label.inspectionCount,
+        dataIndex: 'inspectionCount',
+        key: 'inspectionCount',
+        width: 130,
+        sorter: (a, b) => a.inspectionCount - b.inspectionCount,
+      },
+      {
+        title: label.detectionRate,
+        dataIndex: 'detectionRate',
+        key: 'detectionRate',
+        width: 120,
+        sorter: (a, b) => a.detectionRate - b.detectionRate,
+        render: (value: number) => `${value}%`,
+      },
+      {
+        title: label.reinspectionRate,
+        dataIndex: 'reinspectionRate',
+        key: 'reinspectionRate',
+        width: 120,
+        sorter: (a, b) => a.reinspectionRate - b.reinspectionRate,
+        render: (value: number) => `${value}%`,
+      },
+      {
+        title: label.falseDetectionRate,
+        dataIndex: 'falseDetectionRate',
+        key: 'falseDetectionRate',
+        width: 120,
+        sorter: (a, b) => a.falseDetectionRate - b.falseDetectionRate,
+        render: (value: number) => `${value}%`,
+      },
+      {
+        title: label.avgDuration,
+        dataIndex: 'avgDurationMin',
+        key: 'avgDurationMin',
+        width: 130,
+        sorter: (a, b) => a.avgDurationMin - b.avgDurationMin,
+        render: (value: number) => `${value} ${label.avgDurationUnit}`,
+      },
+      {
+        title: label.abnormalSummary,
+        dataIndex: 'abnormalSummary',
+        key: 'abnormalSummary',
+        width: 260,
+        sorter: (a, b) => a.abnormalCount - b.abnormalCount,
+      },
+    ];
+    if (wireHarness !== ALL_VALUE) {
+      baseColumns.splice(1, 0, {
+        title: label.wireHarness,
+        dataIndex: 'groupValue',
+        key: 'wireHarnessHint',
+        width: 160,
+        render: () => wireHarness,
+      });
+    }
+    return baseColumns;
+  }, [groupLabel, label, wireHarness]);
 
   const metricLabelMap: Record<MetricKey, string> = {
     inspectionCount: label.inspectionCount,
@@ -127,12 +179,22 @@ export function QualityStatisticsPage() {
   const customRangeValue: [Dayjs, Dayjs] | null = customRange ? [dayjs(customRange[0], 'YYYY-MM-DD'), dayjs(customRange[1], 'YYYY-MM-DD')] : null;
 
   const trendSeries = [
-    { name: label.inspectionCount, color: '#1677ff', values: trendPoints.map((item) => item.inspectionCount) },
-    { name: label.detectionRate, color: '#52c41a', values: trendPoints.map((item) => item.detectionRate) },
-    { name: label.reinspectionRate, color: '#722ed1', values: trendPoints.map((item) => item.reinspectionRate) },
-    { name: label.falseDetectionRate, color: '#fa541c', values: trendPoints.map((item) => item.falseDetectionRate) },
-    { name: label.avgDuration, color: '#13c2c2', values: trendPoints.map((item) => item.avgDurationMin) },
-    { name: label.abnormalSummary, color: '#fa8c16', values: trendPoints.map((item) => item.abnormalCount) },
+    {
+      name: metricLabelMap[trendMetric],
+      color:
+        trendMetric === 'detectionRate'
+          ? '#52c41a'
+          : trendMetric === 'reinspectionRate'
+            ? '#722ed1'
+            : trendMetric === 'falseDetectionRate'
+              ? '#fa541c'
+              : trendMetric === 'avgDurationMin'
+                ? '#13c2c2'
+                : trendMetric === 'abnormalCount'
+                  ? '#fa8c16'
+                  : '#1677ff',
+      values: trendPoints.map((item) => Number(item[trendMetric])),
+    },
   ];
 
   return (
@@ -279,6 +341,8 @@ export function QualityStatisticsPage() {
                   values: chartRows.map((row) => Number(row[metric])),
                 },
               ]}
+              yAxisLabel={metricLabelMap[metric]}
+              valueSuffix={metric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 分钟') : metric === 'inspectionCount' || metric === 'abnormalCount' ? '' : '%'}
             />
           ) : (
             <SimpleBarChart
@@ -294,7 +358,36 @@ export function QualityStatisticsPage() {
       </Card>
 
       <Card title={label.trendTitle}>
-        <SimpleLineChart title={label.trendChartTitle} categories={trendPoints.map((item) => item.date)} series={trendSeries} />
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Select
+            value={trendMetric}
+            onChange={setTrendMetric}
+            options={[
+              { label: label.reinspectionRate, value: 'reinspectionRate' },
+              { label: label.detectionRate, value: 'detectionRate' },
+              { label: label.falseDetectionRate, value: 'falseDetectionRate' },
+              { label: label.inspectionCount, value: 'inspectionCount' },
+              { label: label.avgDuration, value: 'avgDurationMin' },
+              { label: label.abnormalSummary, value: 'abnormalCount' },
+            ]}
+            style={{ width: 260 }}
+          />
+          <SimpleLineChart
+            title={label.trendChartTitle}
+            categories={trendPoints.map((item) => item.date)}
+            series={trendSeries}
+            yAxisLabel={metricLabelMap[trendMetric]}
+            valueSuffix={
+              trendMetric === 'avgDurationMin'
+                ? locale === 'en-US'
+                  ? ' min'
+                  : ' 分钟'
+                : trendMetric === 'inspectionCount' || trendMetric === 'abnormalCount'
+                  ? ''
+                  : '%'
+            }
+          />
+        </Space>
       </Card>
     </Space>
   );
