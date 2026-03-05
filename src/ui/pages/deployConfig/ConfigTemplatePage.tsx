@@ -4,7 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadConfigTemplateSnapshots, saveConfigTemplateSnapshots } from '../../../logic/deployConfig/configTemplateStore';
+import { loadConfigTemplateSnapshots, saveConfigTemplateSnapshots, type ConfigTemplateSnapshot } from '../../../logic/deployConfig/configTemplateStore';
 
 type ConfigParam = {
   id: string;
@@ -24,11 +24,12 @@ type RobotConfigRecord = {
   robotType: string;
   group: string;
   registeredAt: string;
+  currentTemplate?: string;
+  currentTemplateId?: string;
   params: ConfigParam[];
 };
 
-type RobotConfigFormValues = Omit<RobotConfigRecord, 'id' | 'params'>;
-
+type RobotConfigFormValues = Pick<RobotConfigRecord, 'code' | 'serialNo' | 'ip' | 'robotType' | 'group' | 'registeredAt'>;
 type ConfigCompareRow = {
   key: string;
   categoryKey: string;
@@ -171,6 +172,8 @@ const initialList: RobotConfigRecord[] = [
     robotType: '巡检机器人',
     group: 'A组',
     registeredAt: '2026-01-15 08:10',
+    currentTemplate: 'RC-001 - RB-001',
+    currentTemplateId: 'rc-1',
     params: buildDetailedParams(),
   },
   {
@@ -181,9 +184,12 @@ const initialList: RobotConfigRecord[] = [
     robotType: '巡检机器人',
     group: 'B组',
     registeredAt: '2026-01-20 13:50',
+    currentTemplate: 'RC-001 - RB-001',
+    currentTemplateId: 'rc-1',
     params: buildDetailedParams([{ ...defaultParamTemplate[4], value: '0.9' }, { ...defaultParamTemplate[24], value: '25' }]),
   },
 ];
+const defaultCompareCategory = String(categoryTree[0]?.key ?? '');
 
 function nowText() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -215,9 +221,14 @@ export function ConfigTemplatePage() {
   });
   const [keyword, setKeyword] = useState('');
   const [editing, setEditing] = useState<RobotConfigRecord | null>(null);
+  const [configuring, setConfiguring] = useState<RobotConfigRecord | null>(null);
+  const [configureTemplateList, setConfigureTemplateList] = useState<ConfigTemplateSnapshot[]>([]);
+  const [configureTemplateId, setConfigureTemplateId] = useState<string>();
+  const [configureSelectedCategory, setConfigureSelectedCategory] = useState<string>('算法/SLAM');
+  const [configureDraftParams, setConfigureDraftParams] = useState<ConfigParam[]>([]);
   const [compareBase, setCompareBase] = useState<RobotConfigRecord | null>(null);
   const [compareTargetId, setCompareTargetId] = useState<string>();
-  const [compareCategory, setCompareCategory] = useState<string>('__base');
+  const [compareCategory, setCompareCategory] = useState<string>(defaultCompareCategory);
 
   const filteredList = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -236,6 +247,13 @@ export function ConfigTemplatePage() {
     form.resetFields();
   };
 
+  const closeConfigure = () => {
+    setConfiguring(null);
+    setConfigureTemplateId(undefined);
+    setConfigureSelectedCategory('算法/SLAM');
+    setConfigureDraftParams([]);
+  };
+
   const openEdit = (record: RobotConfigRecord) => {
     setEditing(record);
     form.setFieldsValue({
@@ -248,6 +266,44 @@ export function ConfigTemplatePage() {
     });
   };
 
+  const openConfigure = (record: RobotConfigRecord) => {
+    setConfiguring(record);
+    setConfigureTemplateList(list);
+    setConfigureTemplateId(record.currentTemplateId);
+    setConfigureSelectedCategory('算法/SLAM');
+    setConfigureDraftParams(buildDetailedParams(record.params));
+  };
+
+  const updateConfigureParamValue = (id: string, value: string) => {
+    setConfigureDraftParams((prev) => prev.map((item) => (item.id === id ? { ...item, value } : item)));
+  };
+
+  const restoreConfigureParamDefault = (id: string) => {
+    setConfigureDraftParams((prev) => prev.map((item) => (item.id === id ? { ...item, value: item.defaultValue } : item)));
+  };
+
+  const restoreConfigureCategoryDefaults = () => {
+    setConfigureDraftParams((prev) =>
+      prev.map((item) => (item.categoryPath === configureSelectedCategory ? { ...item, value: item.defaultValue } : item)),
+    );
+  };
+
+  const applyConfigureTemplate = (templateId?: string) => {
+    setConfigureTemplateId(templateId);
+    if (!templateId) {
+      if (!configuring) {
+        return;
+      }
+      setConfigureDraftParams(buildDetailedParams(configuring.params));
+      return;
+    }
+    const selected = configureTemplateList.find((item) => item.id === templateId);
+    if (!selected) {
+      return;
+    }
+    setConfigureDraftParams(buildDetailedParams(selected.params));
+  };
+
   const saveEdit = async () => {
     const values = await form.validateFields();
     if (!editing) {
@@ -256,6 +312,27 @@ export function ConfigTemplatePage() {
     setList((prev) => prev.map((item) => (item.id === editing.id ? { ...item, group: values.group } : item)));
     messageApi.success('已保存');
     closeEdit();
+  };
+
+  const saveConfigure = async () => {
+    if (!configuring) {
+      return;
+    }
+    const selected = configureTemplateList.find((item) => item.id === configureTemplateId);
+    setList((prev) =>
+      prev.map((item) =>
+        item.id === configuring.id
+          ? {
+              ...item,
+              currentTemplateId: configureTemplateId,
+              currentTemplate: selected ? `${selected.code} - ${selected.serialNo}` : undefined,
+              params: buildDetailedParams(configureDraftParams),
+            }
+          : item,
+      ),
+    );
+    messageApi.success('模板配置已生效');
+    closeConfigure();
   };
 
   const deleteRecord = (record: RobotConfigRecord) => {
@@ -268,8 +345,7 @@ export function ConfigTemplatePage() {
       cancelText: '取消',
       onOk: () => {
         setList((prev) => prev.filter((item) => item.id !== record.id));
-        const nextTemplates = loadConfigTemplateSnapshots().filter((item) => item.id !== record.id);
-        saveConfigTemplateSnapshots(nextTemplates);
+        messageApi.success('删除成功');
       },
     });
   };
@@ -312,6 +388,8 @@ export function ConfigTemplatePage() {
           robotType: row[3] || robotTypes[0],
           group: row[4] || groups[0],
           registeredAt: row[5] || nowText(),
+          currentTemplate: '',
+          currentTemplateId: undefined,
           params: buildDetailedParams(),
         }));
       if (!imported.length) {
@@ -323,6 +401,15 @@ export function ConfigTemplatePage() {
       return Upload.LIST_IGNORE;
     },
   };
+
+  const configureTemplateOptions = useMemo(
+    () => configureTemplateList.map((item) => ({ label: `${item.code} - ${item.serialNo}`, value: item.id })),
+    [configureTemplateList],
+  );
+  const configureFilteredParams = useMemo(
+    () => configureDraftParams.filter((item) => item.categoryPath === configureSelectedCategory),
+    [configureDraftParams, configureSelectedCategory],
+  );
 
   const compareTargetRecord = useMemo(() => list.find((item) => item.id === compareTargetId) ?? null, [compareTargetId, list]);
   const compareTemplateOptions = useMemo(
@@ -344,27 +431,6 @@ export function ConfigTemplatePage() {
     if (!compareBase || !compareTargetRecord) {
       return [];
     }
-    const normalize = (value: unknown) => {
-      const text = String(value ?? '').trim();
-      return text ? text : '-';
-    };
-    const baseRows: ConfigCompareRow[] = [
-      { key: 'code', categoryKey: '__base', field: 'Id', currentValue: normalize(compareBase.code), targetValue: normalize(compareTargetRecord.code), different: compareBase.code !== compareTargetRecord.code },
-      { key: 'serialNo', categoryKey: '__base', field: '序列号', currentValue: normalize(compareBase.serialNo), targetValue: normalize(compareTargetRecord.serialNo), different: compareBase.serialNo !== compareTargetRecord.serialNo },
-      {
-        key: 'ip',
-        categoryKey: '__base',
-        field: 'IP',
-        currentValue: displayIp(compareBase.ip, compareBase.id),
-        targetValue: displayIp(compareTargetRecord.ip, compareTargetRecord.id),
-        different: displayIp(compareBase.ip, compareBase.id) !== displayIp(compareTargetRecord.ip, compareTargetRecord.id),
-      },
-      { key: 'robotType', categoryKey: '__base', field: '类型', currentValue: normalize(compareBase.robotType), targetValue: normalize(compareTargetRecord.robotType), different: compareBase.robotType !== compareTargetRecord.robotType },
-      { key: 'group', categoryKey: '__base', field: '分组', currentValue: normalize(compareBase.group), targetValue: normalize(compareTargetRecord.group), different: compareBase.group !== compareTargetRecord.group },
-      { key: 'registeredAt', categoryKey: '__base', field: '注册时间', currentValue: normalize(compareBase.registeredAt), targetValue: normalize(compareTargetRecord.registeredAt), different: compareBase.registeredAt !== compareTargetRecord.registeredAt },
-      { key: 'paramsCount', categoryKey: '__base', field: '参数数量', currentValue: normalize(compareBase.params.length), targetValue: normalize(compareTargetRecord.params.length), different: compareBase.params.length !== compareTargetRecord.params.length },
-    ];
-
     const baseParamMap = new Map(compareBase.params.map((item) => [`${item.categoryPath}|${item.name}`, item.value]));
     const targetParamMap = new Map(compareTargetRecord.params.map((item) => [`${item.categoryPath}|${item.name}`, item.value]));
     const paramKeys = Array.from(new Set([...baseParamMap.keys(), ...targetParamMap.keys()])).sort((a, b) => a.localeCompare(b, 'zh-CN'));
@@ -382,7 +448,7 @@ export function ConfigTemplatePage() {
       };
     });
 
-    return [...baseRows, ...paramRows];
+    return paramRows;
   }, [compareBase, compareTargetRecord]);
 
   const compareDiffCategoryKeys = useMemo(() => {
@@ -390,10 +456,6 @@ export function ConfigTemplatePage() {
     compareRows
       .filter((row) => row.different)
       .forEach((row) => {
-        if (row.categoryKey === '__base') {
-          keys.add('__base');
-          return;
-        }
         const segments = row.categoryKey.split('/');
         let path = '';
         segments.forEach((segment) => {
@@ -412,13 +474,7 @@ export function ConfigTemplatePage() {
         children: node.children ? withDiffStyle(node.children as any[]) : undefined,
       }));
 
-    return [
-      {
-        title: <span style={compareDiffCategoryKeys.has('__base') ? { color: '#ff4d4f' } : undefined}>基础信息</span>,
-        key: '__base',
-      },
-      ...withDiffStyle(categoryTree as any[]),
-    ];
+    return withDiffStyle(categoryTree as any[]);
   }, [compareDiffCategoryKeys]);
 
   const filteredCompareRows = useMemo(() => {
@@ -434,10 +490,11 @@ const columns: ColumnsType<RobotConfigRecord> = [
     { title: '类型', dataIndex: 'robotType', key: 'robotType', width: 140 },
     { title: '分组', dataIndex: 'group', key: 'group', width: 110 },
     { title: '注册时间', dataIndex: 'registeredAt', key: 'registeredAt', width: 180 },
+    { title: '当前模板', dataIndex: 'currentTemplate', key: 'currentTemplate', width: 220, render: (value?: string) => value || '-' },
     {
       title: '操作',
       key: 'action',
-      width: 420,
+      width: 500,
       fixed: 'right',
       render: (_, record) => (
         <Space size={4} wrap>
@@ -450,6 +507,9 @@ const columns: ColumnsType<RobotConfigRecord> = [
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             编辑
           </Button>
+          <Button type="link" onClick={() => openConfigure(record)}>
+            配置
+          </Button>
           <Button type="link" danger icon={<DeleteOutlined />} onClick={() => deleteRecord(record)}>
             删除
           </Button>
@@ -459,7 +519,7 @@ const columns: ColumnsType<RobotConfigRecord> = [
               const options = list.filter((item) => item.id !== record.id);
               setCompareBase(record);
               setCompareTargetId(options[0]?.id);
-              setCompareCategory('__base');
+              setCompareCategory(defaultCompareCategory);
             }}
           >
             对比配置
@@ -558,13 +618,113 @@ const columns: ColumnsType<RobotConfigRecord> = [
         </Form>
       </Modal>
 
-            <Modal
+      <Modal
+        title="模板配置"
+        open={Boolean(configuring)}
+        onCancel={closeConfigure}
+        width={isLaptop ? 1060 : 1200}
+        style={{ top: 16 }}
+        styles={{
+          body: {
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            paddingTop: 12,
+          },
+        }}
+        footer={[
+          <Button key="cancel" onClick={closeConfigure}>
+            取消
+          </Button>,
+          <Button key="save" type="primary" onClick={saveConfigure}>
+            确认生效
+          </Button>,
+        ]}
+        destroyOnClose
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Row gutter={12}>
+            <Col xs={24} md={10}>
+              <Typography.Text type="secondary">模板选择</Typography.Text>
+              <Select
+                allowClear
+                style={{ width: '100%' }}
+                placeholder="请选择模板"
+                value={configureTemplateId}
+                options={configureTemplateOptions}
+                showSearch
+                optionFilterProp="label"
+                onChange={applyConfigureTemplate}
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={12}>
+            <Col xs={24} md={isLaptop ? 8 : 6}>
+              <Card size="small" title="参数分类" styles={{ body: { maxHeight: 460, overflowY: 'auto' } }}>
+                <Tree
+                  treeData={categoryTree as any[]}
+                  defaultExpandAll
+                  selectedKeys={[configureSelectedCategory]}
+                  onSelect={(keys) => setConfigureSelectedCategory(String(keys[0] ?? '算法/SLAM'))}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} md={isLaptop ? 16 : 18}>
+              <Card
+                size="small"
+                title={configureSelectedCategory ? `分类：${configureSelectedCategory}` : '参数'}
+                extra={
+                  <Button type="link" onClick={restoreConfigureCategoryDefaults}>
+                    恢复当前分类默认值
+                  </Button>
+                }
+                styles={{ body: { maxHeight: 460, overflowY: 'auto' } }}
+              >
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  {configureFilteredParams.map((param) => (
+                    <Card
+                      key={param.id}
+                      size="small"
+                      title={param.name}
+                      extra={
+                        <Button type="link" onClick={() => restoreConfigureParamDefault(param.id)}>
+                          恢复默认
+                        </Button>
+                      }
+                    >
+                      <Row gutter={12}>
+                        <Col span={12}>
+                          <Typography.Text type="secondary">默认值：{param.defaultValue}</Typography.Text>
+                        </Col>
+                        <Col span={12} style={{ textAlign: 'right' }}>
+                          <Typography.Text type="secondary">
+                            范围：{param.range} {param.unit || ''}
+                          </Typography.Text>
+                        </Col>
+                      </Row>
+                      <Input
+                        style={{ marginTop: 8 }}
+                        value={param.value}
+                        addonAfter={param.unit || undefined}
+                        onChange={(event) => updateConfigureParamValue(param.id, event.target.value)}
+                      />
+                    </Card>
+                  ))}
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </Space>
+      </Modal>
+
+      <Modal
         title="配置对比"
         open={Boolean(compareBase)}
         onCancel={() => {
           setCompareBase(null);
           setCompareTargetId(undefined);
-          setCompareCategory('__base');
+          setCompareCategory(defaultCompareCategory);
         }}
         width={isLaptop ? 960 : 1080}
         footer={[
@@ -573,7 +733,7 @@ const columns: ColumnsType<RobotConfigRecord> = [
             onClick={() => {
               setCompareBase(null);
               setCompareTargetId(undefined);
-              setCompareCategory('__base');
+              setCompareCategory(defaultCompareCategory);
             }}
           >
             关闭
@@ -603,11 +763,16 @@ const columns: ColumnsType<RobotConfigRecord> = [
           <Row gutter={12}>
             <Col xs={24} md={isLaptop ? 8 : 6}>
               <Card size="small" title="对比分组" styles={{ body: { maxHeight: 560, overflowY: 'auto' } }}>
-                <Tree treeData={compareTreeData} defaultExpandAll selectedKeys={[compareCategory]} onSelect={(keys) => setCompareCategory(String(keys[0] ?? '__base'))} />
+                <Tree
+                  treeData={compareTreeData}
+                  defaultExpandAll
+                  selectedKeys={[compareCategory]}
+                  onSelect={(keys) => setCompareCategory(String(keys[0] ?? defaultCompareCategory))}
+                />
               </Card>
             </Col>
             <Col xs={24} md={isLaptop ? 16 : 18}>
-              <Card size="small" title={`分组：${compareCategory === '__base' ? '基础信息' : compareCategory}`}>
+              <Card size="small" title={`分组：${compareCategory}`}>
                 <Table
                   rowKey="key"
                   dataSource={filteredCompareRows}
