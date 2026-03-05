@@ -1,5 +1,5 @@
 ﻿import { ArrowLeftOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Descriptions, Divider, Row, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Descriptions, Divider, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -7,6 +7,10 @@ import robot2DImage from '../../../assets/gpt_robot_image.png';
 import { exceptionNotificationList, type ExceptionNotificationRecord } from '../../../data/operationMaintenance/exceptionNotificationList';
 import { robotManageList } from '../../../data/operationMaintenance/robotManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
+
+type SelectorKind = 'dispatch' | 'map' | 'mode';
+type ModeTarget = 'chassis' | 'arm';
+type OperationMode = 'mapping' | 'teach' | 'auto';
 
 export function RobotManageDetailPage() {
   const navigate = useNavigate();
@@ -20,9 +24,19 @@ export function RobotManageDetailPage() {
   const [isCharging, setIsCharging] = useState(false);
   const [isHoming, setIsHoming] = useState(false);
   const [mapIndex, setMapIndex] = useState(0);
-  const [chassisMode, setChassisMode] = useState<'A' | 'B'>('A');
-  const [armMode, setArmMode] = useState<'A' | 'B'>('A');
+  const [chassisMode, setChassisMode] = useState<OperationMode>('mapping');
+  const [armMode, setArmMode] = useState<OperationMode>('auto');
   const [isLifted, setIsLifted] = useState(false);
+
+  const [imageScale, setImageScale] = useState(1);
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
+  const [isImagePanning, setIsImagePanning] = useState(false);
+  const [panStart, setPanStart] = useState<{ x: number; y: number } | null>(null);
+
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectorKind, setSelectorKind] = useState<SelectorKind>('map');
+  const [modeTarget, setModeTarget] = useState<ModeTarget>('chassis');
+  const [selectorValue, setSelectorValue] = useState('');
 
   const mapOptions = useMemo(() => {
     if (!robot) {
@@ -30,6 +44,15 @@ export function RobotManageDetailPage() {
     }
     return [robot.currentMap, `${robot.currentMap}-B`, `${robot.currentMap}-C`];
   }, [robot]);
+  const operationModeText = (mode: OperationMode, target: ModeTarget) => {
+    if (mode === 'auto') {
+      return '自动模式';
+    }
+    if (target === 'chassis') {
+      return '建图模式';
+    }
+    return '示教模式';
+  };
 
   if (!robot) {
     return (
@@ -50,7 +73,7 @@ export function RobotManageDetailPage() {
   const robotExceptionLogs = useMemo(() => exceptionNotificationList.filter((item) => item.robot === robot.code), [robot.code]);
 
   const exceptionColumns: ColumnsType<ExceptionNotificationRecord> = [
-    { title: t('op.exception.table.id'), dataIndex: 'id', key: 'id', width: 170 },
+    { title: '编号', dataIndex: 'id', key: 'id', width: 170 },
     {
       title: t('op.exception.table.level'),
       dataIndex: 'level',
@@ -71,7 +94,137 @@ export function RobotManageDetailPage() {
     { title: t('op.exception.table.relatedTask'), dataIndex: 'relatedTask', key: 'relatedTask', width: 160 },
     { title: t('op.exception.table.robot'), dataIndex: 'robot', key: 'robot', width: 120 },
     { title: t('op.exception.table.createdAt'), dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+    {
+      title: t('op.robotManage.log.table.action'),
+      key: 'action',
+      width: 140,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size={4}>
+          <Button
+            type="link"
+            onClick={() =>
+              Modal.info({
+                title: t('op.robotManage.log.previewTitle'),
+                width: 760,
+                content: (
+                  <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+                    {record.issue}
+                  </pre>
+                ),
+              })
+            }
+          >
+            {t('op.robotManage.log.preview')}
+          </Button>
+          <Button
+            type="link"
+            onClick={() => {
+              const content = `id:${record.id}\nlevel:${record.level}\ntype:${record.type}\nsourceSystem:${record.sourceSystem}\nissue:${record.issue}\nstatus:${record.status}\nrelatedTask:${record.relatedTask}\nrobot:${record.robot}\ncreatedAt:${record.createdAt}\n`;
+              const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${record.id}.txt`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+            }}
+          >
+            {t('op.robotManage.log.download')}
+          </Button>
+        </Space>
+      ),
+    },
   ];
+
+  const selectorRows = useMemo(() => {
+    if (selectorKind === 'dispatch') {
+      return [
+        { key: 'auto', label: t('op.robotManage.dispatch.auto') },
+        { key: 'semi-auto', label: t('op.robotManage.dispatch.semiAuto') },
+        { key: 'manual', label: t('op.robotManage.dispatch.manual') },
+      ];
+    }
+    if (selectorKind === 'map') {
+      return mapOptions.map((name) => ({ key: name, label: name }));
+    }
+    if (modeTarget === 'chassis') {
+      return [
+        { key: 'mapping', label: '建图模式' },
+        { key: 'auto', label: '自动模式' },
+      ];
+    }
+    return [
+      { key: 'teach', label: '示教模式' },
+      { key: 'auto', label: '自动模式' },
+    ];
+  }, [mapOptions, modeTarget, selectorKind, t]);
+
+  const openSelector = (kind: SelectorKind, target: ModeTarget = 'chassis') => {
+    setSelectorKind(kind);
+    setModeTarget(target);
+    if (kind === 'dispatch') {
+      setSelectorValue(dispatchMode);
+    } else if (kind === 'map') {
+      setSelectorValue(mapOptions[mapIndex] ?? '');
+    } else {
+      setSelectorValue(target === 'chassis' ? chassisMode : armMode);
+    }
+    setSelectorOpen(true);
+  };
+
+  const applySelector = () => {
+    if (!selectorValue) {
+      return;
+    }
+    if (selectorKind === 'dispatch') {
+      setDispatchMode(selectorValue as 'auto' | 'semi-auto' | 'manual');
+    } else if (selectorKind === 'map') {
+      const nextIndex = mapOptions.findIndex((item) => item === selectorValue);
+      if (nextIndex >= 0) {
+        setMapIndex(nextIndex);
+      }
+    } else if (modeTarget === 'chassis') {
+      setChassisMode(selectorValue as OperationMode);
+    } else {
+      setArmMode(selectorValue as OperationMode);
+    }
+    setSelectorOpen(false);
+    messageApi.success(t('op.robotManage.message.switched'));
+  };
+
+  const zoomIn = () => setImageScale((prev) => Number(Math.min(2.5, prev + 0.2).toFixed(2)));
+  const zoomOut = () => setImageScale((prev) => Number(Math.max(1, prev - 0.2).toFixed(2)));
+  const resetZoom = () => {
+    setImageScale(1);
+    setImageOffset({ x: 0, y: 0 });
+  };
+
+  const onImageMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || !event.ctrlKey || imageScale <= 1) {
+      return;
+    }
+    event.preventDefault();
+    setIsImagePanning(true);
+    setPanStart({ x: event.clientX, y: event.clientY });
+  };
+
+  const onImageMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isImagePanning || !panStart) {
+      return;
+    }
+    const dx = event.clientX - panStart.x;
+    const dy = event.clientY - panStart.y;
+    setPanStart({ x: event.clientX, y: event.clientY });
+    setImageOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+  };
+
+  const onImageMouseUp = () => {
+    setIsImagePanning(false);
+    setPanStart(null);
+  };
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -92,14 +245,7 @@ export function RobotManageDetailPage() {
             <Card size="small" style={{ background: '#fafcff', border: '1px solid #e8eef6' }} bodyStyle={{ padding: 12 }}>
               <Typography.Text strong>{t('op.robotManage.section.globalControl')}</Typography.Text>
               <Space wrap style={{ width: '100%', marginTop: 10 }} size={[8, 8]}>
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    const nextMode = dispatchMode === 'auto' ? 'semi-auto' : dispatchMode === 'semi-auto' ? 'manual' : 'auto';
-                    setDispatchMode(nextMode);
-                    messageApi.success(t('op.robotManage.message.switched'));
-                  }}
-                >
+                <Button type="primary" onClick={() => openSelector('dispatch')}>
                   {t('op.robotManage.action.switchDispatch')}
                 </Button>
                 <Button
@@ -137,25 +283,11 @@ export function RobotManageDetailPage() {
             <Card size="small" style={{ background: '#fafcff', border: '1px solid #e8eef6' }} bodyStyle={{ padding: 12 }}>
               <Typography.Text strong>{t('op.robotManage.section.chassisControl')}</Typography.Text>
               <Space wrap style={{ width: '100%', marginTop: 10 }} size={[8, 8]}>
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    if (mapOptions.length === 0) {
-                      return;
-                    }
-                    setMapIndex((prev) => (prev + 1) % mapOptions.length);
-                    messageApi.success(t('op.robotManage.message.switched'));
-                  }}
-                >
+                <Button type="primary" onClick={() => openSelector('map')}>
                   {t('op.robotManage.action.switchMap')}
                 </Button>
-                <Button
-                  onClick={() => {
-                    setChassisMode((prev) => (prev === 'A' ? 'B' : 'A'));
-                    messageApi.success(t('op.robotManage.message.switched'));
-                  }}
-                >
-                  {`${t('op.robotManage.action.switchOperationMode')} (${chassisMode})`}
+                <Button onClick={() => openSelector('mode', 'chassis')}>
+                  {`${t('op.robotManage.action.switchOperationMode')} (${operationModeText(chassisMode, 'chassis')})`}
                 </Button>
                 <Button onClick={() => messageApi.success(t('op.robotManage.message.switched'))}>{t('op.robotManage.action.remoteControl')}</Button>
               </Space>
@@ -176,13 +308,8 @@ export function RobotManageDetailPage() {
                   {`${t('op.robotManage.action.lift')} (${isLifted ? 'ON' : 'OFF'})`}
                 </Button>
                 <Button onClick={() => messageApi.success(t('op.robotManage.message.switched'))}>{t('op.robotManage.action.backToOrigin')}</Button>
-                <Button
-                  onClick={() => {
-                    setArmMode((prev) => (prev === 'A' ? 'B' : 'A'));
-                    messageApi.success(t('op.robotManage.message.switched'));
-                  }}
-                >
-                  {`${t('op.robotManage.action.switchOperationMode')} (${armMode})`}
+                <Button onClick={() => openSelector('mode', 'arm')}>
+                  {`${t('op.robotManage.action.switchOperationMode')} (${operationModeText(armMode, 'arm')})`}
                 </Button>
               </Space>
             </Card>
@@ -227,6 +354,8 @@ export function RobotManageDetailPage() {
                 <Descriptions.Item label={t('op.robotManage.table.type')}>{robot.type}</Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.group')}>{robot.group}</Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.ip')}>{robot.ip}</Descriptions.Item>
+                <Descriptions.Item label="底盘操作模式">{operationModeText(chassisMode, 'chassis')}</Descriptions.Item>
+                <Descriptions.Item label="机械臂操作模式">{operationModeText(armMode, 'arm')}</Descriptions.Item>
               </Descriptions>
 
               <Divider style={{ margin: '4px 0' }} />
@@ -236,8 +365,8 @@ export function RobotManageDetailPage() {
                   width: '100%',
                   height: 260,
                   borderRadius: 10,
-                  border: '1px solid #e6eaf0',
-                  background: 'linear-gradient(160deg, #0f172a 0%, #1f2937 100%)',
+                  border: '1px solid #000',
+                  background: '#000',
                   color: '#d1d5db',
                   display: 'flex',
                   flexDirection: 'column',
@@ -257,7 +386,23 @@ export function RobotManageDetailPage() {
           <Card bodyStyle={{ padding: 12 }} style={{ width: '100%', minHeight: 700 }}>
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
               <Typography.Text strong>{t('op.robotManage.section.structureImage')}</Typography.Text>
+              <Space size={8}>
+                <Button size="small" onClick={zoomOut} disabled={imageScale <= 1}>
+                  -
+                </Button>
+                <Button size="small" onClick={zoomIn} disabled={imageScale >= 2.5}>
+                  +
+                </Button>
+                <Button size="small" onClick={resetZoom} disabled={imageScale === 1 && imageOffset.x === 0 && imageOffset.y === 0}>
+                  重置
+                </Button>
+                <Typography.Text type="secondary">{Math.round(imageScale * 100)}%</Typography.Text>
+              </Space>
               <div
+                onMouseDown={onImageMouseDown}
+                onMouseMove={onImageMouseMove}
+                onMouseUp={onImageMouseUp}
+                onMouseLeave={onImageMouseUp}
                 style={{
                   width: '100%',
                   height: 420,
@@ -268,10 +413,27 @@ export function RobotManageDetailPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: 12,
+                  overflow: 'hidden',
+                  cursor: imageScale > 1 ? (isImagePanning ? 'grabbing' : 'grab') : 'default',
                 }}
               >
-                <img src={robot2DImage} alt="robot-2d-structure" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
+                <img
+                  src={robot2DImage}
+                  alt="robot-2d-structure"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    transform: `translate(${imageOffset.x}px, ${imageOffset.y}px) scale(${imageScale})`,
+                    transformOrigin: 'center center',
+                    transition: isImagePanning ? 'none' : 'transform 0.12s ease',
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                  }}
+                />
               </div>
+              <Typography.Text type="secondary">按住 Ctrl + 鼠标左键拖拽（放大后生效）</Typography.Text>
 
               <Divider style={{ margin: '4px 0' }} />
               <Typography.Text strong>{t('op.robotManage.section.sensorInfo')}</Typography.Text>
@@ -291,7 +453,7 @@ export function RobotManageDetailPage() {
         </Col>
       </Row>
 
-      <Card title={t('menu.exceptionNotification')}>
+      <Card title={t('op.robotManage.detail.exceptionLogs')}>
         <Table
           rowKey="id"
           columns={exceptionColumns}
@@ -300,6 +462,33 @@ export function RobotManageDetailPage() {
           scroll={{ x: 1500 }}
         />
       </Card>
+
+      <Modal
+        open={selectorOpen}
+        onCancel={() => setSelectorOpen(false)}
+        onOk={applySelector}
+        okButtonProps={{ disabled: !selectorValue }}
+        title={
+          selectorKind === 'dispatch'
+            ? t('op.robotManage.action.switchDispatch')
+            : selectorKind === 'map'
+              ? t('op.robotManage.action.switchMap')
+              : t('op.robotManage.action.switchOperationMode')
+        }
+      >
+        <Table
+          rowKey="key"
+          size="small"
+          pagination={false}
+          dataSource={selectorRows}
+          columns={[{ title: t('op.robotManage.table.type'), dataIndex: 'label', key: 'label' }]}
+          rowSelection={{
+            type: 'radio',
+            selectedRowKeys: selectorValue ? [selectorValue] : [],
+            onChange: (keys) => setSelectorValue(String(keys[0] ?? '')),
+          }}
+        />
+      </Modal>
     </Space>
   );
 }
