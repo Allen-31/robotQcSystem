@@ -17,9 +17,14 @@ export function TerminalConfigPage() {
   const [onlyLoggedInDevices, setOnlyLoggedInDevices] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
+  const terminalTypeOptions = useMemo(
+    () => ['工控终端', '平板终端', '手持终端'].map((item) => ({ label: item, value: item })),
+    [],
+  );
+
   const openCreate = () => {
     form.resetFields();
-    form.setFieldsValue({ online: true, currentUser: '-', boundStationIds: [], terminalType: '宸ユ帶缁堢' });
+    form.setFieldsValue({ online: true, currentUser: '-', boundStationIds: [], terminalType: '工控终端' });
     setCreateOpen(true);
   };
 
@@ -52,15 +57,11 @@ export function TerminalConfigPage() {
     return filteredList.filter((item) => item.online && item.currentUser && item.currentUser !== '-');
   }, [filteredList, onlyLoggedInDevices]);
 
-  const handleSearchLoggedInDevices = () => {
-    setOnlyLoggedInDevices((prev) => !prev);
-  };
-
   const columns: ColumnsType<TerminalConfig> = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },
     { title: 'SN', dataIndex: 'sn', key: 'sn', width: 170 },
-    { title: '绫诲瀷', dataIndex: 'terminalType', key: 'terminalType', width: 150 },
-    { title: '缁堢IP', dataIndex: 'terminalIp', key: 'terminalIp', width: 150 },
+    { title: '终端类型', dataIndex: 'terminalType', key: 'terminalType', width: 150 },
+    { title: '终端IP', dataIndex: 'terminalIp', key: 'terminalIp', width: 150 },
     { title: t('qcConfig.terminal.table.workstationId'), dataIndex: 'workstationId', key: 'workstationId', width: 180 },
     {
       title: t('qcConfig.terminal.table.boundStationIds'),
@@ -70,7 +71,7 @@ export function TerminalConfigPage() {
       render: (stationIds: string[]) => stationIds.join(', ') || '-',
     },
     {
-      title: '鏄惁鍦ㄧ嚎',
+      title: t('qcConfig.terminal.table.online'),
       dataIndex: 'online',
       key: 'online',
       width: 130,
@@ -130,11 +131,11 @@ export function TerminalConfigPage() {
             </Col>
             <Col xs={24} lg={14}>
               <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <Button icon={<SearchOutlined />} onClick={handleSearchLoggedInDevices} type={onlyLoggedInDevices ? 'primary' : 'default'}>
-                  鎼滅储鐧诲綍璁惧
+                <Button icon={<SearchOutlined />} onClick={() => setOnlyLoggedInDevices((prev) => !prev)} type={onlyLoggedInDevices ? 'primary' : 'default'}>
+                  {onlyLoggedInDevices ? '显示全部终端' : '仅看在线已登录'}
                 </Button>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                  鎵嬪姩娣诲姞
+                  新增终端
                 </Button>
               </Space>
             </Col>
@@ -156,16 +157,16 @@ export function TerminalConfigPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={submit}>
-          <Form.Item label="ID" name="id" rules={[{ required: true, message: '璇疯緭鍏D' }]}>
+          <Form.Item label="ID" name="id" rules={[{ required: true, message: '请输入 ID' }]}>
             <Input disabled={Boolean(editingRecord)} />
           </Form.Item>
-          <Form.Item label="SN" name="sn" rules={[{ required: true, message: '璇疯緭鍏N' }]}>
+          <Form.Item label="SN" name="sn" rules={[{ required: true, message: '请输入 SN' }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="绫诲瀷" name="terminalType" rules={[{ required: true, message: '璇烽€夋嫨绫诲瀷' }]}>
-            <Select options={['宸ユ帶缁堢', '骞虫澘缁堢', '鎵嬫寔缁堢'].map((item) => ({ label: item, value: item }))} />
+          <Form.Item label="终端类型" name="terminalType" rules={[{ required: true, message: '请选择终端类型' }]}>
+            <Select options={terminalTypeOptions} />
           </Form.Item>
-          <Form.Item label="缁堢IP" name="terminalIp" rules={[{ required: true, message: '璇疯緭鍏ョ粓绔疘P' }]}>
+          <Form.Item label="终端IP" name="terminalIp" rules={[{ required: true, message: '请输入终端IP' }]}>
             <Input />
           </Form.Item>
           <Form.Item

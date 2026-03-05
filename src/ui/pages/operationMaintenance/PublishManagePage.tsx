@@ -102,8 +102,6 @@ export function PublishManagePage() {
     restartAfterUpgrade: boolean;
   }>();
   const watchedPackageName = Form.useWatch('packageName', form);
-  const watchedRobotTypes = Form.useWatch('targetRobotTypes', form) ?? [];
-  const watchedRobotGroups = Form.useWatch('targetRobotGroups', form) ?? [];
 
   useEffect(() => {
     setTableData(getPublishManageList(locale));
@@ -230,31 +228,15 @@ export function PublishManagePage() {
     [robotCandidates],
   );
 
-  const filteredGroupOptions = useMemo(() => {
-    if (watchedRobotTypes.length === 0) {
-      return [];
-    }
-    return Array.from(
-      new Set(
-        robotCandidates
-          .filter((item) => watchedRobotTypes.includes(item.robotType))
-          .map((item) => item.robotGroup),
-      ),
-    );
-  }, [robotCandidates, watchedRobotTypes]);
+  const robotGroupOptions = useMemo(
+    () => Array.from(new Set(robotCandidates.map((item) => item.robotGroup))),
+    [robotCandidates],
+  );
 
-  const filteredRobotOptions = useMemo(() => {
-    if (watchedRobotTypes.length === 0 || watchedRobotGroups.length === 0) {
-      return [];
-    }
-    return Array.from(
-      new Set(
-        robotCandidates
-          .filter((item) => watchedRobotTypes.includes(item.robotType) && watchedRobotGroups.includes(item.robotGroup))
-          .map((item) => item.robot),
-      ),
-    );
-  }, [robotCandidates, watchedRobotTypes, watchedRobotGroups]);
+  const robotOptions = useMemo(
+    () => Array.from(new Set(robotCandidates.map((item) => item.robot))),
+    [robotCandidates],
+  );
 
   const selectedPackage = useMemo(
     () => packageList.find((item) => item.name === watchedPackageName),
@@ -687,46 +669,23 @@ export function PublishManagePage() {
               mode="multiple"
               allowClear
               options={robotTypeOptions.map((item) => ({ label: item, value: item }))}
-              onChange={() => {
-                form.setFieldsValue({
-                  targetRobotGroups: [],
-                  targetRobots: [],
-                });
-              }}
             />
           </Form.Item>
           <Form.Item label={label.tableTargetGroup} name="targetRobotGroups">
             <Select
               mode="multiple"
               allowClear
-              disabled={watchedRobotTypes.length === 0}
-              options={filteredGroupOptions.map((item) => ({ label: item, value: item }))}
-              onChange={() => {
-                form.setFieldsValue({
-                  targetRobots: [],
-                });
-              }}
+              options={robotGroupOptions.map((item) => ({ label: item, value: item }))}
             />
           </Form.Item>
           <Form.Item label={label.tableTargetRobot} name="targetRobots">
             <Select
               mode="multiple"
               allowClear
-              disabled={watchedRobotGroups.length === 0}
-              options={filteredRobotOptions.map((item) => ({ label: item, value: item }))}
+              options={robotOptions.map((item) => ({ label: item, value: item }))}
             />
           </Form.Item>
-          <Space size={8}>
-            <Button
-              onClick={() => form.setFieldValue('targetRobots', filteredRobotOptions)}
-              disabled={watchedRobotGroups.length === 0 || filteredRobotOptions.length === 0}
-            >
-              {label.selectAllRobots}
-            </Button>
-            <Typography.Text type="secondary">
-              {watchedRobotTypes.length === 0 ? label.selectTypeFirst : watchedRobotGroups.length === 0 ? label.selectGroupFirst : label.noTargetHint}
-            </Typography.Text>
-          </Space>
+          <Typography.Text type="secondary">{label.noTargetHint}</Typography.Text>
           <Form.Item label={label.tableStrategy} name="strategy" rules={[{ required: true }]}>
             <Select
               options={[
