@@ -23,7 +23,7 @@ interface PasswordFormValues {
 }
 
 export function UserManagePage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<UserManageFormValues>();
   const [roleForm] = Form.useForm<{ roles: string[] }>();
@@ -39,7 +39,7 @@ export function UserManagePage() {
     removeRecord,
     updateRoles,
     changePassword,
-  } = useUserManage();
+  } = useUserManage(locale);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<UserManageRecord | null>(null);

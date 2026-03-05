@@ -2,7 +2,7 @@ import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { loginLogList, type LoginLogRecord } from '../../../data/operationMaintenance/loginLogList';
+import { getLoginLogList, type LoginLogRecord } from '../../../data/operationMaintenance/loginLogList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 function exportCsv(rows: LoginLogRecord[]) {
@@ -20,9 +20,10 @@ function exportCsv(rows: LoginLogRecord[]) {
 }
 
 export function LoginLogPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
+  const loginLogList = useMemo(() => getLoginLogList(locale), [locale]);
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -67,4 +68,3 @@ export function LoginLogPage() {
     </Space>
   );
 }
-

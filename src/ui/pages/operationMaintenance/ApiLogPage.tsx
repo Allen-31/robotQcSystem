@@ -2,7 +2,7 @@ import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { apiLogList, type ApiLogRecord } from '../../../data/operationMaintenance/apiLogList';
+import { getApiLogList, type ApiLogRecord } from '../../../data/operationMaintenance/apiLogList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 function exportCsv(rows: ApiLogRecord[]) {
@@ -20,9 +20,10 @@ function exportCsv(rows: ApiLogRecord[]) {
 }
 
 export function ApiLogPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
+  const apiLogList = useMemo(() => getApiLogList(locale), [locale]);
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -76,4 +77,3 @@ export function ApiLogPage() {
     </Space>
   );
 }
-

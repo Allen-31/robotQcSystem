@@ -1,8 +1,6 @@
 import { DownloadOutlined, FileAddOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { useMemo, useState } from 'react';
 import { qualityStatsMock, type QualityStatRecord } from '../../../data/qcStatistics/qualityStatsMock';
 import { useI18n } from '../../../i18n/I18nProvider';
@@ -73,43 +71,33 @@ function downloadPdf(
     reportRecord?: ReportRecord;
   },
 ): void {
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const title = options?.title ?? 'Quality Report';
-
-  doc.setFontSize(16);
-  doc.text(title, 40, 40);
-
-  let startY = 58;
-  if (options?.reportRecord) {
-    const record = options.reportRecord;
-    doc.setFontSize(10);
-    doc.text(`Report No: ${record.reportNo}`, 40, startY);
-    doc.text(`Type: ${record.reportType}`, 260, startY);
-    doc.text(`Period: ${record.periodLabel}`, 420, startY);
-    doc.text(`Dimension: ${record.dimension}`, 40, startY + 16);
-    doc.text(`Creator: ${record.creator}`, 260, startY + 16);
-    doc.text(`Created At: ${record.createdAt}`, 420, startY + 16);
-    startY += 34;
-  }
-
-  autoTable(doc, {
-    startY,
-    head: [['Dimension', 'Inspections', 'Defects', 'Reinspections', 'Detection Rate', 'Reinspection Rate', 'Avg Duration(min)']],
-    body: rows.map((row) => [
-      row.dimensionValue,
-      row.inspectionCount,
-      row.defectCount,
-      row.reinspectionCount,
-      `${row.detectionRate}%`,
-      `${row.reinspectionRate}%`,
-      row.avgDurationMin,
-    ]),
-    theme: 'striped',
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [22, 119, 255] },
-  });
-
-  doc.save(fileName);
+  const meta = options?.reportRecord
+    ? [
+        `Report No,${options.reportRecord.reportNo}`,
+        `Type,${options.reportRecord.reportType}`,
+        `Period,${options.reportRecord.periodLabel}`,
+        `Dimension,${options.reportRecord.dimension}`,
+        `Creator,${options.reportRecord.creator}`,
+        `Created At,${options.reportRecord.createdAt}`,
+        '',
+      ]
+    : [];
+  const header = 'Dimension,Inspections,Defects,Reinspections,Detection Rate,Reinspection Rate,Avg Duration(min)';
+  const body = rows.map(
+    (row) =>
+      `${row.dimensionValue},${row.inspectionCount},${row.defectCount},${row.reinspectionCount},${row.detectionRate}%,${row.reinspectionRate}%,${row.avgDurationMin}`,
+  );
+  const csv = [title, ...meta, header, ...body].join('\n');
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export function QualityReportPage() {

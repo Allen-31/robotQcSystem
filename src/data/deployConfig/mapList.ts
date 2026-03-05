@@ -1,9 +1,14 @@
+import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
 import type { MapManageRecord } from '../../shared/types/deployConfig';
 
-export const mapList: MapManageRecord[] = [
+interface LocalizedMapManageRecord extends Omit<MapManageRecord, 'name'> {
+  name: LocalizedText;
+}
+
+const localizedMapList: LocalizedMapManageRecord[] = [
   {
     code: 'MAP-001',
-    name: '总装车间-A',
+    name: { zh: '总装车间-A', en: 'Assembly Workshop A' },
     type: '2D',
     editStatus: 'completed',
     publishStatus: 'published',
@@ -14,7 +19,7 @@ export const mapList: MapManageRecord[] = [
   },
   {
     code: 'MAP-002',
-    name: '质检线-B',
+    name: { zh: '质检线-B', en: 'Quality Line B' },
     type: '2D',
     editStatus: 'editing',
     publishStatus: 'unpublished',
@@ -25,7 +30,7 @@ export const mapList: MapManageRecord[] = [
   },
   {
     code: 'MAP-003',
-    name: '电测工位区',
+    name: { zh: '电测工位区', en: 'Electrical Test Station Area' },
     type: '3D',
     editStatus: 'completed',
     publishStatus: 'published',
@@ -36,3 +41,11 @@ export const mapList: MapManageRecord[] = [
   },
 ];
 
+export function getMapList(locale: DataLocale): MapManageRecord[] {
+  return localizedMapList.map((item) => ({
+    ...item,
+    name: resolveLocalizedText(item.name, locale),
+  }));
+}
+
+export const mapList: MapManageRecord[] = getMapList('zh-CN');

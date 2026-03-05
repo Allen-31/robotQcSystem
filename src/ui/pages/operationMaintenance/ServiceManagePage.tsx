@@ -1,9 +1,9 @@
 import { FileTextOutlined, PauseCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  serviceManageList,
+  getServiceManageList,
   type ServiceLogRecord,
   type ServiceManageRecord,
   type ServiceStatus,
@@ -25,10 +25,14 @@ function downloadLog(log: ServiceLogRecord): void {
 export function ServiceManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
-  const [serviceList, setServiceList] = useState<ServiceManageRecord[]>(serviceManageList);
+  const [serviceList, setServiceList] = useState<ServiceManageRecord[]>(() => getServiceManageList(locale));
   const [historyService, setHistoryService] = useState<ServiceManageRecord | null>(null);
   const [previewLog, setPreviewLog] = useState<ServiceLogRecord | null>(null);
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    setServiceList(getServiceManageList(locale));
+  }, [locale]);
 
   const label = useMemo(() => {
     if (locale === 'en-US') {

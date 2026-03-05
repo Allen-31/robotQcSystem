@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { homingStrategyList } from '../../data/deployConfig/homingStrategyList';
+import { useEffect, useMemo, useState } from 'react';
+import { getHomingStrategyList } from '../../data/deployConfig/homingStrategyList';
 import type { HomingStrategyRecord, HomingStrategyStatus } from '../../shared/types/deployConfig';
+import type { DataLocale } from '../../data/localized';
 
 export interface HomingStrategyFormValues {
   code: string;
@@ -14,9 +15,13 @@ export interface HomingStrategyFormValues {
   };
 }
 
-export function useHomingStrategyManage() {
-  const [records, setRecords] = useState<HomingStrategyRecord[]>(homingStrategyList);
+export function useHomingStrategyManage(locale: DataLocale) {
+  const [records, setRecords] = useState<HomingStrategyRecord[]>(() => getHomingStrategyList(locale));
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    setRecords(getHomingStrategyList(locale));
+  }, [locale]);
 
   const filteredList = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();

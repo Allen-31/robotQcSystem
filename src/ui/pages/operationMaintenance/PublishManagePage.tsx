@@ -1,16 +1,17 @@
 import { ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getCurrentUser } from '../../../logic/auth/authStore';
-import { packageManageList } from '../../../data/operationMaintenance/packageManageList';
+import { getPackageManageList } from '../../../data/operationMaintenance/packageManageList';
 import {
-  publishManageList,
-  upgradeDeviceCatalog,
+  getPublishManageList,
+  getUpgradeDeviceCatalog,
   type DeviceUpgradeRecord,
   type DeviceUpgradeStatus,
   type PublishManageRecord,
   type PublishStatus,
+  type UpgradeDeviceTemplate,
   type UpgradeStrategy,
 } from '../../../data/operationMaintenance/publishManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
@@ -51,12 +52,14 @@ function buildUpgradeDevices(
   targetRobotGroups: string[],
   targetRobotTypes: string[],
   strategy: UpgradeStrategy,
+  packageList: Array<{ name: string; type: string }>,
+  deviceCatalog: UpgradeDeviceTemplate[],
 ): DeviceUpgradeRecord[] {
-  const packageType = packageManageList.find((item) => item.name === packageName)?.type;
+  const packageType = packageList.find((item) => item.name === packageName)?.type;
   const hasTargetFilters = targetRobots.length > 0 || targetRobotGroups.length > 0 || targetRobotTypes.length > 0;
-  const filtered = upgradeDeviceCatalog.filter((device) => {
+  const filtered = deviceCatalog.filter((device) => {
     if (packageType === 'cloud') {
-      return device.robotType === 'SERVER' || device.robotGroup === '云平台';
+      return device.robotType === 'SERVER';
     }
     if (!hasTargetFilters) {
       return device.robotType !== 'SERVER';
@@ -67,7 +70,7 @@ function buildUpgradeDevices(
     return matchedType && matchedGroup && matchedRobot;
   });
 
-  const targetDevices = filtered.length > 0 ? filtered : upgradeDeviceCatalog.slice(0, 1);
+  const targetDevices = filtered.length > 0 ? filtered : deviceCatalog.slice(0, 1);
   return targetDevices.map((device, index) => ({
     id: `DEV-UP-${Date.now()}-${index}`,
     deviceName: device.deviceName,
@@ -83,7 +86,9 @@ function buildUpgradeDevices(
 export function PublishManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
-  const [tableData, setTableData] = useState<PublishManageRecord[]>(publishManageList);
+  const packageList = useMemo(() => getPackageManageList(locale), [locale]);
+  const upgradeDeviceCatalog = useMemo(() => getUpgradeDeviceCatalog(locale), [locale]);
+  const [tableData, setTableData] = useState<PublishManageRecord[]>(() => getPublishManageList(locale));
   const [keyword, setKeyword] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [progressTask, setProgressTask] = useState<PublishManageRecord | null>(null);
@@ -99,6 +104,10 @@ export function PublishManagePage() {
   const watchedPackageName = Form.useWatch('packageName', form);
   const watchedRobotTypes = Form.useWatch('targetRobotTypes', form) ?? [];
   const watchedRobotGroups = Form.useWatch('targetRobotGroups', form) ?? [];
+
+  useEffect(() => {
+    setTableData(getPublishManageList(locale));
+  }, [locale]);
 
   const label = useMemo(() => {
     if (locale === 'en-US') {
@@ -248,8 +257,8 @@ export function PublishManagePage() {
   }, [robotCandidates, watchedRobotTypes, watchedRobotGroups]);
 
   const selectedPackage = useMemo(
-    () => packageManageList.find((item) => item.name === watchedPackageName),
-    [watchedPackageName],
+    () => packageList.find((item) => item.name === watchedPackageName),
+    [packageList, watchedPackageName],
   );
 
   const strategyText = (value: UpgradeStrategy) => {
@@ -561,7 +570,15 @@ export function PublishManagePage() {
     form
       .validateFields()
       .then((values) => {
-        const devices = buildUpgradeDevices(values.packageName, values.targetRobots ?? [], values.targetRobotGroups ?? [], values.targetRobotTypes ?? [], values.strategy);
+        const devices = buildUpgradeDevices(
+          values.packageName,
+          values.targetRobots ?? [],
+          values.targetRobotGroups ?? [],
+          values.targetRobotTypes ?? [],
+          values.strategy,
+          packageList,
+          upgradeDeviceCatalog,
+        );
         const creator = getCurrentUser()?.username ?? 'admin';
         const next: PublishManageRecord = {
           id: `PUB-${Date.now()}`,
@@ -646,12 +663,12 @@ export function PublishManagePage() {
           </Form.Item>
           <Form.Item label={label.tablePackage} name="packageName" rules={[{ required: true }]}>
             <Select
-              options={packageManageList.map((item) => ({
+              options={packageList.map((item) => ({
                 label: `${item.name} (${item.description})`,
                 value: item.name,
               }))}
               onChange={(value: string) => {
-                const currentPackage = packageManageList.find((item) => item.name === value);
+                const currentPackage = packageList.find((item) => item.name === value);
                 if (currentPackage?.type === 'cloud') {
                   form.setFieldsValue({
                     targetRobotTypes: [],

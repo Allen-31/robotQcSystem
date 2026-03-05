@@ -1,18 +1,16 @@
-import { EditOutlined, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, RedoOutlined, SwapOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { EyeOutlined } from '@ant-design/icons';
+import { Button, Card, Input, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { robotManageList, type RobotControlStatus, type RobotDispatchMode, type RobotExceptionStatus, type RobotManageRecord } from '../../../data/operationMaintenance/robotManageList';
+import { getRobotManageList, type RobotControlStatus, type RobotDispatchMode, type RobotExceptionStatus, type RobotManageRecord } from '../../../data/operationMaintenance/robotManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 export function RobotManagePage() {
   const navigate = useNavigate();
-  const { t } = useI18n();
-  const [messageApi, contextHolder] = message.useMessage();
-  const [list, setList] = useState<RobotManageRecord[]>(robotManageList);
+  const { locale, t } = useI18n();
+  const list = useMemo(() => getRobotManageList(locale), [locale]);
   const [keyword, setKeyword] = useState('');
-  const [logRecord, setLogRecord] = useState<RobotManageRecord | null>(null);
 
   const onlineText = (status: RobotManageRecord['onlineStatus']) => (status === 'online' ? t('op.robotManage.online.online') : t('op.robotManage.online.offline'));
   const dispatchText = (mode: RobotDispatchMode) =>
@@ -28,14 +26,6 @@ export function RobotManagePage() {
     }
     return list.filter((item) => `${item.code} ${item.type} ${item.group} ${item.currentMap} ${item.ip}`.toLowerCase().includes(k));
   }, [keyword, list]);
-
-  const toggleControl = (id: string) => {
-    setList((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, controlStatus: item.controlStatus === 'running' ? 'paused' : 'running' } : item,
-      ),
-    );
-  };
 
   const columns: ColumnsType<RobotManageRecord> = [
     { title: t('op.robotManage.table.code'), dataIndex: 'code', key: 'code', width: 110 },
@@ -64,31 +54,12 @@ export function RobotManagePage() {
     {
       title: t('op.robotManage.table.action'),
       key: 'action',
-      width: 440,
+      width: 140,
       fixed: 'right',
       render: (_, record) => (
-        <Space size={2}>
+        <Space size={4}>
           <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/operationMaintenance/robot/robotManage/${record.id}/detail`)}>
             {t('op.robotManage.action.detail')}
-          </Button>
-          <Button type="link" icon={<EditOutlined />} onClick={() => setLogRecord(record)}>
-            {t('op.robotManage.action.logs')}
-          </Button>
-          <Button type="link" icon={<SwapOutlined />} onClick={() => messageApi.success(t('op.robotManage.message.switched'))}>
-            {t('op.robotManage.action.switchMap')}
-          </Button>
-          <Button type="link" icon={<SwapOutlined />} onClick={() => messageApi.success(t('op.robotManage.message.switched'))}>
-            {t('op.robotManage.action.switchDispatch')}
-          </Button>
-          <Button
-            type="link"
-            icon={record.controlStatus === 'running' ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-            onClick={() => toggleControl(record.id)}
-          >
-            {t('op.robotManage.action.pauseResume')}
-          </Button>
-          <Button type="link" danger icon={<RedoOutlined />} onClick={() => messageApi.warning(t('op.robotManage.message.resetSent'))}>
-            {t('op.robotManage.action.reset')}
           </Button>
         </Space>
       ),
@@ -97,7 +68,6 @@ export function RobotManagePage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      {contextHolder}
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
@@ -110,59 +80,6 @@ export function RobotManagePage() {
       <Card>
         <Table rowKey="id" columns={columns} dataSource={filtered} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1900 }} />
       </Card>
-
-      <Modal title={t('op.robotManage.modal.logTitle')} open={Boolean(logRecord)} onCancel={() => setLogRecord(null)} footer={null} width={900}>
-        {logRecord ? (
-          <Table
-            rowKey="id"
-            size="small"
-            dataSource={logRecord.runtimeLogs}
-            pagination={false}
-            columns={[
-              { title: t('op.robotManage.log.table.name'), dataIndex: 'name', key: 'name', width: 220 },
-              { title: t('op.robotManage.log.table.type'), dataIndex: 'type', key: 'type', width: 120 },
-              { title: t('op.robotManage.log.table.createdAt'), dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-              { title: t('op.robotManage.log.table.updatedAt'), dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
-              {
-                title: t('op.robotManage.log.table.action'),
-                key: 'action',
-                render: (_, record) => (
-                  <Space size={4}>
-                    <Button
-                      type="link"
-                      onClick={() =>
-                        Modal.info({
-                          title: t('op.robotManage.log.previewTitle'),
-                          width: 760,
-                          content: <pre style={{ whiteSpace: 'pre-wrap' }}>{record.content}</pre>,
-                        })
-                      }
-                    >
-                      {t('op.robotManage.log.preview')}
-                    </Button>
-                    <Button
-                      type="link"
-                      onClick={() => {
-                        const blob = new Blob([record.content], { type: 'text/plain;charset=utf-8;' });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = record.name;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                      }}
-                    >
-                      {t('op.robotManage.log.download')}
-                    </Button>
-                  </Space>
-                ),
-              },
-            ]}
-          />
-        ) : null}
-      </Modal>
     </Space>
   );
 }

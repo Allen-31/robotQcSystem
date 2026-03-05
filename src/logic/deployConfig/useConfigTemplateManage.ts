@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { configTemplateList } from '../../data/deployConfig/configTemplateList';
+import { useEffect, useMemo, useState } from 'react';
+import { getConfigTemplateList } from '../../data/deployConfig/configTemplateList';
+import type { DataLocale } from '../../data/localized';
 import type { ConfigTemplateRecord } from '../../shared/types/deployConfig';
 
 export interface ConfigTemplateFormValues {
@@ -11,9 +12,13 @@ function nowText() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
 
-export function useConfigTemplateManage() {
-  const [records, setRecords] = useState<ConfigTemplateRecord[]>(configTemplateList);
+export function useConfigTemplateManage(locale: DataLocale) {
+  const [records, setRecords] = useState<ConfigTemplateRecord[]>(() => getConfigTemplateList(locale));
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    setRecords(getConfigTemplateList(locale));
+  }, [locale]);
 
   const filteredList = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -63,10 +68,11 @@ export function useConfigTemplateManage() {
       seq += 1;
       nextCode = `${source.code}-COPY${seq}`;
     }
+    const copySuffix = locale === 'en-US' ? '-Copy' : '-副本';
     const next: ConfigTemplateRecord = {
       ...source,
       code: nextCode,
-      name: `${source.name}-副本`,
+      name: `${source.name}${copySuffix}`,
       createdAt: now,
       createdBy: 'admin',
       updatedAt: now,
@@ -91,4 +97,3 @@ export function useConfigTemplateManage() {
     removeRecord,
   };
 }
-

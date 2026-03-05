@@ -12,10 +12,10 @@ const ROBOT_GROUP_OPTION_KEYS = ['assemblyLine1', 'qualityLine2', 'logisticsTran
 const ROBOT_OPTIONS = ['RB-A101-1', 'RB-B203-2', 'RB-C301-4', 'RB-C301-5', 'RB-D402-1'];
 
 export function ChargeStrategyPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<ChargeStrategyFormValues>();
-  const { records, filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useChargeStrategyManage();
+  const { records, filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useChargeStrategyManage(locale);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ChargeStrategyRecord | null>(null);
   const robotTypeOptions = useMemo(

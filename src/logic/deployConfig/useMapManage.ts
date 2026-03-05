@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { mapList } from '../../data/deployConfig/mapList';
+import { useEffect, useMemo, useState } from 'react';
+import { getMapList } from '../../data/deployConfig/mapList';
+import type { DataLocale } from '../../data/localized';
 import type { MapEditStatus, MapManageRecord, MapPublishStatus } from '../../shared/types/deployConfig';
 
 export interface MapManageFormValues {
@@ -14,9 +15,13 @@ function getNowString() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
 
-export function useMapManage() {
-  const [records, setRecords] = useState<MapManageRecord[]>(mapList);
+export function useMapManage(locale: DataLocale) {
+  const [records, setRecords] = useState<MapManageRecord[]>(() => getMapList(locale));
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    setRecords(getMapList(locale));
+  }, [locale]);
 
   const filteredList = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -73,4 +78,3 @@ export function useMapManage() {
     removeRecord,
   };
 }
-

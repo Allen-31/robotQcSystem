@@ -2,7 +2,7 @@ import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { operationLogList, type OperationLogRecord } from '../../../data/operationMaintenance/operationLogList';
+import { getOperationLogList, type OperationLogRecord } from '../../../data/operationMaintenance/operationLogList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 function exportCsv(rows: OperationLogRecord[]) {
@@ -20,9 +20,10 @@ function exportCsv(rows: OperationLogRecord[]) {
 }
 
 export function OperationLogPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
+  const operationLogList = useMemo(() => getOperationLogList(locale), [locale]);
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -80,4 +81,3 @@ export function OperationLogPage() {
     </Space>
   );
 }
-

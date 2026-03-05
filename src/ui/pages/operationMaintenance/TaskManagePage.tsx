@@ -1,9 +1,9 @@
 import { ExportOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getCurrentUser } from '../../../logic/auth/authStore';
-import { taskManageList, type TaskManageRecord, type TaskStatus } from '../../../data/operationMaintenance/taskManageList';
+import { getTaskManageList, type TaskManageRecord, type TaskStatus } from '../../../data/operationMaintenance/taskManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
 
 function escapeCsv(value: string | number): string {
@@ -43,10 +43,14 @@ function nowText(): string {
 export function TaskManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
-  const [tableData, setTableData] = useState<TaskManageRecord[]>(taskManageList);
+  const [tableData, setTableData] = useState<TaskManageRecord[]>(() => getTaskManageList(locale));
   const [createOpen, setCreateOpen] = useState(false);
   const [detailTask, setDetailTask] = useState<TaskManageRecord | null>(null);
   const [form] = Form.useForm<{ code: string; externalCode: string; robot: string; priority: number; description: string }>();
+
+  useEffect(() => {
+    setTableData(getTaskManageList(locale));
+  }, [locale]);
 
   const label = useMemo(() => {
     if (locale === 'en-US') {

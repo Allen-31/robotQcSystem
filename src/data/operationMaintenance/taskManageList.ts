@@ -1,3 +1,5 @@
+import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
+
 export type TaskStatus = 'pending' | 'running' | 'paused' | 'completed' | 'stopped';
 
 export interface TaskManageRecord {
@@ -12,7 +14,11 @@ export interface TaskManageRecord {
   description: string;
 }
 
-export const taskManageList: TaskManageRecord[] = [
+interface LocalizedTaskManageRecord extends Omit<TaskManageRecord, 'description'> {
+  description: LocalizedText;
+}
+
+const localizedTaskManageList: LocalizedTaskManageRecord[] = [
   {
     id: 'TASK-001',
     code: 'TK-20260304-001',
@@ -22,7 +28,7 @@ export const taskManageList: TaskManageRecord[] = [
     priority: 1,
     createdAt: '2026-03-04 08:12:13',
     endedAt: '-',
-    description: '总装一线线束质检任务',
+    description: { zh: '总装一线线束质检任务', en: 'Assembly line harness quality inspection task' },
   },
   {
     id: 'TASK-002',
@@ -33,7 +39,7 @@ export const taskManageList: TaskManageRecord[] = [
     priority: 2,
     createdAt: '2026-03-04 08:32:26',
     endedAt: '-',
-    description: '空闲升级等待中的巡检任务',
+    description: { zh: '空闲升级等待中的巡检任务', en: 'Inspection task waiting for idle upgrade window' },
   },
   {
     id: 'TASK-003',
@@ -44,7 +50,7 @@ export const taskManageList: TaskManageRecord[] = [
     priority: 3,
     createdAt: '2026-03-04 07:05:44',
     endedAt: '2026-03-04 07:58:03',
-    description: '质检二线日常抽检任务',
+    description: { zh: '质检二线日常抽检任务', en: 'Daily sampling task for quality line 2' },
   },
   {
     id: 'TASK-004',
@@ -55,6 +61,15 @@ export const taskManageList: TaskManageRecord[] = [
     priority: 1,
     createdAt: '2026-03-04 09:45:17',
     endedAt: '-',
-    description: '机器人机械臂校准前置任务',
+    description: { zh: '机器人机械臂校准前置任务', en: 'Pre-calibration task for robot arm' },
   },
 ];
+
+export function getTaskManageList(locale: DataLocale): TaskManageRecord[] {
+  return localizedTaskManageList.map((item) => ({
+    ...item,
+    description: resolveLocalizedText(item.description, locale),
+  }));
+}
+
+export const taskManageList: TaskManageRecord[] = getTaskManageList('zh-CN');
