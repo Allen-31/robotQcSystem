@@ -34,6 +34,14 @@ function downloadCsv(rows: FileManageRecord[]): void {
   URL.revokeObjectURL(url);
 }
 
+function getFileExtension(fileName: string): string {
+  const dotIndex = fileName.lastIndexOf('.');
+  if (dotIndex < 0 || dotIndex === fileName.length - 1) {
+    return '';
+  }
+  return fileName.slice(dotIndex + 1).toLowerCase();
+}
+
 export function FileManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
@@ -64,6 +72,8 @@ export function FileManagePage() {
         fieldSize: 'Size',
         fieldTag: 'Tags',
         fieldCreatedAt: 'Created At',
+        unsupportedPreview: 'This file type cannot be previewed',
+        noPreviewSource: 'No preview source is available for this file',
       };
     }
     return {
@@ -86,6 +96,8 @@ export function FileManagePage() {
       fieldSize: '文件大小',
       fieldTag: '标签',
       fieldCreatedAt: '创建时间',
+      unsupportedPreview: '该文件类型暂不支持预览',
+      noPreviewSource: '该文件暂无可用预览内容',
     };
   }, [locale]);
 
@@ -98,7 +110,7 @@ export function FileManagePage() {
       const text = `${item.name} ${item.type} ${item.tags.join(' ')} ${item.createdAt}`.toLowerCase();
       return text.includes(normalizedKeyword);
     });
-  }, [keyword]);
+  }, [fileManageList, keyword]);
 
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));
@@ -156,6 +168,74 @@ export function FileManagePage() {
     },
   ];
 
+  const renderPreviewContent = (record: FileManageRecord) => {
+    const ext = getFileExtension(record.name);
+
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+      if (!record.previewUrl) {
+        return <Typography.Text type="secondary">{label.noPreviewSource}</Typography.Text>;
+      }
+      return (
+        <img
+          src={record.previewUrl}
+          alt={record.name}
+          style={{ width: '100%', maxHeight: 520, objectFit: 'contain', border: '1px solid #f0f0f0', borderRadius: 8 }}
+        />
+      );
+    }
+
+    if (['mp4', 'webm', 'ogg', 'mov'].includes(ext)) {
+      if (!record.previewUrl) {
+        return <Typography.Text type="secondary">{label.noPreviewSource}</Typography.Text>;
+      }
+      return (
+        <video
+          src={record.previewUrl}
+          controls
+          style={{ width: '100%', maxHeight: 520, background: '#000', borderRadius: 8 }}
+        />
+      );
+    }
+
+    if (ext === 'pdf') {
+      if (!record.previewUrl) {
+        return <Typography.Text type="secondary">{label.noPreviewSource}</Typography.Text>;
+      }
+      return (
+        <iframe
+          src={record.previewUrl}
+          title={record.name}
+          style={{ width: '100%', height: 520, border: '1px solid #f0f0f0', borderRadius: 8 }}
+        />
+      );
+    }
+
+    if (['txt', 'log', 'json', 'md'].includes(ext)) {
+      if (!record.previewContent) {
+        return <Typography.Text type="secondary">{label.noPreviewSource}</Typography.Text>;
+      }
+      return (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            maxHeight: 520,
+            overflow: 'auto',
+            background: '#fafafa',
+            border: '1px solid #f0f0f0',
+            borderRadius: 8,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
+          {record.previewContent}
+        </pre>
+      );
+    }
+
+    return <Typography.Text type="secondary">{label.unsupportedPreview}</Typography.Text>;
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
@@ -190,9 +270,15 @@ export function FileManagePage() {
         />
       </Card>
 
-      <Modal title={label.previewTitle} open={Boolean(previewRecord)} onCancel={() => setPreviewRecord(null)} footer={null}>
+      <Modal
+        title={label.previewTitle}
+        open={Boolean(previewRecord)}
+        onCancel={() => setPreviewRecord(null)}
+        footer={null}
+        width={900}
+      >
         {previewRecord ? (
-          <Space direction="vertical" size={10}>
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
             <Typography.Text>
               {label.fieldName}：{previewRecord.name}
             </Typography.Text>
@@ -208,6 +294,7 @@ export function FileManagePage() {
             <Typography.Text>
               {label.fieldCreatedAt}：{previewRecord.createdAt}
             </Typography.Text>
+            {renderPreviewContent(previewRecord)}
           </Space>
         ) : null}
       </Modal>

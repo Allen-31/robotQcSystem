@@ -150,10 +150,111 @@ export function SettingPage() {
     );
   };
 
-  const importLanguageResource = (name: string) => {
-    messageApi.success(t('setting.display.modal.importSuccess', { name }));
+  const formatDateTime = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  const normalizeLanguageItems = (rawText: string, fallbackName: string) => {
+    const text = rawText.trim();
+    if (!text) {
+      return [];
+    }
+
+    if (text.startsWith('{') || text.startsWith('[')) {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed as Array<Record<string, unknown>>;
+      }
+      if (Array.isArray((parsed as { languages?: unknown[] }).languages)) {
+        return (parsed as { languages: Array<Record<string, unknown>> }).languages;
+      }
+      return [parsed as Record<string, unknown>];
+    }
+
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (lines.length < 2) {
+      return [{ name: fallbackName }];
+    }
+
+    const headers = lines[0].split(',').map((header) => header.trim());
+    return lines.slice(1).map((line) => {
+      const cells = line.split(',').map((item) => item.trim());
+      const row: Record<string, unknown> = {};
+      headers.forEach((header, index) => {
+        row[header] = cells[index];
+      });
+      return row;
+    });
   };
 
+  const importLanguageResourceFile: UploadProps['beforeUpload'] = async (file) => {
+    try {
+      const fileName = file.name.replace(/\.[^/.]+$/, '');
+      const rawText = await file.text();
+      const importedItems = normalizeLanguageItems(rawText, fileName);
+      if (importedItems.length === 0) {
+        messageApi.error('导入失败：文件内容为空或格式无效');
+        return false;
+      }
+
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      setLanguages((prev) => {
+        const now = formatDateTime();
+        const next = [...prev];
+        let maxCodeNumber = prev.reduce((acc, item) => {
+          const match = item.code.match(/LANG-(\d+)/);
+          return match ? Math.max(acc, Number(match[1])) : acc;
+        }, 0);
+
+        importedItems.forEach((item) => {
+          const localeCode = String(item.localeCode ?? item.locale ?? item.code ?? '').trim();
+          const name = String(item.name ?? item.label ?? '').trim() || fileName;
+
+          if (!localeCode) {
+            skippedCount += 1;
+            return;
+          }
+
+          const exists = next.some((lang) => lang.localeCode.toLowerCase() === localeCode.toLowerCase());
+          if (exists) {
+            skippedCount += 1;
+            return;
+          }
+
+          maxCodeNumber += 1;
+          const code = `LANG-${String(maxCodeNumber).padStart(3, '0')}`;
+          next.push({
+            id: `lang-${localeCode.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            code,
+            name,
+            localeCode,
+            enabled: true,
+            createdAt: now,
+            createdBy: 'admin',
+            updatedAt: now,
+            updatedBy: 'admin',
+          });
+          importedCount += 1;
+        });
+
+        return next;
+      });
+
+      if (importedCount > 0) {
+        const skipText = skippedCount > 0 ? `，跳过 ${skippedCount} 条重复或无效记录` : '';
+        messageApi.success(`导入成功：新增 ${importedCount} 条${skipText}`);
+      } else {
+        messageApi.warning('未新增数据：导入内容重复或无效');
+      }
+    } catch {
+      messageApi.error('导入失败：文件格式不支持，请使用 JSON 或 CSV');
+    }
+
+    return false;
+  };
   const exportLanguageResource = (item: LanguageConfigRecord) => {
     const header = ['code', 'name', 'localeCode', 'enabled', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
     const row = [item.code, item.name, item.localeCode, item.enabled ? 'enabled' : 'disabled', item.createdAt, item.createdBy, item.updatedAt, item.updatedBy];
@@ -210,7 +311,7 @@ export function SettingPage() {
     {
       title: t('setting.display.modal.table.action'),
       key: 'action',
-      width: 320,
+      width: 280,
       fixed: 'right',
       render: (_, record, index) => (
         <Space wrap>
@@ -222,9 +323,6 @@ export function SettingPage() {
           </Button>
           <Button type="link" onClick={() => toggleLanguage(record.id)}>
             {record.enabled ? t('qcConfig.common.disable') : t('qcConfig.common.enable')}
-          </Button>
-          <Button type="link" onClick={() => importLanguageResource(record.name)}>
-            {t('qcConfig.common.import')}
           </Button>
           <Button type="link" onClick={() => exportLanguageResource(record)}>
             {t('qcConfig.common.export')}
@@ -295,7 +393,14 @@ export function SettingPage() {
           </Button>,
         ]}
       >
-        <Table rowKey="id" columns={languageColumns} dataSource={languages} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 'max-content' }} />
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Table rowKey="id" columns={languageColumns} dataSource={languages} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 'max-content' }} />
+          <Upload accept=".json,.csv,.txt" showUploadList={false} beforeUpload={importLanguageResourceFile}>
+            <Button type="primary" icon={<UploadOutlined />}>
+              {t('qcConfig.common.import')}
+            </Button>
+          </Upload>
+        </Space>
       </Modal>
     </Space>
   );
