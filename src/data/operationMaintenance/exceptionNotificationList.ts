@@ -35,6 +35,20 @@ const localizedExceptionNotificationList: LocalizedExceptionNotificationRecord[]
   { id: 'EX-20260304-014', level: 'P2', type: { zh: '归巢失败', en: 'Homing Failed' }, sourceSystem: { zh: '归巢策略服务', en: 'Homing Strategy Service' }, issue: { zh: '机器人 RB-D101 归巢路径被占用，执行失败', en: 'Robot RB-D101 homing path occupied, execution failed' }, status: 'processing', relatedTask: 'TK-20260304-025', robot: 'RB-D101', createdAt: '2026-03-04 11:41:53' },
   { id: 'EX-20260304-015', level: 'P1', type: { zh: '系统资源告警', en: 'System Resource Alert' }, sourceSystem: { zh: '运维监控服务', en: 'Operations Monitoring Service' }, issue: { zh: '任务调度节点 CPU 使用率持续超过 95%', en: 'Task scheduling node CPU usage stayed above 95%' }, status: 'pending', relatedTask: 'TK-20260304-026', robot: '-', createdAt: '2026-03-04 11:48:29' },
   { id: 'EX-20260304-016', level: 'P3', type: { zh: '日志上传失败', en: 'Log Upload Failed' }, sourceSystem: { zh: '日志服务', en: 'Log Service' }, issue: { zh: '机器人 RB-A101 运行日志上传失败，等待重试', en: 'Robot RB-A101 runtime log upload failed, waiting for retry' }, status: 'closed', relatedTask: 'TK-20260304-027', robot: 'RB-A101', createdAt: '2026-03-04 11:55:08' },
+  {
+    id: 'EX-20260304-017',
+    level: 'P2',
+    type: { zh: '导航异常', en: 'Navigation Exception' },
+    sourceSystem: { zh: '任务调度服务', en: 'Task Scheduling Service' },
+    issue: {
+      zh: '机器人 RB-A101 在 A-03 工位前避障重规划连续失败 3 次，已自动降速并等待人工确认。',
+      en: 'Robot RB-A101 failed obstacle-avoidance re-planning 3 times near station A-03, auto-slowed and waiting for manual confirmation.',
+    },
+    status: 'processing',
+    relatedTask: 'TK-20260304-028',
+    robot: 'RB-A101',
+    createdAt: '2026-03-04 12:06:31',
+  },
 ];
 
 export function getExceptionNotificationList(locale: DataLocale): ExceptionNotificationRecord[] {

@@ -39,6 +39,7 @@ export function RobotManageDetailPage() {
   const [selectorKind, setSelectorKind] = useState<SelectorKind>('map');
   const [modeTarget, setModeTarget] = useState<ModeTarget>('chassis');
   const [selectorValue, setSelectorValue] = useState('');
+  const [previewLogRecord, setPreviewLogRecord] = useState<ExceptionNotificationRecord | null>(null);
 
   const mapOptions = useMemo(() => {
     if (!robot) {
@@ -105,17 +106,7 @@ export function RobotManageDetailPage() {
         <Space size={4}>
           <Button
             type="link"
-            onClick={() =>
-              Modal.info({
-                title: t('op.robotManage.log.previewTitle'),
-                width: 760,
-                content: (
-                  <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-                    {record.issue}
-                  </pre>
-                ),
-              })
-            }
+            onClick={() => setPreviewLogRecord(record)}
           >
             {t('op.robotManage.log.preview')}
           </Button>
@@ -490,6 +481,35 @@ export function RobotManageDetailPage() {
             onChange: (keys) => setSelectorValue(String(keys[0] ?? '')),
           }}
         />
+      </Modal>
+
+      <Modal
+        title={t('op.robotManage.log.previewTitle')}
+        open={Boolean(previewLogRecord)}
+        onCancel={() => setPreviewLogRecord(null)}
+        footer={null}
+        width={760}
+      >
+        {previewLogRecord ? (
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Typography.Text>
+              ID: {previewLogRecord.id}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.type')}: {previewLogRecord.type}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.sourceSystem')}: {previewLogRecord.sourceSystem}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.createdAt')}: {previewLogRecord.createdAt}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.issue')}:
+            </Typography.Text>
+            <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{previewLogRecord.issue}</pre>
+          </Space>
+        ) : null}
       </Modal>
     </Space>
   );
