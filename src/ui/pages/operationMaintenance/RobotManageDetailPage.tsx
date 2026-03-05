@@ -1,7 +1,7 @@
 ﻿import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Descriptions, Divider, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import robot2DImage from '../../../assets/gpt_robot_image.png';
 import { getExceptionNotificationList, type ExceptionNotificationRecord } from '../../../data/operationMaintenance/exceptionNotificationList';
@@ -34,11 +34,13 @@ export function RobotManageDetailPage() {
   const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
   const [isImagePanning, setIsImagePanning] = useState(false);
   const [panStart, setPanStart] = useState<{ x: number; y: number } | null>(null);
+  const imageViewportRef = useRef<HTMLDivElement | null>(null);
 
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectorKind, setSelectorKind] = useState<SelectorKind>('map');
   const [modeTarget, setModeTarget] = useState<ModeTarget>('chassis');
   const [selectorValue, setSelectorValue] = useState('');
+  const [previewLogRecord, setPreviewLogRecord] = useState<ExceptionNotificationRecord | null>(null);
 
   const mapOptions = useMemo(() => {
     if (!robot) {
@@ -105,17 +107,7 @@ export function RobotManageDetailPage() {
         <Space size={4}>
           <Button
             type="link"
-            onClick={() =>
-              Modal.info({
-                title: t('op.robotManage.log.previewTitle'),
-                width: 760,
-                content: (
-                  <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-                    {record.issue}
-                  </pre>
-                ),
-              })
-            }
+            onClick={() => setPreviewLogRecord(record)}
           >
             {t('op.robotManage.log.preview')}
           </Button>
@@ -187,6 +179,8 @@ export function RobotManageDetailPage() {
       const nextIndex = mapOptions.findIndex((item) => item === selectorValue);
       if (nextIndex >= 0) {
         setMapIndex(nextIndex);
+        setImageScale(1);
+        setImageOffset({ x: 0, y: 0 });
       }
     } else if (modeTarget === 'chassis') {
       setChassisMode(selectorValue as OperationMode);
@@ -220,13 +214,36 @@ export function RobotManageDetailPage() {
     const dx = event.clientX - panStart.x;
     const dy = event.clientY - panStart.y;
     setPanStart({ x: event.clientX, y: event.clientY });
-    setImageOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    setImageOffset((prev) => {
+      const viewportWidth = imageViewportRef.current?.clientWidth ?? 0;
+      const viewportHeight = imageViewportRef.current?.clientHeight ?? 0;
+      const maxX = Math.max(0, ((viewportWidth - 24) * (imageScale - 1)) / 2);
+      const maxY = Math.max(0, ((viewportHeight - 24) * (imageScale - 1)) / 2);
+      const nextX = Math.max(-maxX, Math.min(maxX, prev.x + dx));
+      const nextY = Math.max(-maxY, Math.min(maxY, prev.y + dy));
+      return { x: nextX, y: nextY };
+    });
   };
 
   const onImageMouseUp = () => {
     setIsImagePanning(false);
     setPanStart(null);
   };
+
+  useEffect(() => {
+    if (imageScale === 1) {
+      setImageOffset({ x: 0, y: 0 });
+      return;
+    }
+    const viewportWidth = imageViewportRef.current?.clientWidth ?? 0;
+    const viewportHeight = imageViewportRef.current?.clientHeight ?? 0;
+    const maxX = Math.max(0, ((viewportWidth - 24) * (imageScale - 1)) / 2);
+    const maxY = Math.max(0, ((viewportHeight - 24) * (imageScale - 1)) / 2);
+    setImageOffset((prev) => ({
+      x: Math.max(-maxX, Math.min(maxX, prev.x)),
+      y: Math.max(-maxY, Math.min(maxY, prev.y)),
+    }));
+  }, [imageScale]);
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -401,6 +418,7 @@ export function RobotManageDetailPage() {
                 <Typography.Text type="secondary">{Math.round(imageScale * 100)}%</Typography.Text>
               </Space>
               <div
+                ref={imageViewportRef}
                 onMouseDown={onImageMouseDown}
                 onMouseMove={onImageMouseMove}
                 onMouseUp={onImageMouseUp}
@@ -420,6 +438,7 @@ export function RobotManageDetailPage() {
                 }}
               >
                 <img
+                  key={mapOptions[mapIndex] ?? `map-${mapIndex}`}
                   src={robot2DImage}
                   alt="robot-2d-structure"
                   style={{
@@ -490,6 +509,35 @@ export function RobotManageDetailPage() {
             onChange: (keys) => setSelectorValue(String(keys[0] ?? '')),
           }}
         />
+      </Modal>
+
+      <Modal
+        title={t('op.robotManage.log.previewTitle')}
+        open={Boolean(previewLogRecord)}
+        onCancel={() => setPreviewLogRecord(null)}
+        footer={null}
+        width={760}
+      >
+        {previewLogRecord ? (
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Typography.Text>
+              ID: {previewLogRecord.id}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.type')}: {previewLogRecord.type}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.sourceSystem')}: {previewLogRecord.sourceSystem}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.createdAt')}: {previewLogRecord.createdAt}
+            </Typography.Text>
+            <Typography.Text>
+              {t('op.exception.table.issue')}:
+            </Typography.Text>
+            <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{previewLogRecord.issue}</pre>
+          </Space>
+        ) : null}
       </Modal>
     </Space>
   );

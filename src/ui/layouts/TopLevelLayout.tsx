@@ -13,7 +13,9 @@ export function TopLevelLayout() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <TopNavigation />
-      <Outlet />
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <Outlet />
+      </div>
     </Layout>
   );
 }

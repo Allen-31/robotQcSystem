@@ -1,26 +1,24 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Input, Modal, Row, Select, Space, Table, Typography } from 'antd';
+﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Input, Modal, Row, Space, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStoredRobotTypes, setStoredRobotTypes, type RobotTypeRecord, type RobotTypeStatus } from '../../../logic/deployConfig/robotTypeStore';
+import { getStoredRobotTypes, setStoredRobotTypes, type RobotTypeRecord } from '../../../logic/deployConfig/robotTypeStore';
 
 export function RobotTypePage() {
   const navigate = useNavigate();
   const [list, setList] = useState<RobotTypeRecord[]>(getStoredRobotTypes);
   const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<RobotTypeStatus | undefined>();
 
   const filteredList = useMemo(() => {
     return list.filter((item) => {
-      const keywordMatched =
-        !keyword ||
-        item.typeNo.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.typeName.toLowerCase().includes(keyword.toLowerCase());
-      const statusMatched = !statusFilter || item.status === statusFilter;
-      return keywordMatched && statusMatched;
+      const key = keyword.trim().toLowerCase();
+      if (!key) {
+        return true;
+      }
+      return item.typeNo.toLowerCase().includes(key) || item.typeName.toLowerCase().includes(key);
     });
-  }, [keyword, list, statusFilter]);
+  }, [keyword, list]);
 
   const removeRecord = (record: RobotTypeRecord) => {
     Modal.confirm({
@@ -39,16 +37,15 @@ export function RobotTypePage() {
   };
 
   const columns: ColumnsType<RobotTypeRecord> = [
-    { title: '类型编号', dataIndex: 'typeNo', key: 'typeNo', width: 120 },
-    { title: '类型名称', dataIndex: 'typeName', key: 'typeName', width: 220 },
-    { title: '二维图', dataIndex: 'image2d', key: 'image2d', width: 180 },
-    { title: '零部件数量', dataIndex: 'partsCount', key: 'partsCount', width: 120 },
+    { title: '类型编号', dataIndex: 'typeNo', key: 'typeNo', width: 140 },
+    { title: '类型名称', dataIndex: 'typeName', key: 'typeName', width: 240 },
+    { title: '二维图', dataIndex: 'image2d', key: 'image2d', width: 200 },
+    { title: '零部件数量', dataIndex: 'partsCount', key: 'partsCount', width: 140 },
     { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180 },
-    { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
     {
       title: '操作',
       key: 'actions',
-      width: 160,
+      width: 170,
       fixed: 'right',
       render: (_, record) => (
         <Space size={4}>
@@ -71,23 +68,16 @@ export function RobotTypePage() {
             机器人类型管理
           </Typography.Title>
           <Row gutter={[12, 12]} align="middle">
-            <Col xs={24} md={8}>
-              <Input allowClear prefix={<SearchOutlined />} placeholder="类型编号/类型名称" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
-            </Col>
-            <Col xs={24} md={6}>
-              <Select
+            <Col xs={24} md={10}>
+              <Input
                 allowClear
-                style={{ width: '100%' }}
-                placeholder="状态"
-                value={statusFilter}
-                options={[
-                  { label: '启用', value: '启用' },
-                  { label: '停用', value: '停用' },
-                ]}
-                onChange={setStatusFilter}
+                prefix={<SearchOutlined />}
+                placeholder="类型编号/类型名称"
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
               />
             </Col>
-            <Col xs={24} md={10}>
+            <Col xs={24} md={14}>
               <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/deployConfig/robot/robotType/new')}>
                   新增
@@ -104,4 +94,3 @@ export function RobotTypePage() {
     </Space>
   );
 }
-
