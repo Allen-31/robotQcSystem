@@ -102,7 +102,7 @@ export function RobotTypeEditorPage() {
 
   useEffect(() => {
     if (!isCreate && !editingRecord) {
-      messageApi.error('鏈壘鍒板搴旀満鍣ㄤ汉绫诲瀷');
+      messageApi.error('未找到对应机器人类型');
       navigate('/deployConfig/robot/robotType');
       return;
     }
@@ -382,7 +382,7 @@ export function RobotTypeEditorPage() {
         points: draftPoints,
       };
       setStoredRobotTypes([next, ...list]);
-      messageApi.success('鏈哄櫒浜虹被鍨嬪凡鍒涘缓');
+      messageApi.success('机器人类型已创建');
     } else if (editingRecord) {
       setStoredRobotTypes(
         list.map((item) =>
@@ -398,7 +398,7 @@ export function RobotTypeEditorPage() {
             : item,
         ),
       );
-      messageApi.success('鏈哄櫒浜虹被鍨嬪凡鏇存柊');
+      messageApi.success('机器人类型已更新');
     }
     navigate('/deployConfig/robot/robotType');
   };
@@ -477,16 +477,16 @@ export function RobotTypeEditorPage() {
         <Col xs={24} lg={17} style={{ display: 'flex', minHeight: 0 }}>
           <Card
             size="small"
-            title="缁撴瀯鍥炬爣娉ㄥ尯"
+            title="结构图标注区"
             style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}
             bodyStyle={{ flex: 1, minHeight: 0 }}
             extra={
               <Space>
                 <Button size="small" onClick={() => zoomTo(canvasScale + 0.1)}>
-                  鏀惧ぇ+
+                  放大+
                 </Button>
                 <Button size="small" onClick={() => zoomTo(canvasScale - 0.1)}>
-                  缂╁皬-
+                  缩小-
                 </Button>
                 <Button
                   size="small"
@@ -495,13 +495,13 @@ export function RobotTypeEditorPage() {
                     setCanvasOffset({ x: 0, y: 0 });
                   }}
                 >
-                  缂╂斁閲嶇疆
+                  缩放重置
                 </Button>
                 <Button size="small" onClick={() => setDraftPoints((prev) => prev.slice(0, -1))} disabled={!draftPoints.length}>
-                  鎾ら攢
+                  撤销
                 </Button>
                 <Button size="small" onClick={() => setDraftPoints([])} disabled={!draftPoints.length}>
-                  閲嶇疆鏍囨敞
+                  重置标注
                 </Button>
               </Space>
             }
@@ -595,7 +595,8 @@ export function RobotTypeEditorPage() {
               })}
 
               <Typography.Text type="secondary" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2 }}>
-                鐐瑰嚮鎵撶偣锛孋trl+宸﹂敭鎷栧姩鐢诲竷锛屾爣娉ㄧ偣闀挎寜鍙嫋鎷?              </Typography.Text>
+                点击打点，Ctrl+左键拖动画布，标注点长按可拖拽
+              </Typography.Text>
             </div>
           </Card>
         </Col>
@@ -603,8 +604,8 @@ export function RobotTypeEditorPage() {
         <Col xs={24} lg={7} style={{ display: 'flex', minHeight: 0 }}>
           <Card
             size="small"
-            title="闆堕儴浠堕€夋嫨"
-            extra={<Typography.Text type="secondary">宸叉爣娉?{draftPoints.length}</Typography.Text>}
+            title="零部件选择"
+            extra={<Typography.Text type="secondary">已标注 {draftPoints.length}</Typography.Text>}
             style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}
             bodyStyle={{ flex: 1, minHeight: 0, overflow: 'auto' }}
           >
@@ -614,15 +615,15 @@ export function RobotTypeEditorPage() {
               pagination={false}
               dataSource={partsPool}
               columns={[
-                { title: '鍚嶇О', dataIndex: 'name', key: 'name' },
-                { title: '閮ㄤ綅', dataIndex: 'position', key: 'position' },
-                { title: '鍨嬪彿', dataIndex: 'model', key: 'model' },
+                { title: '名称', dataIndex: 'name', key: 'name' },
+                { title: '部位', dataIndex: 'position', key: 'position' },
+                { title: '型号', dataIndex: 'model', key: 'model' },
                 {
-                  title: '鎿嶄綔',
+                  title: '操作',
                   key: 'action',
                   render: (_, record: RobotTypeSelectablePart) => (
                     <Button type={activePart?.id === record.id ? 'primary' : 'link'} size="small" onClick={() => setActivePart(record)}>
-                      閫夋嫨
+                      选择
                     </Button>
                   ),
                 },
@@ -635,19 +636,19 @@ export function RobotTypeEditorPage() {
       <div style={{ position: 'sticky', bottom: 0, background: '#fff', borderTop: '1px solid #f0f0f0', padding: '10px 0', zIndex: 5 }}>
         <Space>
           <Button type="primary" onClick={saveRecord}>
-            淇濆瓨
+            保存
           </Button>
-          <Button onClick={() => navigate('/deployConfig/robot/robotType')}>鍙栨秷</Button>
+          <Button onClick={() => navigate('/deployConfig/robot/robotType')}>取消</Button>
         </Space>
       </div>
 
       <Modal
-        title="鏍囨敞淇℃伅"
+        title="标注信息"
         open={annotationModalOpen}
         onOk={saveAnnotation}
         onCancel={() => setAnnotationModalOpen(false)}
-        okText="纭"
-        cancelText="鍙栨秷"
+        okText="确认"
+        cancelText="取消"
         footer={(_, { OkBtn, CancelBtn }) => (
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
             <Button
@@ -662,7 +663,7 @@ export function RobotTypeEditorPage() {
                 setAnnotationModalOpen(false);
               }}
             >
-              鍒犻櫎鏍囨敞
+              删除标注
             </Button>
             <Space>
               <CancelBtn />
@@ -677,12 +678,12 @@ export function RobotTypeEditorPage() {
           </Form.Item>
           <Row gutter={12}>
             <Col span={12}>
-              <Form.Item label="鍧愭爣X" name="x" rules={[{ required: true, message: '璇疯緭鍏ュ潗鏍嘪' }]}>
+              <Form.Item label="坐标X" name="x" rules={[{ required: true, message: '请输入坐标X' }]}>
                 <Input />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label="鍧愭爣Y" name="y" rules={[{ required: true, message: '璇疯緭鍏ュ潗鏍嘫' }]}>
+              <Form.Item label="坐标Y" name="y" rules={[{ required: true, message: '请输入坐标Y' }]}>
                 <Input />
               </Form.Item>
             </Col>
@@ -690,7 +691,7 @@ export function RobotTypeEditorPage() {
           <Form.Item label="旋转角度" name="rotation" rules={[{ required: true, message: '请输入旋转角度' }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="澶囨敞" name="remark">
+          <Form.Item label="备注" name="remark">
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>

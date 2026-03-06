@@ -49,3 +49,13 @@ body.app-laptop .ant-space {
   row-gap: 10px !important;
 }
 
+body.map-editor-fullscreen .app-top-nav,
+body.map-editor-fullscreen .app-sub-sider {
+  display: none !important;
+}
+
+body.map-editor-fullscreen .app-subsystem-content {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+

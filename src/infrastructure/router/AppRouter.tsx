@@ -23,6 +23,7 @@ import { RoleManagePage } from '../../ui/pages/deployConfig/RoleManagePage';
 import { ChargeStrategyPage } from '../../ui/pages/deployConfig/ChargeStrategyPage';
 import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
 import { HomingStrategyPage } from '../../ui/pages/deployConfig/HomingStrategyPage';
+import { MapEditorPage } from '../../ui/pages/deployConfig/MapEditorPage';
 import { MapManagePage } from '../../ui/pages/deployConfig/MapManagePage';
 import { SettingPage } from '../../ui/pages/deployConfig/SettingPage';
 import { UserManagePage } from '../../ui/pages/deployConfig/UserManagePage';
@@ -58,6 +59,7 @@ const userManagePath = '/deployConfig/user/userManage';
 const roleManagePath = '/deployConfig/user/roleManage';
 const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
+const mapEditorPath = '/deployConfig/scene/mapManage/:mapCode/edit';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
 const chargeStrategyPath = '/deployConfig/robot/chargeStrategy';
 const homingStrategyPath = '/deployConfig/robot/homingStrategy';
@@ -164,6 +166,7 @@ export function AppRouter() {
             <Route path={roleManagePath} element={<RoleManagePage />} />
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
+            <Route path={mapEditorPath} element={<MapEditorPage />} />
             <Route path={configTemplatePath} element={<RobotConfigPage />} />
             <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
             <Route path={homingStrategyPath} element={<HomingStrategyPage />} />

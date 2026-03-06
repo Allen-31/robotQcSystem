@@ -1,4 +1,4 @@
-import { ClockCircleOutlined, PauseCircleOutlined, SearchOutlined, UnorderedListOutlined, WalletOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, PauseCircleOutlined, SearchOutlined, ThunderboltOutlined, UnorderedListOutlined, WalletOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -318,6 +318,17 @@ export function OperationMonitoringPage() {
     { title: label.control, dataIndex: 'control', key: 'control', width: 100, render: (v: ControlMode) => (v === 'manual' ? label.manual : label.auto) },
     { title: label.battery, dataIndex: 'battery', key: 'battery', width: 70, render: (v: number) => `${v}%` },
   ];
+  const robotActionItems = [
+    label.executeTask,
+    label.relocate,
+    label.switchMap,
+    label.manualDispatch,
+    label.manualControl,
+    label.startCharge,
+    label.startHoming,
+  ];
+  const primaryActionItems = new Set([label.executeTask, label.startCharge, label.startHoming]);
+  const dangerActionItems = new Set<string>();
 
   const topNavHeight = viewportWidth >= 1600 ? 64 : 56;
   const pageHeight = Math.max(520, viewportHeight - topNavHeight);
@@ -578,18 +589,7 @@ export function OperationMonitoringPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div style={{ padding: '8px 12px', color: '#f59e0b', fontWeight: 600 }}>{locale === 'en-US' ? 'Context Menu' : '右键菜单'}</div>
-                {[
-                  label.detail,
-                  label.executeTask,
-                  label.relocate,
-                  label.switchMap,
-                  label.manualDispatch,
-                  label.manualControl,
-                  label.startCharge,
-                  label.startHoming,
-                  label.stop,
-                  label.reset,
-                ].map((item) => (
+                {robotActionItems.map((item) => (
                   <div key={item} style={{ padding: '10px 14px', borderTop: '1px solid rgba(148,163,184,.15)', cursor: 'pointer' }}>
                     {item}
                   </div>
@@ -640,15 +640,33 @@ export function OperationMonitoringPage() {
                     </div>
                   ) : null}
                   <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
-                    <Typography.Text>{`${label.task}: ${selectedRobot.task}`}</Typography.Text>
-                    <div style={{ marginTop: 6, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                      <Button size="small" onClick={() => setSelectedRobotId(null)}>
-                        {label.cancel}
-                      </Button>
-                      <Button size="small" type="primary">
-                        {label.taskDetail}
-                      </Button>
-                    </div>
+                    {selectedRobot.work === 'working' ? <Typography.Text>{`${label.task}: ${selectedRobot.task}`}</Typography.Text> : null}
+                    {selectedRobot.link === 'online' && selectedRobot.exception === 'normal' && selectedRobot.work === 'idle' ? (
+                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                        {robotActionItems.map((item) => (
+                          <Button
+                            key={item}
+                            size="small"
+                            type={primaryActionItems.has(item) ? 'primary' : 'default'}
+                            danger={dangerActionItems.has(item)}
+                            icon={primaryActionItems.has(item) ? <ThunderboltOutlined /> : undefined}
+                            style={{
+                              borderRadius: 999,
+                              height: 32,
+                              paddingInline: 14,
+                              fontWeight: 500,
+                              letterSpacing: '.2px',
+                              boxShadow: primaryActionItems.has(item) ? '0 6px 14px rgba(37,99,235,.28)' : '0 2px 8px rgba(15,23,42,.08)',
+                              borderColor: dangerActionItems.has(item) ? '#fca5a5' : '#d1d5db',
+                              background: primaryActionItems.has(item) ? 'linear-gradient(135deg,#2563eb,#1d4ed8)' : '#f8fafc',
+                              color: primaryActionItems.has(item) ? '#fff' : '#334155',
+                            }}
+                          >
+                            {item}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </Space>
               </Card>

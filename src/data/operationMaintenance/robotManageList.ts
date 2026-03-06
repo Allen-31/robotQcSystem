@@ -62,7 +62,14 @@ const localizedRobotManageList: LocalizedRobotManageRecord[] = [
     videoUrl: 'rtsp://10.10.3.101/live/main',
     exceptionLogs: [{ zh: '2026-03-04 09:10:24 电机温升告警已恢复', en: '2026-03-04 09:10:24 Motor temperature alert recovered' }],
     runtimeLogs: [
-      { id: 'RB-001-LOG-1', name: 'rb-a101-20260304.log', type: { zh: '运行日志', en: 'Runtime Log' }, createdAt: '2026-03-04 08:00:03', updatedAt: '2026-03-04 11:45:52', content: '[INFO] navigation start\n[INFO] station=A-03\n[WARN] wheel slip recovered' },
+      {
+        id: 'RB-001-LOG-1',
+        name: 'rb-a101-20260304.log',
+        type: { zh: '运行日志', en: 'Runtime Log' },
+        createdAt: '2026-03-04 08:00:03',
+        updatedAt: '2026-03-04 11:45:52',
+        content: '[INFO] navigation start\n[INFO] station=A-03\n[WARN] wheel slip recovered',
+      },
     ],
   },
   {
@@ -84,7 +91,14 @@ const localizedRobotManageList: LocalizedRobotManageRecord[] = [
       { zh: '2026-03-04 10:20:01 已下发充电指令', en: '2026-03-04 10:20:01 Charging command issued' },
     ],
     runtimeLogs: [
-      { id: 'RB-002-LOG-1', name: 'rb-a102-20260304.log', type: { zh: '运行日志', en: 'Runtime Log' }, createdAt: '2026-03-04 08:03:10', updatedAt: '2026-03-04 11:42:01', content: '[INFO] pause by operator\n[INFO] waiting for resume' },
+      {
+        id: 'RB-002-LOG-1',
+        name: 'rb-a102-20260304.log',
+        type: { zh: '运行日志', en: 'Runtime Log' },
+        createdAt: '2026-03-04 08:03:10',
+        updatedAt: '2026-03-04 11:42:01',
+        content: '[INFO] pause by operator\n[INFO] waiting for resume',
+      },
     ],
   },
   {
@@ -97,7 +111,7 @@ const localizedRobotManageList: LocalizedRobotManageRecord[] = [
     dispatchMode: 'manual',
     controlStatus: 'paused',
     exceptionStatus: 'critical',
-    type: { zh: '仓储机器人导航型', en: 'Warehouse Navigation Robot' },
+    type: { zh: '仓储导航机器人', en: 'Warehouse Navigation Robot' },
     group: { zh: '仓储区', en: 'Warehouse Zone' },
     ip: '10.10.3.131',
     videoUrl: 'rtsp://10.10.3.131/live/main',
@@ -106,7 +120,14 @@ const localizedRobotManageList: LocalizedRobotManageRecord[] = [
       { zh: '2026-03-04 08:45:03 机器人离线', en: '2026-03-04 08:45:03 Robot offline' },
     ],
     runtimeLogs: [
-      { id: 'RB-003-LOG-1', name: 'rb-c301-error-20260304.log', type: { zh: '错误日志', en: 'Error Log' }, createdAt: '2026-03-04 08:40:11', updatedAt: '2026-03-04 08:45:20', content: '[ERROR] heartbeat timeout\n[ERROR] mqtt disconnected' },
+      {
+        id: 'RB-003-LOG-1',
+        name: 'rb-c301-error-20260304.log',
+        type: { zh: '错误日志', en: 'Error Log' },
+        createdAt: '2026-03-04 08:40:11',
+        updatedAt: '2026-03-04 08:45:20',
+        content: '[ERROR] heartbeat timeout\n[ERROR] mqtt disconnected',
+      },
     ],
   },
 ];

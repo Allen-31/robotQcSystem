@@ -27,6 +27,7 @@ export function TopNavigation() {
 
   return (
     <div
+      className="app-top-nav"
       style={{
         height: isLaptop ? 56 : 64,
         position: 'relative',

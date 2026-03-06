@@ -350,10 +350,6 @@ export function RobotConfigPage() {
     setEditing(null);
     form.resetFields();
     form.setFieldsValue({
-      configNo: `CFG-${String(list.length + 1).padStart(3, '0')}`,
-      robotType: robotTypes[0],
-      group: groups[0],
-      firmware: 'v2.3.1',
       currentVersion: 'v1.0.0',
     });
     setSelectedCategory('算法/SLAM');
@@ -453,15 +449,16 @@ export function RobotConfigPage() {
       messageApi.success('配置已更新');
     } else {
       const createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
+      const fallbackConfigNo = `CFG-${String(list.length + 1).padStart(3, '0')}`;
         const next: RobotConfigRecord = {
           id: `cfg-${Date.now()}`,
-          configNo: values.configNo,
+          configNo: values.configNo || fallbackConfigNo,
           configName: values.configName,
           currentTemplateId: selectedTemplateId,
           currentTemplate: selectedTemplate ? templateLabel(selectedTemplate) : undefined,
-          robotType: values.robotType,
-          group: values.group,
-          firmware: values.firmware,
+          robotType: values.robotType || robotTypes[0],
+          group: values.group || groups[0],
+          firmware: values.firmware || 'v2.3.1',
           currentVersion: values.currentVersion || '-',
           status: '草稿',
           createdAt,
@@ -1046,7 +1043,7 @@ export function RobotConfigPage() {
             取消
           </Button>,
           <Button key="dispatch" type="primary" onClick={() => saveRecord()}>
-            下发
+            确定
           </Button>,
         ]}
         destroyOnClose
@@ -1062,46 +1059,13 @@ export function RobotConfigPage() {
                 <Form form={form} layout="vertical">
                   <Row gutter={12}>
                     <Col xs={24} md={12}>
-                      <Form.Item label="配置编号" name="configNo" rules={[{ required: true, message: '请输入配置编号' }]}>
-                        <Input disabled={Boolean(editing)} />
+                      <Form.Item label="当前版本" name="currentVersion" rules={[{ required: true, message: '请输入当前版本' }]}>
+                        <Input placeholder="例如：v1.2.3" />
                       </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
                       <Form.Item label="配置名称" name="configName" rules={[{ required: true, message: '请输入配置名称' }]}>
                         <Input />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="当前模板" name="currentTemplateId">
-                        <Select
-                          allowClear
-                          showSearch
-                          optionFilterProp="label"
-                          placeholder="请选择模板"
-                          options={configTemplateOptions}
-                          value={selectedTemplateId}
-                          onChange={handleTemplateChange}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="机器人类型" name="robotType" rules={[{ required: true, message: '请选择机器人类型' }]}>
-                        <Select options={robotTypes.map((item) => ({ label: item, value: item }))} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="所属分组" name="group" rules={[{ required: true, message: '请选择分组' }]}>
-                        <Select options={groups.map((item) => ({ label: item, value: item }))} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="适用固件版本" name="firmware" rules={[{ required: true, message: '请输入固件版本' }]}>
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item label="当前版本" name="currentVersion" rules={[{ required: true, message: '请输入当前版本' }]}>
-                        <Input placeholder="例如：v1.2.3" />
                       </Form.Item>
                     </Col>
                     <Col xs={24}>
