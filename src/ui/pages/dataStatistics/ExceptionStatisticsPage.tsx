@@ -1,82 +1,53 @@
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Drawer, Input, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Collapse, Drawer, Input, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import {
+  exceptionData,
+  levelList,
+  typeList,
+  sourceList,
+  workshopList,
+  workstationList,
+  stationList,
+  RESPONSE_OVERDUE_MINUTES,
+  type ExceptionRecord,
+  type Level,
+  type Status,
+} from '../../../data/dataStatistics/exceptionStatisticsData';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { escapeCsv } from '../../../utils/csv';
 import { SimpleBarChart, SimpleLineChart } from '../../components/charts/SimpleCharts';
 
 type PeriodKey = 'day1' | 'day7' | 'month1';
-type Level = 'P1' | 'P2' | 'P3';
-type Status = 'pending' | 'processing' | 'closed';
 
-interface ExceptionRecord {
-  id: string;
-  level: Level;
-  type: string;
-  source: string;
-  workshop: string;
-  workstation: string;
-  station: string;
-  robot: string;
-  status: Status;
-  createdAt: string;
-  firstResponseAt: string;
-  closedAt: string;
-  owner: string;
-  relatedTask: string;
-  description: string;
-  responseMinutes: number;
-  closeMinutes: number;
-}
+/** Reference "today" for period range (align with mock data base date). */
+const periodEndDate = new Date(2026, 2, 6);
 
-const levelList: Level[] = ['P1', 'P2', 'P3'];
-const typeList = ['路径规划异常', '视觉识别异常', '网络通信异常', '电量异常', '任务超时'];
-const sourceList = ['机器人管理服务', '任务编排服务', '视觉算法服务', '调度服务'];
-const statusList: Status[] = ['pending', 'processing', 'closed'];
-const workshopList = ['总装一车间', '总装二车间', '总装三车间'];
-const workstationList = ['质检区A', '质检区B', '质检区C', '质检区D'];
-const stationList = ['ST-A01', 'ST-A02', 'ST-B01', 'ST-B02', 'ST-C01', 'ST-D01'];
-
-const exceptionData: ExceptionRecord[] = Array.from({ length: 72 }, (_, index) => {
-  const status = statusList[index % statusList.length];
-  const createdDay = 5 - (index % 18);
-  const createdHour = 8 + (index % 12);
-  const createdAt = `2026-03-${String(createdDay).padStart(2, '0')} ${String(createdHour).padStart(2, '0')}:${String((index * 7) % 60).padStart(2, '0')}:00`;
-  const responseMinutes = 5 + (index % 36);
-  const closeMinutes = status === 'closed' ? 20 + (index % 180) : 0;
-  return {
-    id: `EX-202603-${String(index + 1).padStart(3, '0')}`,
-    level: levelList[index % levelList.length],
-    type: typeList[index % typeList.length],
-    source: sourceList[index % sourceList.length],
-    workshop: workshopList[index % workshopList.length],
-    workstation: workstationList[index % workstationList.length],
-    station: stationList[index % stationList.length],
-    robot: `RB-${String((index % 36) + 1).padStart(3, '0')}`,
-    status,
-    createdAt,
-    firstResponseAt: `2026-03-${String(createdDay).padStart(2, '0')} ${String(createdHour).padStart(2, '0')}:${String((index * 7 + responseMinutes) % 60).padStart(2, '0')}:00`,
-    closedAt:
-      status === 'closed'
-        ? `2026-03-${String(createdDay).padStart(2, '0')} ${String((createdHour + Math.floor(closeMinutes / 60)) % 24).padStart(2, '0')}:${String((index * 7 + closeMinutes) % 60).padStart(2, '0')}:00`
-        : '-',
-    owner: ['admin', 'ops', 'qc', 'pe'][index % 4],
-    relatedTask: `TK-202603-${String((index % 140) + 1).padStart(3, '0')}`,
-    description: `异常描述-${index + 1}`,
-    responseMinutes,
-    closeMinutes,
-  };
-});
-
-function escapeCsv(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
+function isInPeriod(createdAt: string, period: PeriodKey): boolean {
+  const dateStr = createdAt.slice(0, 10);
+  const created = new Date(dateStr);
+  const end = new Date(periodEndDate);
+  end.setHours(23, 59, 59, 999);
+  if (period === 'day1') {
+    const start = new Date(periodEndDate);
+    start.setHours(0, 0, 0, 0);
+    return created >= start && created <= end;
   }
-  return value;
+  if (period === 'day7') {
+    const start = new Date(periodEndDate);
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    return created >= start && created <= end;
+  }
+  const start = new Date(periodEndDate);
+  start.setDate(start.getDate() - 29);
+  start.setHours(0, 0, 0, 0);
+  return created >= start && created <= end;
 }
 
 export function ExceptionStatisticsPage() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [period, setPeriod] = useState<PeriodKey>('day7');
   const [level, setLevel] = useState<string>('all');
@@ -90,67 +61,10 @@ export function ExceptionStatisticsPage() {
   const [keyword, setKeyword] = useState('');
   const [detail, setDetail] = useState<ExceptionRecord | null>(null);
 
-  const label = useMemo(
-    () =>
-      locale === 'en-US'
-        ? {
-            keyword: 'Search by id/robot/task',
-            all: 'All',
-            pending: 'Pending',
-            processing: 'Processing',
-            closed: 'Closed',
-            refresh: 'Refresh',
-            export: 'Export',
-            total: 'Total Exceptions',
-            pendingCount: 'Pending',
-            processingCount: 'Processing',
-            closedCount: 'Closed',
-            closeRate: 'Close Rate',
-            avgResponse: 'Avg Response',
-            avgClose: 'Avg Close',
-            highLevel: 'High Level',
-            trendTitle: 'Exception Trend',
-            levelDistTitle: 'Level Distribution',
-            typeTopTitle: 'Type Top',
-            sourceDistTitle: 'Source Distribution',
-            recurrenceTitle: 'Recurrence Top',
-            listTitle: 'Exception List',
-            detailTitle: 'Exception Detail',
-            exportDone: 'Exported successfully',
-            noData: 'No data to export',
-          }
-        : {
-            keyword: '按编号/机器人/任务搜索',
-            all: '全部',
-            pending: '待处理',
-            processing: '处理中',
-            closed: '已关闭',
-            refresh: '刷新',
-            export: '导出',
-            total: '异常总数',
-            pendingCount: '待处理',
-            processingCount: '处理中',
-            closedCount: '已关闭',
-            closeRate: '关闭率',
-            avgResponse: '平均响应',
-            avgClose: '平均关闭',
-            highLevel: '高等级异常',
-            trendTitle: '异常趋势',
-            levelDistTitle: '等级分布',
-            typeTopTitle: '异常类型Top',
-            sourceDistTitle: '来源分布',
-            recurrenceTitle: '复发Top',
-            listTitle: '异常统计列表',
-            detailTitle: '异常详情',
-            exportDone: '导出成功',
-            noData: '暂无可导出数据',
-          },
-    [locale],
-  );
-
   const filtered = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     return exceptionData.filter((item) => {
+      if (!isInPeriod(item.createdAt, period)) return false;
       if (level !== 'all' && item.level !== level) return false;
       if (type !== 'all' && item.type !== type) return false;
       if (status !== 'all' && item.status !== status) return false;
@@ -162,7 +76,7 @@ export function ExceptionStatisticsPage() {
       if (!kw) return true;
       return `${item.id} ${item.robot} ${item.relatedTask}`.toLowerCase().includes(kw);
     });
-  }, [keyword, level, robot, source, station, status, type, workstation, workshop]);
+  }, [keyword, level, period, robot, source, station, status, type, workstation, workshop]);
 
   const summary = useMemo(() => {
     const total = filtered.length;
@@ -170,6 +84,9 @@ export function ExceptionStatisticsPage() {
     const processingCount = filtered.filter((item) => item.status === 'processing').length;
     const closedCount = filtered.filter((item) => item.status === 'closed').length;
     const highLevel = filtered.filter((item) => item.level === 'P1').length;
+    const overdueResponse = filtered.filter(
+      (item) => item.status !== 'closed' && item.responseMinutes > RESPONSE_OVERDUE_MINUTES,
+    ).length;
     const avgResponse = total === 0 ? 0 : Number((filtered.reduce((sum, item) => sum + item.responseMinutes, 0) / total).toFixed(1));
     const closedRows = filtered.filter((item) => item.status === 'closed');
     const avgClose = closedRows.length === 0 ? 0 : Number((closedRows.reduce((sum, item) => sum + item.closeMinutes, 0) / closedRows.length).toFixed(1));
@@ -182,14 +99,16 @@ export function ExceptionStatisticsPage() {
       avgResponse,
       avgClose,
       highLevel,
+      overdueResponse,
     };
   }, [filtered]);
 
   const trend = useMemo(() => {
     const days = period === 'day1' ? 1 : period === 'day7' ? 7 : 30;
     const categories = Array.from({ length: days }, (_, index) => {
-      const day = new Date(2026, 2, 6 - (days - 1 - index));
-      return day.toISOString().slice(0, 10);
+      const d = new Date(periodEndDate);
+      d.setDate(d.getDate() - (days - 1 - index));
+      return d.toISOString().slice(0, 10);
     });
     const values = categories.map((day) => filtered.filter((item) => item.createdAt.startsWith(day)).length);
     return { categories, values };
@@ -216,10 +135,10 @@ export function ExceptionStatisticsPage() {
 
   const exportRows = () => {
     if (filtered.length === 0) {
-      messageApi.warning(label.noData);
+      messageApi.warning(t('exceptionStatistics.noData'));
       return;
     }
-    const headers = ['id', 'level', 'type', 'source', 'workshop', 'workstation', 'station', 'robot', 'status', 'createdAt', 'firstResponseAt', 'closedAt', 'owner', 'relatedTask', 'responseMinutes', 'closeMinutes'];
+    const headers = ['id', 'level', 'type', 'source', 'workshop', 'workstation', 'station', 'robot', 'status', 'createdAt', 'firstResponseAt', 'closedAt', 'owner', 'relatedTask', 'description', 'responseMinutes', 'closeMinutes'];
     const csv = [
       headers.join(','),
       ...filtered.map((item) =>
@@ -238,8 +157,9 @@ export function ExceptionStatisticsPage() {
           item.closedAt,
           item.owner,
           item.relatedTask,
-          String(item.responseMinutes),
-          String(item.closeMinutes),
+          item.description,
+          item.responseMinutes,
+          item.closeMinutes,
         ]
           .map((v) => escapeCsv(v))
           .join(','),
@@ -254,37 +174,40 @@ export function ExceptionStatisticsPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    messageApi.success(label.exportDone);
+    messageApi.success(t('exceptionStatistics.exportDone'));
   };
 
+  const statusLabel = (value: Status) =>
+    value === 'closed' ? t('exceptionStatistics.closed') : value === 'processing' ? t('exceptionStatistics.processing') : t('exceptionStatistics.pending');
+
   const columns: ColumnsType<ExceptionRecord> = [
-    { title: locale === 'en-US' ? 'ID' : '异常编号', dataIndex: 'id', key: 'id', width: 150 },
-    { title: locale === 'en-US' ? 'Level' : '等级', dataIndex: 'level', key: 'level', width: 90, sorter: (a, b) => a.level.localeCompare(b.level), render: (value: Level) => <Tag color={value === 'P1' ? 'red' : value === 'P2' ? 'orange' : 'gold'}>{value}</Tag> },
-    { title: locale === 'en-US' ? 'Type' : '类型', dataIndex: 'type', key: 'type', width: 160 },
-    { title: locale === 'en-US' ? 'Source' : '来源系统', dataIndex: 'source', key: 'source', width: 150 },
-    { title: locale === 'en-US' ? 'Robot' : '机器人', dataIndex: 'robot', key: 'robot', width: 110 },
+    { title: t('exceptionStatistics.table.id'), dataIndex: 'id', key: 'id', width: 150 },
+    { title: t('exceptionStatistics.table.level'), dataIndex: 'level', key: 'level', width: 90, sorter: (a, b) => a.level.localeCompare(b.level), render: (value: Level) => <Tag color={value === 'P1' ? 'red' : value === 'P2' ? 'orange' : 'gold'}>{value}</Tag> },
+    { title: t('exceptionStatistics.table.type'), dataIndex: 'type', key: 'type', width: 160 },
+    { title: t('exceptionStatistics.table.source'), dataIndex: 'source', key: 'source', width: 150 },
+    { title: t('exceptionStatistics.table.robot'), dataIndex: 'robot', key: 'robot', width: 110 },
     {
-      title: locale === 'en-US' ? 'Status' : '状态',
+      title: t('exceptionStatistics.table.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (value: Status) => <Tag color={value === 'closed' ? 'success' : value === 'processing' ? 'processing' : 'default'}>{value === 'closed' ? label.closed : value === 'processing' ? label.processing : label.pending}</Tag>,
+      render: (value: Status) => <Tag color={value === 'closed' ? 'success' : value === 'processing' ? 'processing' : 'default'}>{statusLabel(value)}</Tag>,
     },
-    { title: locale === 'en-US' ? 'Created At' : '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-    { title: locale === 'en-US' ? 'First Response' : '首次响应', dataIndex: 'firstResponseAt', key: 'firstResponseAt', width: 170 },
-    { title: locale === 'en-US' ? 'Closed At' : '关闭时间', dataIndex: 'closedAt', key: 'closedAt', width: 170 },
-    { title: locale === 'en-US' ? 'Response(min)' : '响应时长(分钟)', dataIndex: 'responseMinutes', key: 'responseMinutes', width: 130, sorter: (a, b) => a.responseMinutes - b.responseMinutes },
-    { title: locale === 'en-US' ? 'Close(min)' : '关闭时长(分钟)', dataIndex: 'closeMinutes', key: 'closeMinutes', width: 130, sorter: (a, b) => a.closeMinutes - b.closeMinutes },
-    { title: locale === 'en-US' ? 'Owner' : '责任人', dataIndex: 'owner', key: 'owner', width: 100 },
-    { title: locale === 'en-US' ? 'Task' : '关联任务', dataIndex: 'relatedTask', key: 'relatedTask', width: 130 },
+    { title: t('exceptionStatistics.table.createdAt'), dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+    { title: t('exceptionStatistics.table.firstResponse'), dataIndex: 'firstResponseAt', key: 'firstResponseAt', width: 170 },
+    { title: t('exceptionStatistics.table.closedAt'), dataIndex: 'closedAt', key: 'closedAt', width: 170 },
+    { title: t('exceptionStatistics.table.responseMin'), dataIndex: 'responseMinutes', key: 'responseMinutes', width: 130, sorter: (a, b) => a.responseMinutes - b.responseMinutes },
+    { title: t('exceptionStatistics.table.closeMin'), dataIndex: 'closeMinutes', key: 'closeMinutes', width: 130, sorter: (a, b) => a.closeMinutes - b.closeMinutes },
+    { title: t('exceptionStatistics.table.owner'), dataIndex: 'owner', key: 'owner', width: 100 },
+    { title: t('exceptionStatistics.table.task'), dataIndex: 'relatedTask', key: 'relatedTask', width: 130 },
     {
-      title: locale === 'en-US' ? 'Action' : '操作',
+      title: t('exceptionStatistics.table.action'),
       key: 'action',
       width: 90,
       fixed: 'right',
       render: (_, record) => (
         <Button type="link" onClick={() => setDetail(record)}>
-          {locale === 'en-US' ? 'Detail' : '详情'}
+          {t('exceptionStatistics.table.detail')}
         </Button>
       ),
     },
@@ -298,139 +221,183 @@ export function ExceptionStatisticsPage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('menu.exceptionStatistics')}
           </Typography.Title>
-          <Space wrap>
+          <Space wrap align="center">
             <Select
               value={period}
               onChange={setPeriod}
               style={{ width: 130 }}
               options={[
-                { label: locale === 'en-US' ? 'Today' : '今日', value: 'day1' },
-                { label: locale === 'en-US' ? 'Last 7 Days' : '近7天', value: 'day7' },
-                { label: locale === 'en-US' ? 'Last 1 Month' : '近1个月', value: 'month1' },
+                { label: t('exceptionStatistics.period.today'), value: 'day1' },
+                { label: t('exceptionStatistics.period.last7'), value: 'day7' },
+                { label: t('exceptionStatistics.period.lastMonth'), value: 'month1' },
               ]}
             />
-            <Select value={level} onChange={setLevel} style={{ width: 110 }} options={[{ label: label.all, value: 'all' }, ...levelList.map((item) => ({ label: item, value: item }))]} />
-            <Select value={type} onChange={setType} style={{ width: 150 }} options={[{ label: label.all, value: 'all' }, ...typeList.map((item) => ({ label: item, value: item }))]} />
+            <Select value={level} onChange={setLevel} style={{ width: 110 }} options={[{ label: t('exceptionStatistics.selectLevel'), value: 'all' }, ...levelList.map((item) => ({ label: item, value: item }))]} />
+            <Select value={type} onChange={setType} style={{ width: 150 }} options={[{ label: t('exceptionStatistics.selectType'), value: 'all' }, ...typeList.map((item) => ({ label: item, value: item }))]} />
             <Select
               value={status}
               onChange={setStatus}
               style={{ width: 120 }}
               options={[
-                { label: label.all, value: 'all' },
-                { label: label.pending, value: 'pending' },
-                { label: label.processing, value: 'processing' },
-                { label: label.closed, value: 'closed' },
+                { label: t('exceptionStatistics.selectStatus'), value: 'all' },
+                { label: t('exceptionStatistics.pending'), value: 'pending' },
+                { label: t('exceptionStatistics.processing'), value: 'processing' },
+                { label: t('exceptionStatistics.closed'), value: 'closed' },
               ]}
             />
-            <Select value={source} onChange={setSource} style={{ width: 150 }} options={[{ label: label.all, value: 'all' }, ...sourceList.map((item) => ({ label: item, value: item }))]} />
-            <Select value={workshop} onChange={setWorkshop} style={{ width: 140 }} options={[{ label: label.all, value: 'all' }, ...workshopList.map((item) => ({ label: item, value: item }))]} />
-            <Select value={workstation} onChange={setWorkstation} style={{ width: 130 }} options={[{ label: label.all, value: 'all' }, ...workstationList.map((item) => ({ label: item, value: item }))]} />
-            <Select value={station} onChange={setStation} style={{ width: 120 }} options={[{ label: label.all, value: 'all' }, ...stationList.map((item) => ({ label: item, value: item }))]} />
-            <Select value={robot} onChange={setRobot} style={{ width: 120 }} options={[{ label: label.all, value: 'all' }, ...Array.from(new Set(exceptionData.map((item) => item.robot))).map((item) => ({ label: item, value: item }))]} />
-            <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 220 }} placeholder={label.keyword} allowClear />
-            <Button icon={<ReloadOutlined />} onClick={() => messageApi.success(locale === 'en-US' ? 'Refreshed' : '已刷新')}>
-              {label.refresh}
+            <Select value={source} onChange={setSource} style={{ width: 150 }} options={[{ label: t('exceptionStatistics.selectSource'), value: 'all' }, ...sourceList.map((item) => ({ label: item, value: item }))]} />
+            <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 220 }} placeholder={t('exceptionStatistics.keyword')} allowClear />
+            <Button icon={<ReloadOutlined />} onClick={() => messageApi.success(t('exceptionStatistics.refreshed'))}>
+              {t('exceptionStatistics.refresh')}
             </Button>
             <Button icon={<DownloadOutlined />} onClick={exportRows}>
-              {label.export}
+              {t('exceptionStatistics.export')}
             </Button>
           </Space>
+          <Collapse
+            ghost
+            items={[
+              {
+                key: 'filters',
+                label: t('exceptionStatistics.moreFilters'),
+                children: (
+                  <Space wrap>
+                    <Select
+                      value={workshop}
+                      onChange={setWorkshop}
+                      style={{ width: 140 }}
+                      options={[{ label: '请选择车间', value: 'all' }, ...workshopList.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={workstation}
+                      onChange={setWorkstation}
+                      style={{ width: 130 }}
+                      options={[{ label: '请选择质检区', value: 'all' }, ...workstationList.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={station}
+                      onChange={setStation}
+                      style={{ width: 120 }}
+                      options={[{ label: '请选择质检台', value: 'all' }, ...stationList.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={robot}
+                      onChange={setRobot}
+                      style={{ width: 120 }}
+                      options={[{ label: '请选择机器人', value: 'all' }, ...Array.from(new Set(exceptionData.map((item) => item.robot))).map((item) => ({ label: item, value: item }))]}
+                    />
+                  </Space>
+                ),
+              },
+            ]}
+          />
         </Space>
       </Card>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.total} value={summary.total} />
+            <Statistic title={t('exceptionStatistics.total')} value={summary.total} />
           </Card>
         </Col>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.pendingCount} value={summary.pendingCount} />
+            <Statistic title={t('exceptionStatistics.pendingCount')} value={summary.pendingCount} />
           </Card>
         </Col>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.processingCount} value={summary.processingCount} />
+            <Statistic title={t('exceptionStatistics.processingCount')} value={summary.processingCount} />
           </Card>
         </Col>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.closedCount} value={summary.closedCount} />
+            <Statistic title={t('exceptionStatistics.closedCount')} value={summary.closedCount} />
           </Card>
         </Col>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.closeRate} value={summary.closeRate} suffix="%" />
+            <Statistic title={t('exceptionStatistics.closeRate')} value={summary.closeRate} suffix="%" />
           </Card>
         </Col>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.avgResponse} value={summary.avgResponse} suffix={locale === 'en-US' ? ' min' : ' 分钟'} />
+            <Statistic title={t('exceptionStatistics.avgResponse')} value={summary.avgResponse} suffix={t('exceptionStatistics.minUnit')} />
           </Card>
         </Col>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.avgClose} value={summary.avgClose} suffix={locale === 'en-US' ? ' min' : ' 分钟'} />
+            <Statistic title={t('exceptionStatistics.avgClose')} value={summary.avgClose} suffix={t('exceptionStatistics.minUnit')} />
           </Card>
         </Col>
         <Col xs={24} md={8} xl={3}>
           <Card>
-            <Statistic title={label.highLevel} value={summary.highLevel} />
+            <Statistic title={t('exceptionStatistics.highLevel')} value={summary.highLevel} />
+          </Card>
+        </Col>
+        <Col xs={24} md={8} xl={3}>
+          <Card>
+            <Statistic title={t('exceptionStatistics.overdueResponse')} value={summary.overdueResponse} />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} xl={12}>
-          <Card title={label.trendTitle}>
-            <SimpleLineChart categories={trend.categories} series={[{ name: label.total, color: '#fa541c', values: trend.values }]} yAxisLabel={label.total} />
+          <Card title={t('exceptionStatistics.trendTitle')}>
+            <SimpleLineChart categories={trend.categories} series={[{ name: t('exceptionStatistics.total'), color: '#fa541c', values: trend.values }]} yAxisLabel={t('exceptionStatistics.total')} />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title={label.levelDistTitle}>
+          <Card title={t('exceptionStatistics.levelDistTitle')}>
             <SimpleBarChart data={levelDistribution} />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title={label.typeTopTitle}>
+          <Card title={t('exceptionStatistics.typeTopTitle')}>
             <SimpleBarChart data={typeTop} />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title={label.sourceDistTitle}>
+          <Card title={t('exceptionStatistics.sourceDistTitle')}>
             <SimpleBarChart data={sourceDistribution} />
           </Card>
         </Col>
         <Col xs={24}>
-          <Card title={label.recurrenceTitle}>
+          <Card title={t('exceptionStatistics.recurrenceTitle')}>
             <SimpleBarChart data={recurrenceTop} />
           </Card>
         </Col>
       </Row>
 
-      <Card title={label.listTitle}>
-        <Table rowKey="id" columns={columns} dataSource={filtered} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 2200 }} />
+      <Card title={t('exceptionStatistics.listTitle')}>
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={filtered}
+          pagination={{ pageSize: 8, showSizeChanger: true, pageSizeOptions: ['8', '20', '50'] }}
+          scroll={{ x: 2200 }}
+        />
       </Card>
 
-      <Drawer title={label.detailTitle} open={Boolean(detail)} onClose={() => setDetail(null)} width={560}>
+      <Drawer title={t('exceptionStatistics.detailTitle')} open={Boolean(detail)} onClose={() => setDetail(null)} width={560}>
         {detail ? (
           <Space direction="vertical" size={10} style={{ width: '100%' }}>
-            <Typography.Text>{`${locale === 'en-US' ? 'ID' : '编号'}: ${detail.id}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Level' : '等级'}: ${detail.level}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Type' : '类型'}: ${detail.type}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Source' : '来源'}: ${detail.source}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Location' : '位置'}: ${detail.workshop} / ${detail.workstation} / ${detail.station}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Robot' : '机器人'}: ${detail.robot}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Status' : '状态'}: ${detail.status}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Created At' : '创建时间'}: ${detail.createdAt}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'First Response' : '首次响应'}: ${detail.firstResponseAt}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Closed At' : '关闭时间'}: ${detail.closedAt}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Response' : '响应'}: ${detail.responseMinutes}${locale === 'en-US' ? ' min' : ' 分钟'}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Close' : '关闭'}: ${detail.closeMinutes}${locale === 'en-US' ? ' min' : ' 分钟'}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Owner' : '责任人'}: ${detail.owner}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Task' : '关联任务'}: ${detail.relatedTask}`}</Typography.Text>
-            <Typography.Paragraph>{`${locale === 'en-US' ? 'Description' : '异常描述'}: ${detail.description}`}</Typography.Paragraph>
+            <Typography.Text>{`${t('exceptionStatistics.detail.id')}: ${detail.id}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.level')}: ${detail.level}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.type')}: ${detail.type}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.source')}: ${detail.source}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.location')}: ${detail.workshop} / ${detail.workstation} / ${detail.station}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.robot')}: ${detail.robot}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.status')}: ${statusLabel(detail.status)}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.createdAt')}: ${detail.createdAt}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.firstResponse')}: ${detail.firstResponseAt}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.closedAt')}: ${detail.closedAt}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.response')}: ${detail.responseMinutes}${t('exceptionStatistics.minUnit')}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.close')}: ${detail.closeMinutes}${t('exceptionStatistics.minUnit')}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.owner')}: ${detail.owner}`}</Typography.Text>
+            <Typography.Text>{`${t('exceptionStatistics.detail.task')}: ${detail.relatedTask}`}</Typography.Text>
+            <Typography.Paragraph>{`${t('exceptionStatistics.detail.description')}: ${detail.description}`}</Typography.Paragraph>
           </Space>
         ) : null}
       </Drawer>
