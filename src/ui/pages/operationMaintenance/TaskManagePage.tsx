@@ -2,7 +2,7 @@
 import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useState } from 'react';
-import taskDetailPlaceholder from '../../../assets/task_detail.png';
+import { useNavigate } from 'react-router-dom';
 import { getTaskManageList, type TaskManageRecord, type TaskStatus } from '../../../data/operationMaintenance/taskManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { getCurrentUser } from '../../../logic/auth/authStore';
@@ -43,10 +43,10 @@ function nowText(): string {
 
 export function TaskManagePage() {
   const { locale, t } = useI18n();
+  const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const [tableData, setTableData] = useState<TaskManageRecord[]>(() => getTaskManageList(locale));
   const [createOpen, setCreateOpen] = useState(false);
-  const [detailTask, setDetailTask] = useState<TaskManageRecord | null>(null);
   const [form] = Form.useForm<{ code: string; externalCode: string; robot: string; priority: number; description: string }>();
 
   useEffect(() => {
@@ -199,7 +199,7 @@ export function TaskManagePage() {
           >
             {label.actionStop}
           </Button>
-          <Button type="link" onClick={() => setDetailTask(record)}>
+          <Button type="link" onClick={() => navigate(`/operationMaintenance/task/taskManage/${record.id}/detail`)}>
             {label.actionDetail}
           </Button>
         </Space>
@@ -295,18 +295,6 @@ export function TaskManagePage() {
         </Form>
       </Modal>
 
-      <Modal
-        title={locale === 'en-US' ? 'Task Detail' : '任务详情'}
-        open={Boolean(detailTask)}
-        onCancel={() => setDetailTask(null)}
-        footer={null}
-        width="90vw"
-        styles={{ body: { padding: 0 } }}
-      >
-        {detailTask ? (
-          <img src={taskDetailPlaceholder} alt={locale === 'en-US' ? 'Task Detail Preview' : '任务详情预览'} style={{ display: 'block', width: '100%', height: 'auto' }} />
-        ) : null}
-      </Modal>
     </Space>
   );
 }
