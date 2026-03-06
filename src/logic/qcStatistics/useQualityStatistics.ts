@@ -9,12 +9,14 @@ export interface AggregatedRow {
   key: string;
   groupValue: string;
   inspectionCount: number;
+  defectCount: number;
   detectionRate: number;
   reinspectionRate: number;
   falseDetectionRate: number;
   avgDurationMin: number;
   abnormalCount: number;
   abnormalTypeCounts: Record<string, number>;
+  topDefectType: string;
   abnormalSummary: string;
 }
 
@@ -24,6 +26,7 @@ export interface StatisticsSummary {
   reinspectionRate: number;
   falseDetectionRate: number;
   avgDurationMin: number;
+  defectCount: number;
   abnormalCount: number;
   abnormalTypeCounts: Record<string, number>;
   abnormalSummary: string;
@@ -216,12 +219,16 @@ export function useQualityStatistics(records: QualityStatRecord[] = qualityStats
           key: groupValue,
           groupValue,
           inspectionCount,
+          defectCount,
           detectionRate: calcRate(defectCount, inspectionCount),
           reinspectionRate: calcRate(reinspectionCount, inspectionCount),
           falseDetectionRate: calcRate(falseDetectionCount, inspectionCount),
           avgDurationMin,
           abnormalCount,
           abnormalTypeCounts,
+          topDefectType:
+            Object.entries(abnormalTypeCounts)
+              .sort((a, b) => b[1] - a[1])[0]?.[0] ?? '-',
           abnormalSummary: formatTypeSummary(abnormalTypeCounts),
         };
       })
@@ -254,6 +261,7 @@ export function useQualityStatistics(records: QualityStatRecord[] = qualityStats
       reinspectionRate: calcRate(reinspectionCount, inspectionCount),
       falseDetectionRate: calcRate(falseDetectionCount, inspectionCount),
       avgDurationMin,
+      defectCount,
       abnormalCount,
       abnormalTypeCounts,
       abnormalSummary: formatTypeSummary(abnormalTypeCounts),

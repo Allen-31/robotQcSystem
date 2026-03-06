@@ -16,6 +16,8 @@ export interface WorkOrderItem {
   createdAt: string;
   startedAt: string;
   endedAt: string;
+  defectType: string;
+  defectDescription: string;
 }
 
 export const workOrderList: WorkOrderItem[] = [
@@ -33,6 +35,8 @@ export const workOrderList: WorkOrderItem[] = [
     createdAt: '2026-02-28 10:02:15',
     startedAt: '2026-02-28 10:03:40',
     endedAt: '-',
+    defectType: '-',
+    defectDescription: '-',
   },
   {
     id: 'WO-2',
@@ -48,6 +52,8 @@ export const workOrderList: WorkOrderItem[] = [
     createdAt: '2026-02-28 09:38:20',
     startedAt: '2026-02-28 09:40:00',
     endedAt: '2026-02-28 09:47:32',
+    defectType: '-',
+    defectDescription: '-',
   },
   {
     id: 'WO-3',
@@ -63,6 +69,8 @@ export const workOrderList: WorkOrderItem[] = [
     createdAt: '2026-02-28 09:05:11',
     startedAt: '2026-02-28 09:07:42',
     endedAt: '2026-02-28 09:19:58',
+    defectType: '接线错误',
+    defectDescription: '端子位序与工艺定义不一致',
   },
   {
     id: 'WO-4',
@@ -78,6 +86,8 @@ export const workOrderList: WorkOrderItem[] = [
     createdAt: '2026-02-28 08:42:00',
     startedAt: '-',
     endedAt: '-',
+    defectType: '-',
+    defectDescription: '-',
   },
   {
     id: 'WO-5',
@@ -93,6 +103,8 @@ export const workOrderList: WorkOrderItem[] = [
     createdAt: '2026-02-28 08:10:14',
     startedAt: '-',
     endedAt: '2026-02-28 08:12:31',
+    defectType: '-',
+    defectDescription: '-',
   },
   {
     id: 'WO-6',
@@ -108,5 +120,7 @@ export const workOrderList: WorkOrderItem[] = [
     createdAt: '2026-02-27 17:33:45',
     startedAt: '2026-02-27 17:35:19',
     endedAt: '2026-02-27 17:43:25',
+    defectType: '-',
+    defectDescription: '-',
   },
 ];

@@ -21,7 +21,7 @@ function escapeCsv(value: string | number): string {
 }
 
 function buildCsv(rows: ReinspectionRecordItem[]): string {
-  const headers = ['reinspectionNo', 'workOrderNo', 'harnessCode', 'harnessType', 'stationCode', 'qualityResult', 'reinspectionResult', 'reinspectionTime', 'reviewer'];
+  const headers = ['reinspectionNo', 'workOrderNo', 'harnessCode', 'harnessType', 'stationCode', 'qualityResult', 'reinspectionResult', 'defectType', 'reinspectionTime', 'reviewer'];
   const lines = rows.map((row) =>
     [
       row.reinspectionNo,
@@ -31,6 +31,7 @@ function buildCsv(rows: ReinspectionRecordItem[]): string {
       row.stationCode,
       row.qualityResult,
       row.reinspectionResult,
+      row.defectType,
       row.reinspectionTime,
       row.reviewer,
     ]
@@ -76,7 +77,7 @@ export function ReinspectionRecordPage() {
     }
     return linkedRecords.filter((item) => {
       const text =
-        `${item.reinspectionNo} ${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.qualityResult} ${item.reinspectionResult} ${item.reinspectionTime} ${item.reviewer}`.toLowerCase();
+        `${item.reinspectionNo} ${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.qualityResult} ${item.reinspectionResult} ${item.defectType} ${item.reinspectionTime} ${item.reviewer}`.toLowerCase();
       return text.includes(normalized);
     });
   }, [keyword, linkedRecords]);
@@ -116,6 +117,7 @@ export function ReinspectionRecordPage() {
       width: 120,
       render: (result: ReinspectionResult) => <Tag color={resultColorMap[result]}>{t(`reinspection.result.${result}`)}</Tag>,
     },
+    { title: t('reinspection.table.defectType'), dataIndex: 'defectType', key: 'defectType', width: 150 },
     { title: t('reinspection.table.time'), dataIndex: 'reinspectionTime', key: 'reinspectionTime', width: 170 },
     { title: t('reinspection.table.reviewer'), dataIndex: 'reviewer', key: 'reviewer', width: 150 },
     {

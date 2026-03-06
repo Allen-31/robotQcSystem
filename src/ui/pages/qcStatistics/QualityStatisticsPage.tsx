@@ -1,4 +1,4 @@
-import { DownloadOutlined } from '@ant-design/icons';
+﻿import { DownloadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -64,8 +64,9 @@ export function QualityStatisticsPage() {
         reinspectionRate: 'Reinspection Rate',
         falseDetectionRate: 'False Detection Rate',
         avgDuration: 'Avg Duration',
+        defectCount: 'Defect Count',
         avgDurationUnit: 'min',
-        abnormalSummary: 'Abnormal Type/Count',
+        abnormalSummary: 'Defect Type/Count',
         tableTitle: 'Inspection Statistics List',
         chartTitle: 'Metric Chart',
         trendTitle: 'Metric Trend',
@@ -96,7 +97,7 @@ export function QualityStatisticsPage() {
       falseDetectionRate: '误检率',
       avgDuration: '平均用时',
       avgDurationUnit: '分钟',
-      abnormalSummary: '质检异常类型/次数',
+      abnormalSummary: '缺陷类型/次数',
       tableTitle: '质检统计列表',
       chartTitle: '指标图表',
       trendTitle: '指标趋势',
@@ -414,7 +415,7 @@ export function QualityStatisticsPage() {
                 name: row.groupValue,
                 value: Number(row[metric]),
               }))}
-              unit={metric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 分钟') : undefined}
+              unit={metric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 鍒嗛挓') : undefined}
             />
           )}
         </Space>
@@ -444,7 +445,7 @@ export function QualityStatisticsPage() {
               trendMetric === 'avgDurationMin'
                 ? locale === 'en-US'
                   ? ' min'
-                  : ' 分钟'
+                  : ' 鍒嗛挓'
                 : trendMetric === 'inspectionCount' || trendMetric === 'abnormalCount'
                   ? ''
                   : '%'
@@ -455,3 +456,5 @@ export function QualityStatisticsPage() {
     </Space>
   );
 }
+
+

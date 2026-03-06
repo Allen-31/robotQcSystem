@@ -26,12 +26,14 @@ interface AggregatedRow {
   key: string;
   dimensionValue: string;
   inspectionCount: number;
+  defectCount: number;
   detectionRate: number;
   reinspectionRate: number;
   falseDetectionRate: number;
   avgDurationMin: number;
   abnormalCount: number;
   abnormalTypeCounts: Record<string, number>;
+  topDefectType: string;
   abnormalSummary: string;
 }
 
@@ -212,9 +214,9 @@ export function QualityReportPage() {
       falseDetectionRate: '误检率',
       avgDuration: '平均用时',
       avgDurationUnit: '分钟',
-      abnormalSummary: '质检异常类型/次数',
+      abnormalSummary: '缺陷类型/次数',
       detailTitle: '报表明细',
-      abnormalTitle: '异常明细',
+      abnormalTitle: '缺陷分析',
       historyTitle: '报表记录',
       createReport: '生成报表',
       exportReport: '导出 PDF',
@@ -262,12 +264,16 @@ export function QualityReportPage() {
           key,
           dimensionValue: key,
           inspectionCount,
+          defectCount,
           detectionRate: calcRate(defectCount, inspectionCount),
           reinspectionRate: calcRate(reinspectionCount, inspectionCount),
           falseDetectionRate: calcRate(falseDetectionCount, inspectionCount),
           avgDurationMin,
           abnormalCount,
           abnormalTypeCounts,
+          topDefectType:
+            Object.entries(abnormalTypeCounts)
+              .sort((a, b) => b[1] - a[1])[0]?.[0] ?? '-',
           abnormalSummary: formatTypeSummary(abnormalTypeCounts, locale),
         };
       })
@@ -301,28 +307,6 @@ export function QualityReportPage() {
     };
   }, [aggregatedRows, locale]);
 
-  const abnormalRows = useMemo(
-    () =>
-      aggregatedRows
-        .filter((row) => row.falseDetectionRate > 8 || row.reinspectionRate > 16 || row.avgDurationMin > 9)
-        .map((row) => ({
-          ...row,
-          issue:
-            row.falseDetectionRate > 8
-              ? locale === 'en-US'
-                ? 'High false detection rate'
-                : '误检率偏高'
-              : row.reinspectionRate > 16
-                ? locale === 'en-US'
-                  ? 'High reinspection rate'
-                  : '复检率偏高'
-                : locale === 'en-US'
-                  ? 'Long inspection duration'
-                  : '质检耗时偏高',
-        })),
-    [aggregatedRows, locale],
-  );
-
   const chartRows = useMemo(() => aggregatedRows.slice(0, 12), [aggregatedRows]);
 
   const detailColumns: ColumnsType<AggregatedRow> = [
@@ -335,12 +319,38 @@ export function QualityReportPage() {
     { title: label.abnormalSummary, dataIndex: 'abnormalSummary', key: 'abnormalSummary', width: 280, sorter: (a, b) => a.abnormalCount - b.abnormalCount },
   ];
 
-  const abnormalColumns: ColumnsType<(typeof abnormalRows)[number]> = [
+  const abnormalColumns: ColumnsType<AggregatedRow> = [
     { title: dimensionTextMap[dimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 220 },
-    { title: locale === 'en-US' ? 'Issue' : '异常项', dataIndex: 'issue', key: 'issue', width: 180, render: (value: string) => <Tag color="error">{value}</Tag> },
-    { title: label.falseDetectionRate, dataIndex: 'falseDetectionRate', key: 'falseDetectionRate', width: 140, sorter: (a, b) => a.falseDetectionRate - b.falseDetectionRate, render: (value: number) => `${value}%` },
-    { title: label.reinspectionRate, dataIndex: 'reinspectionRate', key: 'reinspectionRate', width: 130, sorter: (a, b) => a.reinspectionRate - b.reinspectionRate, render: (value: number) => `${value}%` },
-    { title: label.avgDuration, dataIndex: 'avgDurationMin', key: 'avgDurationMin', width: 150, sorter: (a, b) => a.avgDurationMin - b.avgDurationMin, render: (value: number) => `${value} ${label.avgDurationUnit}` },
+    {
+      title: locale === 'en-US' ? 'Defect Count' : '缺陷数量',
+      dataIndex: 'defectCount',
+      key: 'defectCount',
+      width: 130,
+      sorter: (a, b) => a.defectCount - b.defectCount,
+    },
+    {
+      title: locale === 'en-US' ? 'Defect Rate' : '缺陷率',
+      dataIndex: 'detectionRate',
+      key: 'detectionRate',
+      width: 130,
+      sorter: (a, b) => a.detectionRate - b.detectionRate,
+      render: (value: number) => `${value}%`,
+    },
+    {
+      title: locale === 'en-US' ? 'Top Defect Type' : '主要缺陷类型',
+      dataIndex: 'topDefectType',
+      key: 'topDefectType',
+      width: 170,
+      sorter: (a, b) => a.topDefectType.localeCompare(b.topDefectType),
+      render: (value: string) => <Tag color="error">{value}</Tag>,
+    },
+    {
+      title: locale === 'en-US' ? 'Defect Distribution' : '缺陷类型分布',
+      dataIndex: 'abnormalSummary',
+      key: 'abnormalSummary',
+      width: 320,
+      sorter: (a, b) => a.abnormalCount - b.abnormalCount,
+    },
   ];
 
   const historyColumns: ColumnsType<ReportRecord> = [
@@ -504,7 +514,7 @@ export function QualityReportPage() {
       </Card>
 
       <Card title={label.abnormalTitle}>
-        <Table rowKey="key" columns={abnormalColumns} dataSource={abnormalRows} pagination={{ pageSize: 6, showSizeChanger: false }} scroll={{ x: 1050 }} />
+        <Table rowKey="key" columns={abnormalColumns} dataSource={aggregatedRows} pagination={{ pageSize: 6, showSizeChanger: false }} scroll={{ x: 1050 }} />
       </Card>
 
       <Card title={label.historyTitle}>

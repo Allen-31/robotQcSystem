@@ -14,6 +14,8 @@ export interface WorkOrderEditPayload {
   detectionDuration: number;
   startedAt: string;
   endedAt: string;
+  defectType: string;
+  defectDescription: string;
 }
 
 export interface WorkOrderCreatePayload {
@@ -28,6 +30,14 @@ export interface WorkOrderCreatePayload {
   detectionDuration: number;
   startedAt: string;
   endedAt: string;
+  defectType: string;
+  defectDescription: string;
+}
+
+export interface WorkOrderReviewPayload {
+  qualityResult: QualityResult;
+  defectType?: string;
+  defectDescription?: string;
 }
 
 function parseTime(value: string): number {
@@ -40,6 +50,7 @@ function parseTime(value: string): number {
 export function useWorkOrderManage() {
   const harnessTypeOptions = useMemo(() => getHarnessTypeOptions(), []);
   const stationCodeOptions = useMemo(() => getStationCodeOptions(), []);
+  const defectTypeOptions = useMemo(() => ['接线错误', '外观异常', '工艺偏差', '尺寸偏差', '压接不良'], []);
   const [workOrders, setWorkOrders] = useState<WorkOrderItem[]>(() =>
     workOrderList.map((item, index) => ({
       ...item,
@@ -56,7 +67,7 @@ export function useWorkOrderManage() {
     const source = normalized
       ? workOrders.filter((item) => {
           const text =
-            `${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.status} ${item.qualityResult} ${item.taskIds.join(' ')} ${item.createdAt}`.toLowerCase();
+            `${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.status} ${item.qualityResult} ${item.taskIds.join(' ')} ${item.createdAt} ${item.defectType} ${item.defectDescription}`.toLowerCase();
           return text.includes(normalized);
         })
       : workOrders;
@@ -76,6 +87,8 @@ export function useWorkOrderManage() {
           ...item,
           harnessType: normalizeHarnessType(item.harnessType, index),
           stationCode: normalizeStationCode(item.stationCode, index),
+          defectType: item.defectType || '-',
+          defectDescription: item.defectDescription || '-',
         });
       }
       return Array.from(map.values());
@@ -98,17 +111,30 @@ export function useWorkOrderManage() {
     setEditingWorkOrder(null);
   };
 
-  const reviewWorkOrder = (id: string) => {
+  const reviewWorkOrder = (id: string, payload: WorkOrderReviewPayload) => {
     setWorkOrders((prev) =>
       prev.map((item) =>
         item.id === id
           ? {
               ...item,
-              status: 'finished',
-              qualityResult: 'ok',
+              status: payload.qualityResult === 'ng' ? 'ng' : 'finished',
+              qualityResult: payload.qualityResult,
+              defectType: payload.qualityResult === 'ng' ? payload.defectType || '-' : '-',
+              defectDescription: payload.qualityResult === 'ng' ? payload.defectDescription || '-' : '-',
             }
           : item,
       ),
+    );
+    setViewingWorkOrder((prev) =>
+      prev && prev.id === id
+        ? {
+            ...prev,
+            status: payload.qualityResult === 'ng' ? 'ng' : 'finished',
+            qualityResult: payload.qualityResult,
+            defectType: payload.qualityResult === 'ng' ? payload.defectType || '-' : '-',
+            defectDescription: payload.qualityResult === 'ng' ? payload.defectDescription || '-' : '-',
+          }
+        : prev,
     );
   };
 
@@ -151,11 +177,32 @@ export function useWorkOrderManage() {
               detectionDuration: payload.detectionDuration,
               startedAt: payload.startedAt || '-',
               endedAt: payload.endedAt || '-',
+              defectType: payload.defectType || '-',
+              defectDescription: payload.defectDescription || '-',
             }
           : item,
       ),
     );
     setEditingWorkOrder(null);
+    setViewingWorkOrder((prev) =>
+      prev && prev.id === payload.id
+        ? {
+            ...prev,
+            harnessCode: payload.harnessCode,
+            harnessType: normalizeHarnessType(payload.harnessType),
+            stationCode: normalizeStationCode(payload.stationCode),
+            status: payload.status,
+            qualityResult: payload.qualityResult,
+            taskIds,
+            movingDuration: payload.movingDuration,
+            detectionDuration: payload.detectionDuration,
+            startedAt: payload.startedAt || '-',
+            endedAt: payload.endedAt || '-',
+            defectType: payload.defectType || '-',
+            defectDescription: payload.defectDescription || '-',
+          }
+        : prev,
+    );
   };
 
   const createWorkOrder = (payload: WorkOrderCreatePayload) => {
@@ -178,6 +225,8 @@ export function useWorkOrderManage() {
       createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
       startedAt: payload.startedAt || '-',
       endedAt: payload.endedAt || '-',
+      defectType: payload.defectType || '-',
+      defectDescription: payload.defectDescription || '-',
     };
     setWorkOrders((prev) => [record, ...prev]);
   };
@@ -187,6 +236,7 @@ export function useWorkOrderManage() {
     rawWorkOrders: workOrders,
     harnessTypeOptions,
     stationCodeOptions,
+    defectTypeOptions,
     keyword,
     setKeyword,
     viewingWorkOrder,
