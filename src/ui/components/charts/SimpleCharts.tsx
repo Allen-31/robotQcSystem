@@ -185,6 +185,7 @@ export function SimplePieChart({ title, data, height = 280 }: SimplePieChartProp
   const radius = Math.min(90, height / 2 - 24);
   const total = valid.reduce((sum, item) => sum + item.value, 0);
   const colors = ['#1677ff', '#52c41a', '#fa8c16', '#722ed1', '#13c2c2', '#eb2f96', '#fa541c'];
+  const isSingleSlice = valid.length === 1;
 
   let startAngle = -Math.PI / 2;
   const slices = valid.map((item, index) => {
@@ -212,9 +213,15 @@ export function SimplePieChart({ title, data, height = 280 }: SimplePieChartProp
       {title ? <Typography.Text strong>{title}</Typography.Text> : null}
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height }}>
         {slices.map((slice) => (
-          <path key={slice.name} d={slice.path} fill={slice.color} stroke="#fff" strokeWidth={1}>
-            <title>{slice.label}</title>
-          </path>
+          isSingleSlice ? (
+            <circle key={slice.name} cx={centerX} cy={centerY} r={radius} fill={slice.color} stroke="#fff" strokeWidth={1}>
+              <title>{slice.label}</title>
+            </circle>
+          ) : (
+            <path key={slice.name} d={slice.path} fill={slice.color} stroke="#fff" strokeWidth={1}>
+              <title>{slice.label}</title>
+            </path>
+          )
         ))}
         <circle cx={centerX} cy={centerY} r={radius * 0.5} fill="#fff" />
         <text x={centerX} y={centerY - 4} textAnchor="middle" fontSize="12" fill="#64748b">

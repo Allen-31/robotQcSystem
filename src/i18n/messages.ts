@@ -94,6 +94,7 @@ export const messages: Messages = {
     'login.mockQc': '质检员：qc / 123456',
     'login.mockPe': '工艺工程师：pe / 123456',
     'login.mockOps': '运维工程师：ops / 123456',
+    'login.mockPad': 'PAD：pad / 123456',
 
     'notFound.subtitle': '页面不存在',
     'notFound.backHome': '返回首页',
@@ -1115,6 +1116,7 @@ export const messages: Messages = {
     'login.mockQc': 'Inspector: qc / 123456',
     'login.mockPe': 'Process Engineer: pe / 123456',
     'login.mockOps': 'Ops Engineer: ops / 123456',
+    'login.mockPad': 'PAD: pad / 123456',
 
     'notFound.subtitle': 'Page not found',
     'notFound.backHome': 'Back to Home',

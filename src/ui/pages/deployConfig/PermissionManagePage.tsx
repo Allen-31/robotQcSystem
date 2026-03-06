@@ -43,27 +43,60 @@ function normalizePermissionMap(map: Record<string, PermissionAction[]>): Record
 
 function getActionsByNode(pathOrId: string, title: string): PermissionAction[] {
   const lower = `${pathOrId} ${title}`.toLowerCase();
+  const containsAny = (keywords: string[]) => keywords.some((keyword) => lower.includes(keyword));
 
-  if (lower.includes('usermanage')) {
+  if (containsAny(['usermanage'])) {
     return ['display', 'create', 'edit', 'delete', 'import', 'export', 'role', 'changePassword'];
   }
-  if (lower.includes('rolemanage')) {
+  if (containsAny(['rolemanage'])) {
     return ['display', 'create', 'edit', 'delete'];
   }
-  if (lower.includes('permissionmanage')) {
+  if (containsAny(['permissionmanage'])) {
     return ['display', 'edit'];
   }
-  if (lower.includes('workordermanage')) {
+  if (containsAny(['workordermanage'])) {
     return ['display', 'detail', 'review', 'edit', 'cancel', 'delete', 'import', 'export'];
   }
-  if (lower.includes('reinspectionrecord')) {
+  if (containsAny(['reinspectionrecord'])) {
     return ['display', 'export', 'viewVideo', 'viewImage'];
   }
-  if (lower.includes('workstationmanage') || lower.includes('workstationpositionmanage')) {
+  if (containsAny(['workstationmanage', 'workstationpositionmanage'])) {
     return ['display', 'detail', 'enable', 'disable', 'review'];
   }
-  if (lower.includes('config') || lower.includes('type') || lower.includes('terminal')) {
+  if (
+    containsAny([
+      'workstationconfig',
+      'workstationpositionconfig',
+      'wireharnesstype',
+      'terminalconfig',
+      'workshopconfig',
+      'robottype',
+      'robotgroup',
+      'robotparts',
+      'chargestrategy',
+      'homingstrategy',
+      'configtemplate',
+      'mapmanage',
+      'packagemanage',
+      'servicemanage',
+    ])
+  ) {
     return ['display', 'create', 'edit', 'delete', 'import', 'export', 'enable', 'disable'];
+  }
+  if (containsAny(['robotlist', 'robotmanage', 'taskmanage', 'taskorchestration'])) {
+    return ['display', 'detail', 'create', 'edit', 'delete', 'import', 'export', 'enable', 'disable', 'cancel'];
+  }
+  if (containsAny(['publishmanage'])) {
+    return ['display', 'create', 'detail', 'cancel', 'export'];
+  }
+  if (containsAny(['filemanage'])) {
+    return ['display', 'detail', 'import', 'export', 'delete'];
+  }
+  if (containsAny(['qualitystatistics', 'qualityreport', 'devicestatistics', 'exceptionstatistics'])) {
+    return ['display', 'detail', 'export', 'create'];
+  }
+  if (containsAny(['exceptionnotification', 'loginlog', 'operationlog', 'apilog'])) {
+    return ['display', 'detail', 'export'];
   }
 
   return ['display'];
@@ -211,19 +244,46 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
   const syncCheckAndPermissions = (nextCheckedKeys: string[]) => {
     const prevChecked = new Set(checkedKeys);
     const nextChecked = new Set(nextCheckedKeys);
-    const added = [...nextChecked].filter((key) => !prevChecked.has(key));
-    const removed = [...prevChecked].filter((key) => !nextChecked.has(key));
+    const nextWithDescendants = new Set(nextCheckedKeys);
+
+    [...nextChecked].forEach((key) => {
+      getDescendantKeys(key).forEach((descendant) => {
+        nextWithDescendants.add(descendant);
+      });
+    });
+
+    const finalCheckedKeys = Array.from(nextWithDescendants);
+    const finalCheckedSet = new Set(finalCheckedKeys);
+    const added = [...finalCheckedSet].filter((key) => !prevChecked.has(key));
+    const removed = [...prevChecked].filter((key) => !finalCheckedSet.has(key));
 
     const patch: Record<string, PermissionAction[]> = {};
+    const forceFullActionKeys = new Set<string>();
+
+    added.forEach((key) => {
+      const descendants = getDescendantKeys(key);
+      if (descendants.length > 0) {
+        forceFullActionKeys.add(key);
+        descendants.forEach((descKey) => forceFullActionKeys.add(descKey));
+      }
+    });
 
     added.forEach((key) => {
       const nodeLabel = t(titleMap[key] ?? '');
       const actions = getActionsByNode(key, nodeLabel);
-      if (actions.includes('display')) {
+      if (forceFullActionKeys.has(key)) {
+        patch[key] = [...new Set(actions)];
+      } else if (actions.includes('display')) {
         const current = new Set(getNodePermissions(key));
         current.add('display');
         patch[key] = Array.from(current);
       }
+    });
+
+    forceFullActionKeys.forEach((key) => {
+      const nodeLabel = t(titleMap[key] ?? '');
+      const actions = getActionsByNode(key, nodeLabel);
+      patch[key] = [...new Set(actions)];
     });
 
     removed.forEach((key) => {
@@ -233,7 +293,7 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
       });
     });
 
-    setCheckedKeys(nextCheckedKeys);
+    setCheckedKeys(finalCheckedKeys);
     if (Object.keys(patch).length > 0) {
       patchNodePermissions(patch);
     }
@@ -384,9 +444,17 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
               </Typography.Title>
             </Col>
             <Col xs={24} lg={7}>
-              <Space>
-                <Typography.Text>{t('permissionManage.roleLabel')}</Typography.Text>
-                <Select style={{ width: 220 }} value={selectedRole} options={roleOptions} onChange={switchRole} disabled={Boolean(fixedRole)} />
+              <Space wrap={false}>
+                {fixedRole ? (
+                  <Tag color="purple" style={{ marginInlineEnd: 0 }}>
+                    {`${t('permissionManage.roleLabel')}: ${selectedRole}`}
+                  </Tag>
+                ) : (
+                  <>
+                    <Typography.Text style={{ whiteSpace: 'nowrap' }}>{t('permissionManage.roleLabel')}</Typography.Text>
+                    <Select style={{ width: 220 }} value={selectedRole} options={roleOptions} onChange={switchRole} disabled={Boolean(fixedRole)} />
+                  </>
+                )}
                 <Tag color="processing">{t('permissionManage.summary.memberCount', { count: memberCount })}</Tag>
                 <Tag color="blue">{t('permissionManage.summary.totalCount', { count: selectedMenuCount + selectedButtonCount })}</Tag>
               </Space>

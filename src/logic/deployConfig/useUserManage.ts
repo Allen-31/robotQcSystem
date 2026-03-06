@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getUserList } from '../../data/deployConfig/userList';
 import type { DataLocale } from '../../data/localized';
 import type { UserManageRecord, UserStatus } from '../../shared/types/deployConfig';
+import { getStoredRoles } from './roleStore';
 
 export interface UserManageFormValues {
   code: string;
@@ -31,15 +32,9 @@ export function useUserManage(locale: DataLocale) {
   }, [keyword, records]);
 
   const roleOptions = useMemo(() => {
-    const roleSet = new Set<string>();
-    records.forEach((item) => item.roles.forEach((role) => roleSet.add(role)));
-    const fallbackRoles =
-      locale === 'en-US'
-        ? ['Administrator', 'QA Supervisor', 'Quality Inspector', 'Maintainer', 'Product Manager']
-        : ['管理员', '质检主管', '质检员', '维护人员', '产品经理'];
-    fallbackRoles.forEach((item) => roleSet.add(item));
-    return Array.from(roleSet).map((role) => ({ label: role, value: role }));
-  }, [locale, records]);
+    const roleNames = Array.from(new Set(getStoredRoles().map((item) => item.name)));
+    return roleNames.map((role) => ({ label: role, value: role }));
+  }, []);
 
   const createRecord = (payload: UserManageFormValues) => {
     const next: UserManageRecord = {

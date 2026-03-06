@@ -39,6 +39,7 @@ export function LoginPage() {
           <Typography.Text type="secondary">{t('login.mockQc')}</Typography.Text>
           <Typography.Text type="secondary">{t('login.mockPe')}</Typography.Text>
           <Typography.Text type="secondary">{t('login.mockOps')}</Typography.Text>
+          <Typography.Text type="secondary">{t('login.mockPad')}</Typography.Text>
         </Space>
 
         <Form<LoginFormValues>
