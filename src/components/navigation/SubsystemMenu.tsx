@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
 import { buildOpenKeys, collectRoutes, matchSelectedPath } from '../../logic/menu/menuRoute';
 import type { MenuNode } from '../../shared/types/menu';
+import { resolveMenuNodeIcon } from './menuIcon';
 
 function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): MenuProps['items'] {
   return nodes.map((node) => {
@@ -14,6 +15,7 @@ function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): 
     if (node.children?.length) {
       return {
         key,
+        icon: resolveMenuNodeIcon(node),
         label,
         children: mapToMenuItems(node.children, translate),
       };
@@ -21,6 +23,7 @@ function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): 
 
     return {
       key,
+      icon: resolveMenuNodeIcon(node),
       label,
     };
   });

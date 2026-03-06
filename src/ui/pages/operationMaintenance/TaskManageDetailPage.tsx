@@ -83,11 +83,11 @@ function formatDate(date: Date): string {
 }
 
 function formatDuration(sec: number): string {
-  const ms = sec * 1000;
-  const mm = Math.floor(ms / 60000);
-  const ss = Math.floor((ms % 60000) / 1000);
-  const sss = ms % 1000;
-  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(sss).padStart(3, '0')}`;
+  const total = Math.max(0, Math.floor(sec));
+  const hh = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const ss = total % 60;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
 }
 
 function progressStepByStatus(status: TaskManageRecord['status'], total: number): number {
@@ -160,7 +160,7 @@ function buildJournalLogs(task: TaskManageRecord, locale: string, nodes: FlowNod
       time: formatDate(currentTime),
       node: node.name,
       action: locale === 'en-US' ? 'Started' : '已开始',
-      duration: '00:00.000',
+      duration: '00:00:00',
       type: 'start',
     });
 
@@ -170,7 +170,7 @@ function buildJournalLogs(task: TaskManageRecord, locale: string, nodes: FlowNod
         time: formatDate(new Date(currentTime.getTime() + 1000)),
         node: node.name,
         action: locale === 'en-US' ? 'Suspended' : '已暂停',
-        duration: '00:00.001',
+        duration: '00:00:01',
         type: 'pause',
       });
       return;
@@ -238,7 +238,7 @@ function buildCommandRows(locale: string, nodes: FlowNode[]): CommandRow[] {
     command: node.command,
     params: node.params,
     status: node.status === 'done' ? (locale === 'en-US' ? 'Done' : '已完成') : node.status === 'running' ? (locale === 'en-US' ? 'Running' : '执行中') : locale === 'en-US' ? 'Pending' : '待执行',
-    duration: node.status === 'pending' ? '00:00.000' : formatDuration(node.durationSec),
+    duration: node.status === 'pending' ? '00:00:00' : formatDuration(node.durationSec),
   }));
 }
 
@@ -335,7 +335,6 @@ export function TaskManageDetailPage() {
                 <div className="journal-time">
                   <Typography.Text>{log.time.split(' ')[0]}</Typography.Text>
                   <Typography.Text type="secondary">{log.time.split(' ')[1]}</Typography.Text>
-                  <Typography.Text type="secondary">{log.duration}</Typography.Text>
                 </div>
                 <div className="journal-node-icon">{logIcon(log.type)}</div>
                 <div className="journal-node-text">

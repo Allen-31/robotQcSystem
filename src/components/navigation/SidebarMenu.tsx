@@ -1,13 +1,6 @@
-import {
-  BarChartOutlined,
-  CheckCircleOutlined,
-  HomeOutlined,
-  SettingOutlined,
-  ToolOutlined,
-} from '@ant-design/icons';
+import { HomeOutlined } from '@ant-design/icons';
 import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
-import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
@@ -16,14 +9,7 @@ import { useCurrentRole } from '../../logic/deployConfig/useCurrentRole';
 import { filterMenuTreeByRole } from '../../logic/menu/menuPermission';
 import { buildOpenKeys, collectRoutes, matchSelectedPath } from '../../logic/menu/menuRoute';
 import type { MenuNode } from '../../shared/types/menu';
-
-const iconMap: Record<string, ReactNode> = {
-  HomeOutlined: <HomeOutlined />,
-  CheckCircleOutlined: <CheckCircleOutlined />,
-  SettingOutlined: <SettingOutlined />,
-  ToolOutlined: <ToolOutlined />,
-  BarChartOutlined: <BarChartOutlined />,
-};
+import { resolveMenuNodeIcon } from './menuIcon';
 
 function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): MenuProps['items'] {
   return nodes.map((node) => {
@@ -34,7 +20,7 @@ function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): 
     if (node.children?.length) {
       return {
         key,
-        icon: node.icon ? iconMap[node.icon] : undefined,
+        icon: resolveMenuNodeIcon(node),
         label,
         children: mapToMenuItems(node.children, translate),
       };
@@ -42,7 +28,7 @@ function mapToMenuItems(nodes: MenuNode[], translate: (key: string) => string): 
 
     return {
       key,
-      icon: node.icon ? iconMap[node.icon] : undefined,
+      icon: resolveMenuNodeIcon(node),
       label,
     };
   });
