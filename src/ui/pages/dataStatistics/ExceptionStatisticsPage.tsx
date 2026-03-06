@@ -364,17 +364,17 @@ export function ExceptionStatisticsPage() {
             <Statistic title={label.closeRate} value={summary.closeRate} suffix="%" />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={4}>
+        <Col xs={24} md={8} xl={3}>
           <Card>
             <Statistic title={label.avgResponse} value={summary.avgResponse} suffix={locale === 'en-US' ? ' min' : ' 分钟'} />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={4}>
+        <Col xs={24} md={8} xl={3}>
           <Card>
             <Statistic title={label.avgClose} value={summary.avgClose} suffix={locale === 'en-US' ? ' min' : ' 分钟'} />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={1}>
+        <Col xs={24} md={8} xl={3}>
           <Card>
             <Statistic title={label.highLevel} value={summary.highLevel} />
           </Card>

@@ -42,6 +42,7 @@ import { PublishManagePage } from '../../ui/pages/operationMaintenance/PublishMa
 import { RobotManagePage } from '../../ui/pages/operationMaintenance/RobotManagePage';
 import { RobotManageDetailPage } from '../../ui/pages/operationMaintenance/RobotManageDetailPage';
 import { ServiceManagePage } from '../../ui/pages/operationMaintenance/ServiceManagePage';
+import { TaskManageDetailPage } from '../../ui/pages/operationMaintenance/TaskManageDetailPage';
 import { TaskManagePage } from '../../ui/pages/operationMaintenance/TaskManagePage';
 import { DeviceStatisticsPage } from '../../ui/pages/dataStatistics/DeviceStatisticsPage';
 import { ExceptionStatisticsPage } from '../../ui/pages/dataStatistics/ExceptionStatisticsPage';
@@ -67,6 +68,7 @@ const serviceManagePath = '/operationMaintenance/service/serviceManage';
 const packageManagePath = '/operationMaintenance/upgrade/packageManage';
 const publishManagePath = '/operationMaintenance/upgrade/publishManage';
 const taskManagePath = '/operationMaintenance/task/taskManage';
+const taskManageDetailPath = '/operationMaintenance/task/taskManage/:taskId/detail';
 const robotManagePath = '/operationMaintenance/robot/robotManage';
 const robotManageDetailPath = '/operationMaintenance/robot/robotManage/:robotId/detail';
 const exceptionNotificationPath = '/operationMaintenance/notification/exceptionNotification';
@@ -173,6 +175,7 @@ export function AppRouter() {
             <Route path={packageManagePath} element={<PackageManagePage />} />
             <Route path={publishManagePath} element={<PublishManagePage />} />
             <Route path={taskManagePath} element={<TaskManagePage />} />
+            <Route path={taskManageDetailPath} element={<TaskManageDetailPage />} />
             <Route path={robotManagePath} element={<RobotManagePage />} />
             <Route path={robotManageDetailPath} element={<RobotManageDetailPage />} />
             <Route path={exceptionNotificationPath} element={<ExceptionNotificationPage />} />

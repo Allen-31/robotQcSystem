@@ -27,6 +27,12 @@ interface SimpleLineChartProps {
   valueSuffix?: string;
 }
 
+interface SimplePieChartProps {
+  title?: string;
+  data: BarSeriesItem[];
+  height?: number;
+}
+
 function formatNumber(value: number): string {
   if (value >= 1000) {
     return value.toLocaleString();
@@ -163,6 +169,76 @@ export function SimpleLineChart({ title, categories, series, height = 280, yAxis
           </Space>
         ))}
       </Space>
+    </Space>
+  );
+}
+
+export function SimplePieChart({ title, data, height = 280 }: SimplePieChartProps) {
+  const valid = data.filter((item) => item.value > 0);
+  if (valid.length === 0) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+  }
+
+  const width = 900;
+  const centerX = 280;
+  const centerY = height / 2;
+  const radius = Math.min(90, height / 2 - 24);
+  const total = valid.reduce((sum, item) => sum + item.value, 0);
+  const colors = ['#1677ff', '#52c41a', '#fa8c16', '#722ed1', '#13c2c2', '#eb2f96', '#fa541c'];
+  const isSingleSlice = valid.length === 1;
+
+  let startAngle = -Math.PI / 2;
+  const slices = valid.map((item, index) => {
+    const ratio = item.value / total;
+    const endAngle = startAngle + ratio * Math.PI * 2;
+    const largeArcFlag = endAngle - startAngle > Math.PI ? 1 : 0;
+    const x1 = centerX + radius * Math.cos(startAngle);
+    const y1 = centerY + radius * Math.sin(startAngle);
+    const x2 = centerX + radius * Math.cos(endAngle);
+    const y2 = centerY + radius * Math.sin(endAngle);
+    const path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+    const result = {
+      ...item,
+      ratio,
+      path,
+      color: colors[index % colors.length],
+      label: `${item.name} ${formatNumber(item.value)} (${(ratio * 100).toFixed(1)}%)`,
+    };
+    startAngle = endAngle;
+    return result;
+  });
+
+  return (
+    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+      {title ? <Typography.Text strong>{title}</Typography.Text> : null}
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height }}>
+        {slices.map((slice) => (
+          isSingleSlice ? (
+            <circle key={slice.name} cx={centerX} cy={centerY} r={radius} fill={slice.color} stroke="#fff" strokeWidth={1}>
+              <title>{slice.label}</title>
+            </circle>
+          ) : (
+            <path key={slice.name} d={slice.path} fill={slice.color} stroke="#fff" strokeWidth={1}>
+              <title>{slice.label}</title>
+            </path>
+          )
+        ))}
+        <circle cx={centerX} cy={centerY} r={radius * 0.5} fill="#fff" />
+        <text x={centerX} y={centerY - 4} textAnchor="middle" fontSize="12" fill="#64748b">
+          Total
+        </text>
+        <text x={centerX} y={centerY + 14} textAnchor="middle" fontSize="16" fill="#1e293b" fontWeight={600}>
+          {formatNumber(total)}
+        </text>
+        {slices.map((slice, index) => (
+          <g key={`${slice.name}-legend`}>
+            <rect x={500} y={40 + index * 24} width={12} height={12} rx={2} fill={slice.color} />
+            <text x={518} y={50 + index * 24} fontSize="12" fill="#475569">
+              {slice.label}
+            </text>
+          </g>
+        ))}
+      </svg>
     </Space>
   );
 }

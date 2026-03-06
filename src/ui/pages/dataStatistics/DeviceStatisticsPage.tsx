@@ -3,7 +3,7 @@ import { Button, Card, Col, Drawer, Input, Row, Select, Space, Statistic, Table,
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
-import { SimpleBarChart, SimpleLineChart } from '../../components/charts/SimpleCharts';
+import { SimpleBarChart, SimpleLineChart, SimplePieChart } from '../../components/charts/SimpleCharts';
 
 type PeriodKey = 'day1' | 'day7' | 'month1';
 type ExceptionLevel = 'none' | 'low' | 'medium' | 'high';
@@ -435,12 +435,12 @@ export function DeviceStatisticsPage() {
         </Col>
         <Col xs={24} xl={12}>
           <Card title={label.typeDistTitle}>
-            <SimpleBarChart data={typeDistribution} />
+            <SimplePieChart data={typeDistribution} />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
           <Card title={label.levelDistTitle}>
-            <SimpleBarChart data={levelDistribution} />
+            <SimplePieChart data={levelDistribution} />
           </Card>
         </Col>
         <Col xs={24} xl={12}>

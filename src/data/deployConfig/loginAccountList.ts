@@ -1,4 +1,5 @@
-import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
+﻿import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
+import { roleList } from './roleList';
 
 export interface LoginAccount {
   username: string;
@@ -12,11 +13,41 @@ interface LocalizedLoginAccount extends Omit<LoginAccount, 'displayName' | 'role
   role: LocalizedText;
 }
 
+function getRoleNameByCode(code: string, fallback: string): string {
+  return roleList.find((item) => item.code === code)?.name ?? fallback;
+}
+
 const localizedLoginAccountList: LocalizedLoginAccount[] = [
-  { username: 'admin', password: '123456', displayName: { zh: '系统管理员', en: 'System Administrator' }, role: { zh: '管理员', en: 'Administrator' } },
-  { username: 'qc', password: '123456', displayName: { zh: '一线质检员', en: 'Frontline Quality Inspector' }, role: { zh: '质检员', en: 'Quality Inspector' } },
-  { username: 'pe', password: '123456', displayName: { zh: '工艺工程师', en: 'Process Engineer' }, role: { zh: '工艺工程师', en: 'Process Engineer' } },
-  { username: 'ops', password: '123456', displayName: { zh: '运维工程师', en: 'Operations Engineer' }, role: { zh: '运维工程师', en: 'Operations Engineer' } },
+  {
+    username: 'admin',
+    password: '123456',
+    displayName: { zh: '系统管理员', en: 'System Administrator' },
+    role: { zh: getRoleNameByCode('ROLE-001', '管理员'), en: 'Administrator' },
+  },
+  {
+    username: 'qc',
+    password: '123456',
+    displayName: { zh: '一线质检员', en: 'Frontline Quality Inspector' },
+    role: { zh: getRoleNameByCode('ROLE-002', '质检员'), en: 'Quality Inspector' },
+  },
+  {
+    username: 'pe',
+    password: '123456',
+    displayName: { zh: '工艺工程师', en: 'Process Engineer' },
+    role: { zh: getRoleNameByCode('ROLE-003', '工艺工程师'), en: 'Process Engineer' },
+  },
+  {
+    username: 'ops',
+    password: '123456',
+    displayName: { zh: '运维工程师', en: 'Operations Engineer' },
+    role: { zh: getRoleNameByCode('ROLE-004', '运维工程师'), en: 'Operations Engineer' },
+  },
+  {
+    username: 'pad',
+    password: '123456',
+    displayName: { zh: 'PAD 用户', en: 'PAD User' },
+    role: { zh: 'PAD', en: 'PAD' },
+  },
 ];
 
 export function getLoginAccountList(locale: DataLocale): LoginAccount[] {
