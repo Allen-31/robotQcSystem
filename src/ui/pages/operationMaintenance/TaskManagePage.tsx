@@ -1,10 +1,11 @@
-import { ExportOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
+﻿import { ExportOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useState } from 'react';
-import { getCurrentUser } from '../../../logic/auth/authStore';
+import taskDetailPlaceholder from '../../../assets/task_detail.png';
 import { getTaskManageList, type TaskManageRecord, type TaskStatus } from '../../../data/operationMaintenance/taskManageList';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { getCurrentUser } from '../../../logic/auth/authStore';
 
 function escapeCsv(value: string | number): string {
   const text = String(value ?? '');
@@ -82,6 +83,7 @@ export function TaskManagePage() {
         resumeDone: 'Task resumed',
       };
     }
+
     return {
       create: '新增',
       export: '导出',
@@ -112,34 +114,18 @@ export function TaskManagePage() {
   }, [locale]);
 
   const statusText = (status: TaskStatus) => {
-    if (status === 'pending') {
-      return label.statusPending;
-    }
-    if (status === 'running') {
-      return label.statusRunning;
-    }
-    if (status === 'paused') {
-      return label.statusPaused;
-    }
-    if (status === 'completed') {
-      return label.statusCompleted;
-    }
+    if (status === 'pending') return label.statusPending;
+    if (status === 'running') return label.statusRunning;
+    if (status === 'paused') return label.statusPaused;
+    if (status === 'completed') return label.statusCompleted;
     return label.statusStopped;
   };
 
   const statusColor = (status: TaskStatus) => {
-    if (status === 'pending') {
-      return 'default';
-    }
-    if (status === 'running') {
-      return 'processing';
-    }
-    if (status === 'paused') {
-      return 'warning';
-    }
-    if (status === 'completed') {
-      return 'success';
-    }
+    if (status === 'pending') return 'default';
+    if (status === 'running') return 'processing';
+    if (status === 'paused') return 'warning';
+    if (status === 'completed') return 'success';
     return 'error';
   };
 
@@ -271,13 +257,7 @@ export function TaskManagePage() {
       </Card>
 
       <Card>
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={tableData}
-          pagination={{ pageSize: 8, showSizeChanger: false }}
-          scroll={{ x: 1400 }}
-        />
+        <Table rowKey="id" columns={columns} dataSource={tableData} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1400 }} />
       </Card>
 
       <Modal
@@ -320,32 +300,11 @@ export function TaskManagePage() {
         open={Boolean(detailTask)}
         onCancel={() => setDetailTask(null)}
         footer={null}
+        width="90vw"
+        styles={{ body: { padding: 0 } }}
       >
         {detailTask ? (
-          <Space direction="vertical" size={8} style={{ width: '100%' }}>
-            <Typography.Text>
-              {label.tableCode}：{detailTask.code}
-            </Typography.Text>
-            <Typography.Text>
-              {label.tableExternalCode}：{detailTask.externalCode}
-            </Typography.Text>
-            <Typography.Text>
-              {label.tableStatus}：{statusText(detailTask.status)}
-            </Typography.Text>
-            <Typography.Text>
-              {label.tableRobot}：{detailTask.robot}
-            </Typography.Text>
-            <Typography.Text>
-              {label.tablePriority}：{detailTask.priority}
-            </Typography.Text>
-            <Typography.Text>
-              {label.tableCreatedAt}：{detailTask.createdAt}
-            </Typography.Text>
-            <Typography.Text>
-              {label.tableEndedAt}：{detailTask.endedAt}
-            </Typography.Text>
-            <Typography.Text>{detailTask.description}</Typography.Text>
-          </Space>
+          <img src={taskDetailPlaceholder} alt={locale === 'en-US' ? 'Task Detail Preview' : '任务详情预览'} style={{ display: 'block', width: '100%', height: 'auto' }} />
         ) : null}
       </Modal>
     </Space>
