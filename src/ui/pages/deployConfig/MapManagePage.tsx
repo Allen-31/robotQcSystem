@@ -3,11 +3,13 @@ import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, 
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useMapManage, type MapManageFormValues } from '../../../logic/deployConfig/useMapManage';
 import type { MapManageRecord } from '../../../shared/types/deployConfig';
 
 export function MapManagePage() {
+  const navigate = useNavigate();
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<MapManageFormValues>();
@@ -121,7 +123,7 @@ export function MapManagePage() {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type="link" onClick={() => messageApi.info(t('mapManage.message.designing', { name: record.name }))}>
+          <Button type="link" onClick={() => navigate(`/deployConfig/scene/mapManage/${encodeURIComponent(record.code)}/edit`)}>
             {t('mapManage.action.design')}
           </Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>

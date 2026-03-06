@@ -23,6 +23,7 @@ export function SubsystemLayout() {
   if (menuNodes.length === 0) {
     return (
       <Content
+        className="app-subsystem-content"
         style={{
           padding: isOperationMonitoring ? 0 : isLaptop ? 12 : 16,
           minWidth: 0,
@@ -41,10 +42,11 @@ export function SubsystemLayout() {
 
   return (
     <Layout style={{ flex: 1, minHeight: 0 }}>
-      <Sider width={isLaptop ? 220 : 260} theme="light">
+      <Sider className="app-sub-sider" width={isLaptop ? 220 : 260} theme="light">
         <SubsystemMenu nodes={menuNodes} />
       </Sider>
       <Content
+        className="app-subsystem-content"
         style={{
           margin: isOperationMonitoring ? 0 : isLaptop ? 12 : 16,
           minWidth: 0,

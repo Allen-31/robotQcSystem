@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tree, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
@@ -29,7 +29,7 @@ type RobotConfigRecord = {
   params: ConfigParam[];
 };
 
-type RobotConfigFormValues = Pick<RobotConfigRecord, 'code' | 'serialNo' | 'ip' | 'robotType' | 'group' | 'registeredAt'>;
+type RobotConfigFormValues = Pick<RobotConfigRecord, 'robotType' | 'group'>;
 type ConfigCompareRow = {
   key: string;
   categoryKey: string;
@@ -257,12 +257,8 @@ export function ConfigTemplatePage() {
   const openEdit = (record: RobotConfigRecord) => {
     setEditing(record);
     form.setFieldsValue({
-      code: record.code,
-      serialNo: record.serialNo,
-      ip: record.ip,
       robotType: record.robotType,
       group: record.group,
-      registeredAt: record.registeredAt,
     });
   };
 
@@ -309,7 +305,7 @@ export function ConfigTemplatePage() {
     if (!editing) {
       return;
     }
-    setList((prev) => prev.map((item) => (item.id === editing.id ? { ...item, group: values.group } : item)));
+    setList((prev) => prev.map((item) => (item.id === editing.id ? { ...item, robotType: values.robotType, group: values.group } : item)));
     messageApi.success('已保存');
     closeEdit();
   };
@@ -583,38 +579,12 @@ const columns: ColumnsType<RobotConfigRecord> = [
         destroyOnClose
       >
         <Form form={form} layout="vertical">
-          <Row gutter={12}>
-            <Col xs={24} md={12}>
-              <Form.Item label="Id" name="code">
-                <Input disabled />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="序列号" name="serialNo">
-                <Input disabled />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="IP" name="ip">
-                <Input disabled />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="类型" name="robotType">
-                <Select disabled options={robotTypes.map((item) => ({ label: item, value: item }))} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="分组" name="group" rules={[{ required: true, message: '请选择分组' }]}>
-                <Select options={groups.map((item) => ({ label: item, value: item }))} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="注册时间" name="registeredAt">
-                <Input disabled />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item label="类型" name="robotType">
+            <Select options={robotTypes.slice(0, 2).map((item) => ({ label: item, value: item }))} />
+          </Form.Item>
+          <Form.Item label="分组" name="group" rules={[{ required: true, message: '请选择分组' }]}>
+            <Select options={groups.map((item) => ({ label: item, value: item }))} />
+          </Form.Item>
         </Form>
       </Modal>
 
