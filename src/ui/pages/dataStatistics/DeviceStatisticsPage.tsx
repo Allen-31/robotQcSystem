@@ -1,7 +1,8 @@
-import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Drawer, Input, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { DownloadOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Collapse, Descriptions, Drawer, Input, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { SimpleBarChart, SimpleLineChart, SimplePieChart } from '../../components/charts/SimpleCharts';
 
@@ -59,8 +60,36 @@ function escapeCsv(value: string): string {
   return value;
 }
 
+function formatLastUpdated(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const sec = String(date.getSeconds()).padStart(2, '0');
+  return `${y}-${m}-${d} ${h}:${min}:${sec}`;
+}
+
+/** Mock recent exceptions for detail drawer */
+function getMockRecentExceptions(deviceId: string, _locale: string): { id: string; level: string; type: string; time: string }[] {
+  return [
+    { id: 'EX-001', level: 'P2', type: '路径规划异常', time: '2026-03-05 14:32' },
+    { id: 'EX-002', level: 'P3', type: '电量低告警', time: '2026-03-05 11:20' },
+  ];
+}
+
+/** Mock recent tasks for detail drawer */
+function getMockRecentTasks(deviceId: string): { id: string; status: string; createdAt: string }[] {
+  return [
+    { id: 'TK-20260301', status: 'finished', createdAt: '2026-03-05 15:10' },
+    { id: 'TK-20260302', status: 'running', createdAt: '2026-03-05 14:55' },
+    { id: 'TK-20260300', status: 'finished', createdAt: '2026-03-05 13:20' },
+  ];
+}
+
 export function DeviceStatisticsPage() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
+  const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const [period, setPeriod] = useState<PeriodKey>('day7');
   const [workshop, setWorkshop] = useState<string>('all');
@@ -72,92 +101,7 @@ export function DeviceStatisticsPage() {
   const [exceptionStatus, setExceptionStatus] = useState<string>('all');
   const [keyword, setKeyword] = useState('');
   const [detail, setDetail] = useState<DeviceRecord | null>(null);
-
-  const label = useMemo(
-    () =>
-      locale === 'en-US'
-        ? {
-            period: 'Time',
-            workshop: 'Workshop',
-            workstation: 'Zone',
-            station: 'Bench',
-            robotType: 'Robot Type',
-            robotGroup: 'Robot Group',
-            online: 'Online',
-            exception: 'Exception',
-            keyword: 'Search by robot/task/station',
-            refresh: 'Refresh',
-            export: 'Export',
-            allWorkshop: 'All Workshops',
-            allWorkstation: 'All Zones',
-            allStation: 'All Benches',
-            allRobotType: 'All Robot Types',
-            allRobotGroup: 'All Robot Groups',
-            allOnlineStatus: 'All Online Status',
-            allExceptionStatus: 'All Exception Status',
-            total: 'Total Devices',
-            onlineCount: 'Online Devices',
-            onlineRate: 'Online Rate',
-            faultCount: 'Fault Devices',
-            avgBattery: 'Avg Battery',
-            runtime: 'Runtime Today',
-            tasks: 'Tasks Today',
-            listTitle: 'Device Statistics List',
-            trendTitle: 'Online Trend',
-            typeDistTitle: 'Type Distribution',
-            levelDistTitle: 'Exception Level Distribution',
-            batteryDistTitle: 'Battery Distribution',
-            detailTitle: 'Device Detail',
-            noData: 'No data to export',
-            exportDone: 'Exported successfully',
-            all: 'All',
-            onlineOnly: 'Online',
-            offlineOnly: 'Offline',
-            exceptionOnly: 'Has Exception',
-            normalOnly: 'Normal',
-          }
-        : {
-            period: '时间',
-            workshop: '车间',
-            workstation: '质检区',
-            station: '质检台',
-            robotType: '机器人类型',
-            robotGroup: '机器人组',
-            online: '在线状态',
-            exception: '异常状态',
-            keyword: '按机器人/任务/工位搜索',
-            refresh: '刷新',
-            export: '导出',
-            allWorkshop: '全部车间',
-            allWorkstation: '全部质检区',
-            allStation: '全部质检台',
-            allRobotType: '全部机器人类型',
-            allRobotGroup: '全部机器人组',
-            allOnlineStatus: '全部在线状态',
-            allExceptionStatus: '全部异常状态',
-            total: '设备总数',
-            onlineCount: '在线设备数',
-            onlineRate: '在线率',
-            faultCount: '故障设备数',
-            avgBattery: '平均电量',
-            runtime: '今日运行时长',
-            tasks: '今日任务量',
-            listTitle: '设备统计列表',
-            trendTitle: '在线趋势',
-            typeDistTitle: '设备类型分布',
-            levelDistTitle: '异常等级分布',
-            batteryDistTitle: '电量分布',
-            detailTitle: '设备详情',
-            noData: '暂无可导出数据',
-            exportDone: '导出成功',
-            all: '全部',
-            onlineOnly: '在线',
-            offlineOnly: '离线',
-            exceptionOnly: '有异常',
-            normalOnly: '正常',
-          },
-    [locale],
-  );
+  const [lastUpdated, setLastUpdated] = useState<Date>(() => new Date());
 
   const filtered = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
@@ -179,18 +123,20 @@ export function DeviceStatisticsPage() {
   const summary = useMemo(() => {
     const total = filtered.length;
     const onlineCount = filtered.filter((item) => item.online).length;
-    const faultCount = filtered.filter((item) => item.exceptionLevel !== 'none').length;
+    const exceptionDeviceCount = filtered.filter((item) => item.exceptionLevel !== 'none').length;
     const avgBattery = total === 0 ? 0 : Number((filtered.reduce((sum, item) => sum + item.battery, 0) / total).toFixed(1));
     const runtime = Number(filtered.reduce((sum, item) => sum + item.runtimeHourToday, 0).toFixed(1));
     const tasks = filtered.reduce((sum, item) => sum + item.tasksToday, 0);
+    const taskCompleteRate = total === 0 ? 0 : 95; // mock: 任务完成率
     return {
       total,
       onlineCount,
       onlineRate: total === 0 ? 0 : Number(((onlineCount / total) * 100).toFixed(1)),
-      faultCount,
+      exceptionDeviceCount,
       avgBattery,
       runtime,
       tasks,
+      taskCompleteRate,
     };
   }, [filtered]);
 
@@ -214,18 +160,14 @@ export function DeviceStatisticsPage() {
     [filtered],
   );
 
-  const levelDistribution = useMemo(() => {
-    const levelText: Record<ExceptionLevel, string> = {
-      none: locale === 'en-US' ? 'Normal' : '正常',
-      low: locale === 'en-US' ? 'Low' : '低',
-      medium: locale === 'en-US' ? 'Medium' : '中',
-      high: locale === 'en-US' ? 'High' : '高',
-    };
-    return (['none', 'low', 'medium', 'high'] as ExceptionLevel[]).map((level) => ({
-      name: levelText[level],
-      value: filtered.filter((item) => item.exceptionLevel === level).length,
-    }));
-  }, [filtered, locale]);
+  const levelDistribution = useMemo(
+    () =>
+      (['none', 'low', 'medium', 'high'] as ExceptionLevel[]).map((level) => ({
+        name: t(`deviceStatistics.level.${level}`),
+        value: filtered.filter((item) => item.exceptionLevel === level).length,
+      })),
+    [filtered, t],
+  );
 
   const batteryDistribution = useMemo(() => {
     const bins = [
@@ -241,9 +183,14 @@ export function DeviceStatisticsPage() {
     }));
   }, [filtered]);
 
+  const handleRefresh = () => {
+    setLastUpdated(new Date());
+    messageApi.success(t('deviceStatistics.refreshed'));
+  };
+
   const exportRows = () => {
     if (filtered.length === 0) {
-      messageApi.warning(label.noData);
+      messageApi.warning(t('deviceStatistics.noData'));
       return;
     }
     const headers = ['id', 'type', 'group', 'workshop', 'workstation', 'station', 'online', 'battery', 'runtimeHourToday', 'tasksToday', 'currentTask', 'lastHeartbeat', 'exceptionLevel', 'exceptionCount'];
@@ -266,7 +213,7 @@ export function DeviceStatisticsPage() {
           item.exceptionLevel,
           String(item.exceptionCount),
         ]
-          .map((v) => escapeCsv(v))
+          .map((v) => escapeCsv(String(v)))
           .join(','),
       ),
     ].join('\n');
@@ -279,55 +226,82 @@ export function DeviceStatisticsPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    messageApi.success(label.exportDone);
+    messageApi.success(t('deviceStatistics.exportDone'));
+  };
+
+  const levelTagMap: Record<ExceptionLevel, { color: string }> = {
+    none: { color: 'default' },
+    low: { color: 'gold' },
+    medium: { color: 'orange' },
+    high: { color: 'red' },
   };
 
   const columns: ColumnsType<DeviceRecord> = [
-    { title: locale === 'en-US' ? 'Device ID' : '设备编号', dataIndex: 'id', key: 'id', width: 120 },
-    { title: label.robotType, dataIndex: 'type', key: 'type', width: 120 },
-    { title: label.robotGroup, dataIndex: 'group', key: 'group', width: 120 },
-    { title: label.workshop, dataIndex: 'workshop', key: 'workshop', width: 140 },
-    { title: label.workstation, dataIndex: 'workstation', key: 'workstation', width: 130 },
-    { title: label.station, dataIndex: 'station', key: 'station', width: 110 },
+    { title: t('deviceStatistics.deviceId'), dataIndex: 'id', key: 'id', width: 120 },
+    { title: t('deviceStatistics.robotType'), dataIndex: 'type', key: 'type', width: 120 },
+    { title: t('deviceStatistics.robotGroup'), dataIndex: 'group', key: 'group', width: 120 },
+    { title: t('deviceStatistics.workshop'), dataIndex: 'workshop', key: 'workshop', width: 140 },
+    { title: t('deviceStatistics.workstation'), dataIndex: 'workstation', key: 'workstation', width: 130 },
+    { title: t('deviceStatistics.station'), dataIndex: 'station', key: 'station', width: 110 },
     {
-      title: label.online,
+      title: t('deviceStatistics.online'),
       dataIndex: 'online',
       key: 'online',
       width: 100,
-      render: (value: boolean) => <Tag color={value ? 'success' : 'default'}>{value ? (locale === 'en-US' ? 'Online' : '在线') : locale === 'en-US' ? 'Offline' : '离线'}</Tag>,
+      render: (value: boolean) => (
+        <Tag color={value ? 'success' : 'default'}>{value ? t('deviceStatistics.onlineOnly') : t('deviceStatistics.offlineOnly')}</Tag>
+      ),
     },
-    { title: locale === 'en-US' ? 'Battery' : '电量', dataIndex: 'battery', key: 'battery', width: 100, sorter: (a, b) => a.battery - b.battery, render: (value: number) => `${value}%` },
-    { title: label.runtime, dataIndex: 'runtimeHourToday', key: 'runtimeHourToday', width: 130, sorter: (a, b) => a.runtimeHourToday - b.runtimeHourToday, render: (value: number) => `${value}${locale === 'en-US' ? ' h' : ' 小时'}` },
-    { title: label.tasks, dataIndex: 'tasksToday', key: 'tasksToday', width: 110, sorter: (a, b) => a.tasksToday - b.tasksToday },
-    { title: locale === 'en-US' ? 'Current Task' : '当前任务', dataIndex: 'currentTask', key: 'currentTask', width: 140 },
-    { title: locale === 'en-US' ? 'Last Heartbeat' : '最近心跳', dataIndex: 'lastHeartbeat', key: 'lastHeartbeat', width: 160 },
     {
-      title: locale === 'en-US' ? 'Exception Level' : '异常等级',
+      title: t('deviceStatistics.battery'),
+      dataIndex: 'battery',
+      key: 'battery',
+      width: 100,
+      sorter: (a, b) => a.battery - b.battery,
+      render: (value: number) => `${value}%`,
+    },
+    {
+      title: t('deviceStatistics.runtime'),
+      dataIndex: 'runtimeHourToday',
+      key: 'runtimeHourToday',
+      width: 130,
+      sorter: (a, b) => a.runtimeHourToday - b.runtimeHourToday,
+      render: (value: number) => `${value} ${t('deviceStatistics.hour')}`,
+    },
+    { title: t('deviceStatistics.tasks'), dataIndex: 'tasksToday', key: 'tasksToday', width: 110, sorter: (a, b) => a.tasksToday - b.tasksToday },
+    { title: t('deviceStatistics.currentTask'), dataIndex: 'currentTask', key: 'currentTask', width: 140 },
+    { title: t('deviceStatistics.lastHeartbeat'), dataIndex: 'lastHeartbeat', key: 'lastHeartbeat', width: 160 },
+    {
+      title: t('deviceStatistics.exceptionLevel'),
       dataIndex: 'exceptionLevel',
       key: 'exceptionLevel',
       width: 120,
-      render: (value: ExceptionLevel) => {
-        const map: Record<ExceptionLevel, { color: string; text: string }> = {
-          none: { color: 'default', text: locale === 'en-US' ? 'Normal' : '正常' },
-          low: { color: 'gold', text: locale === 'en-US' ? 'Low' : '低' },
-          medium: { color: 'orange', text: locale === 'en-US' ? 'Medium' : '中' },
-          high: { color: 'red', text: locale === 'en-US' ? 'High' : '高' },
-        };
-        return <Tag color={map[value].color}>{map[value].text}</Tag>;
-      },
+      render: (value: ExceptionLevel) => <Tag color={levelTagMap[value].color}>{t(`deviceStatistics.level.${value}`)}</Tag>,
     },
-    { title: locale === 'en-US' ? 'Exception Count' : '异常次数', dataIndex: 'exceptionCount', key: 'exceptionCount', width: 110, sorter: (a, b) => a.exceptionCount - b.exceptionCount },
     {
-      title: locale === 'en-US' ? 'Action' : '操作',
+      title: t('deviceStatistics.exceptionCount24h'),
+      dataIndex: 'exceptionCount',
+      key: 'exceptionCount',
+      width: 110,
+      sorter: (a, b) => a.exceptionCount - b.exceptionCount,
+    },
+    {
+      title: t('deviceStatistics.action'),
       key: 'action',
       width: 90,
       fixed: 'right',
       render: (_, record) => (
         <Button type="link" onClick={() => setDetail(record)}>
-          {locale === 'en-US' ? 'Detail' : '详情'}
+          {t('deviceStatistics.detail')}
         </Button>
       ),
     },
+  ];
+
+  const periodOptions = [
+    { label: t('deviceStatistics.period.today'), value: 'day1' },
+    { label: t('deviceStatistics.period.last7'), value: 'day7' },
+    { label: t('deviceStatistics.period.lastMonth'), value: 'month1' },
   ];
 
   return (
@@ -338,134 +312,214 @@ export function DeviceStatisticsPage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('menu.deviceStatistics')}
           </Typography.Title>
-          <Space wrap>
-            <Select
-              value={period}
-              onChange={setPeriod}
-              style={{ width: 130 }}
-              options={[
-                { label: locale === 'en-US' ? 'Today' : '今日', value: 'day1' },
-                { label: locale === 'en-US' ? 'Last 7 Days' : '近7天', value: 'day7' },
-                { label: locale === 'en-US' ? 'Last 1 Month' : '近1个月', value: 'month1' },
-              ]}
+          <Space wrap align="center">
+            <Select value={period} onChange={setPeriod} style={{ width: 130 }} options={periodOptions} />
+            <Input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              style={{ width: 220 }}
+              placeholder={t('deviceStatistics.keyword')}
+              allowClear
             />
-            <Select value={workshop} onChange={setWorkshop} style={{ width: 150 }} options={[{ label: label.allWorkshop, value: 'all' }, ...workshops.map((item) => ({ label: item, value: item }))]} />
-            <Select value={workstation} onChange={setWorkstation} style={{ width: 130 }} options={[{ label: label.allWorkstation, value: 'all' }, ...workstations.map((item) => ({ label: item, value: item }))]} />
-            <Select value={station} onChange={setStation} style={{ width: 120 }} options={[{ label: label.allStation, value: 'all' }, ...stations.map((item) => ({ label: item, value: item }))]} />
-            <Select value={robotType} onChange={setRobotType} style={{ width: 130 }} options={[{ label: label.allRobotType, value: 'all' }, ...robotTypes.map((item) => ({ label: item, value: item }))]} />
-            <Select value={robotGroup} onChange={setRobotGroup} style={{ width: 130 }} options={[{ label: label.allRobotGroup, value: 'all' }, ...robotGroups.map((item) => ({ label: item, value: item }))]} />
-            <Select
-              value={onlineStatus}
-              onChange={setOnlineStatus}
-              style={{ width: 120 }}
-              options={[
-                { label: label.allOnlineStatus, value: 'all' },
-                { label: label.onlineOnly, value: 'online' },
-                { label: label.offlineOnly, value: 'offline' },
-              ]}
-            />
-            <Select
-              value={exceptionStatus}
-              onChange={setExceptionStatus}
-              style={{ width: 120 }}
-              options={[
-                { label: label.allExceptionStatus, value: 'all' },
-                { label: label.exceptionOnly, value: 'exception' },
-                { label: label.normalOnly, value: 'normal' },
-              ]}
-            />
-            <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 220 }} placeholder={label.keyword} allowClear />
-            <Button icon={<ReloadOutlined />} onClick={() => messageApi.success(locale === 'en-US' ? 'Refreshed' : '已刷新')}>
-              {label.refresh}
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
+              {t('deviceStatistics.refresh')}
             </Button>
             <Button icon={<DownloadOutlined />} onClick={exportRows}>
-              {label.export}
+              {t('deviceStatistics.export')}
             </Button>
+            <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
+              {t('deviceStatistics.lastUpdated')}: {formatLastUpdated(lastUpdated)}
+            </Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {t('deviceStatistics.mockDataHint')}
+            </Typography.Text>
           </Space>
+          <Collapse
+            ghost
+            items={[
+              {
+                key: 'filters',
+                label: t('deviceStatistics.moreFilters'),
+                children: (
+                  <Space wrap>
+                    <Select
+                      value={workshop}
+                      onChange={setWorkshop}
+                      style={{ width: 150 }}
+                      options={[{ label: t('deviceStatistics.allWorkshop'), value: 'all' }, ...workshops.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={workstation}
+                      onChange={setWorkstation}
+                      style={{ width: 130 }}
+                      options={[{ label: t('deviceStatistics.allWorkstation'), value: 'all' }, ...workstations.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={station}
+                      onChange={setStation}
+                      style={{ width: 120 }}
+                      options={[{ label: t('deviceStatistics.allStation'), value: 'all' }, ...stations.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={robotType}
+                      onChange={setRobotType}
+                      style={{ width: 130 }}
+                      options={[{ label: t('deviceStatistics.allRobotType'), value: 'all' }, ...robotTypes.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={robotGroup}
+                      onChange={setRobotGroup}
+                      style={{ width: 130 }}
+                      options={[{ label: t('deviceStatistics.allRobotGroup'), value: 'all' }, ...robotGroups.map((item) => ({ label: item, value: item }))]}
+                    />
+                    <Select
+                      value={onlineStatus}
+                      onChange={setOnlineStatus}
+                      style={{ width: 120 }}
+                      options={[
+                        { label: t('deviceStatistics.allOnlineStatus'), value: 'all' },
+                        { label: t('deviceStatistics.onlineOnly'), value: 'online' },
+                        { label: t('deviceStatistics.offlineOnly'), value: 'offline' },
+                      ]}
+                    />
+                    <Select
+                      value={exceptionStatus}
+                      onChange={setExceptionStatus}
+                      style={{ width: 120 }}
+                      options={[
+                        { label: t('deviceStatistics.allExceptionStatus'), value: 'all' },
+                        { label: t('deviceStatistics.exceptionOnly'), value: 'exception' },
+                        { label: t('deviceStatistics.normalOnly'), value: 'normal' },
+                      ]}
+                    />
+                  </Space>
+                ),
+              },
+            ]}
+          />
+          {period !== 'day1' && (
+            <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+              {t('deviceStatistics.summaryNote')}
+            </Typography.Text>
+          )}
         </Space>
       </Card>
 
       <Row gutter={[12, 12]}>
-        <Col xs={24} md={8} xl={3}>
+        <Col xs={24} sm={12} md={8} xl={4}>
           <Card>
-            <Statistic title={label.total} value={summary.total} />
+            <Statistic title={t('deviceStatistics.total')} value={summary.total} />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={3}>
+        <Col xs={24} sm={12} md={8} xl={4}>
           <Card>
-            <Statistic title={label.onlineCount} value={summary.onlineCount} />
+            <Statistic title={t('deviceStatistics.onlineCount')} value={summary.onlineCount} />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={3}>
+        <Col xs={24} sm={12} md={8} xl={4}>
           <Card>
-            <Statistic title={label.onlineRate} value={summary.onlineRate} suffix="%" />
+            <Statistic title={t('deviceStatistics.onlineRate')} value={summary.onlineRate} suffix="%" />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={3}>
+        <Col xs={24} sm={12} md={8} xl={4}>
           <Card>
-            <Statistic title={label.faultCount} value={summary.faultCount} />
+            <Statistic title={t('deviceStatistics.exceptionDeviceCount')} value={summary.exceptionDeviceCount} />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={3}>
+        <Col xs={24} sm={12} md={8} xl={4}>
           <Card>
-            <Statistic title={label.avgBattery} value={summary.avgBattery} suffix="%" />
+            <Statistic title={t('deviceStatistics.avgBattery')} value={summary.avgBattery} suffix="%" />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={4}>
+        <Col xs={24} sm={12} md={8} xl={4}>
           <Card>
-            <Statistic title={label.runtime} value={summary.runtime} suffix={locale === 'en-US' ? ' h' : ' 小时'} />
+            <Statistic title={t('deviceStatistics.runtime')} value={summary.runtime} suffix={t('deviceStatistics.hour')} />
           </Card>
         </Col>
-        <Col xs={24} md={8} xl={5}>
+        <Col xs={24} sm={12} md={8} xl={4}>
           <Card>
-            <Statistic title={label.tasks} value={summary.tasks} />
+            <Statistic title={t('deviceStatistics.tasks')} value={summary.tasks} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8} xl={4}>
+          <Card>
+            <Statistic title={t('deviceStatistics.taskCompleteRate')} value={summary.taskCompleteRate} suffix="%" />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} xl={12}>
-          <Card title={label.trendTitle}>
+          <Card title={t('deviceStatistics.trendTitle')}>
             <SimpleLineChart
               categories={onlineTrend.categories}
-              series={[{ name: label.onlineCount, color: '#1677ff', values: onlineTrend.values }]}
-              yAxisLabel={label.onlineCount}
+              series={[{ name: t('deviceStatistics.onlineCount'), color: '#1677ff', values: onlineTrend.values }]}
+              yAxisLabel={t('deviceStatistics.onlineCount')}
             />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title={label.typeDistTitle}>
+          <Card title={t('deviceStatistics.typeDistTitle')}>
             <SimplePieChart data={typeDistribution} />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title={label.levelDistTitle}>
+          <Card title={t('deviceStatistics.levelDistTitle')}>
             <SimplePieChart data={levelDistribution} />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title={label.batteryDistTitle}>
+          <Card title={t('deviceStatistics.batteryDistTitle')}>
             <SimpleBarChart data={batteryDistribution} />
           </Card>
         </Col>
       </Row>
 
-      <Card title={label.listTitle}>
+      <Card title={t('deviceStatistics.listTitle')}>
         <Table rowKey="id" columns={columns} dataSource={filtered} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1900 }} />
       </Card>
 
-      <Drawer title={label.detailTitle} open={Boolean(detail)} onClose={() => setDetail(null)} width={520}>
+      <Drawer title={t('deviceStatistics.detailTitle')} open={Boolean(detail)} onClose={() => setDetail(null)} width={520}>
         {detail ? (
-          <Space direction="vertical" size={10} style={{ width: '100%' }}>
-            <Typography.Text>{`ID: ${detail.id}`}</Typography.Text>
-            <Typography.Text>{`${label.robotType}: ${detail.type}`}</Typography.Text>
-            <Typography.Text>{`${label.robotGroup}: ${detail.group}`}</Typography.Text>
-            <Typography.Text>{`${label.workshop}/${label.workstation}/${label.station}: ${detail.workshop} / ${detail.workstation} / ${detail.station}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Battery' : '电量'}: ${detail.battery}%`}</Typography.Text>
-            <Typography.Text>{`${label.runtime}: ${detail.runtimeHourToday}${locale === 'en-US' ? ' h' : ' 小时'}`}</Typography.Text>
-            <Typography.Text>{`${label.tasks}: ${detail.tasksToday}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Current Task' : '当前任务'}: ${detail.currentTask}`}</Typography.Text>
-            <Typography.Text>{`${locale === 'en-US' ? 'Last Heartbeat' : '最近心跳'}: ${detail.lastHeartbeat}`}</Typography.Text>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Descriptions column={1} size="small">
+              <Descriptions.Item label={t('deviceStatistics.deviceId')}>{detail.id}</Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.robotType')}>{detail.type}</Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.robotGroup')}>{detail.group}</Descriptions.Item>
+              <Descriptions.Item label={`${t('deviceStatistics.workshop')} / ${t('deviceStatistics.workstation')} / ${t('deviceStatistics.station')}`}>
+                {detail.workshop} / {detail.workstation} / {detail.station}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.battery')}>{detail.battery}%</Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.runtime')}>
+                {detail.runtimeHourToday} {t('deviceStatistics.hour')}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.tasks')}>{detail.tasksToday}</Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.currentTask')}>{detail.currentTask}</Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.lastHeartbeat')}>{detail.lastHeartbeat}</Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.exceptionLevel')}>
+                <Tag color={levelTagMap[detail.exceptionLevel].color}>{t(`deviceStatistics.level.${detail.exceptionLevel}`)}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label={t('deviceStatistics.exceptionCount24h')}>{detail.exceptionCount}</Descriptions.Item>
+            </Descriptions>
+            <Typography.Text strong>{t('deviceStatistics.recentExceptions')}</Typography.Text>
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              {getMockRecentExceptions(detail.id, '').map((ex) => (
+                <li key={ex.id}>
+                  <Typography.Text type="secondary">{ex.id}</Typography.Text> {ex.type} · {ex.time}
+                </li>
+              ))}
+            </ul>
+            <Typography.Text strong>{t('deviceStatistics.recentTasks')}</Typography.Text>
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              {getMockRecentTasks(detail.id).map((task) => (
+                <li key={task.id}>
+                  <Typography.Text type="secondary">{task.id}</Typography.Text> {task.status} · {task.createdAt}
+                </li>
+              ))}
+            </ul>
+            <Button type="primary" icon={<RightOutlined />} onClick={() => navigate(`/operationMaintenance/robot/robotManage/${detail.id}/detail`)}>
+              {t('deviceStatistics.goToRobotDetail')}
+            </Button>
           </Space>
         ) : null}
       </Drawer>
