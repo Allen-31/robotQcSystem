@@ -94,6 +94,8 @@ function buildCsv(rows: WorkOrderItem[]): string {
     'createdAt',
     'startedAt',
     'endedAt',
+    'defectType',
+    'defectDescription',
   ];
 
   const lines = rows.map((row) =>
@@ -110,6 +112,8 @@ function buildCsv(rows: WorkOrderItem[]): string {
       row.createdAt,
       row.startedAt,
       row.endedAt,
+      row.defectType,
+      row.defectDescription,
     ]
       .map((item) => escapeCsv(item))
       .join(','),
@@ -159,6 +163,8 @@ function parseImportedCsv(content: string): Omit<WorkOrderItem, 'id'>[] {
       createdAt: cols[9] || '-',
       startedAt: cols[10] || '-',
       endedAt: cols[11] || '-',
+      defectType: cols[12] || '-',
+      defectDescription: cols[13] || '-',
     }));
 }
 
@@ -323,6 +329,7 @@ export function WorkOrderManagePage() {
     rawWorkOrders,
     harnessTypeOptions,
     stationCodeOptions,
+    defectTypeOptions,
     keyword,
     setKeyword,
     viewingWorkOrder,
@@ -331,7 +338,6 @@ export function WorkOrderManagePage() {
     closeDetail,
     openEdit,
     closeEdit,
-    reviewWorkOrder,
     cancelWorkOrder,
     removeWorkOrder,
     saveEdit,
@@ -356,6 +362,8 @@ export function WorkOrderManagePage() {
       detectionDuration: editingWorkOrder.detectionDuration,
       startedAt: editingWorkOrder.startedAt,
       endedAt: editingWorkOrder.endedAt,
+      defectType: editingWorkOrder.defectType,
+      defectDescription: editingWorkOrder.defectDescription,
     });
   }, [editingWorkOrder, form]);
 
@@ -508,16 +516,6 @@ export function WorkOrderManagePage() {
           <Button type="link" icon={<EyeOutlined />} onClick={() => openDetail(record)}>
             {t('workOrder.action.detail')}
           </Button>
-          <Button
-            type="link"
-            onClick={() => {
-              reviewWorkOrder(record.id);
-              messageApi.success(t('workOrder.action.reviewDone'));
-            }}
-            disabled={record.qualityResult !== 'ng'}
-          >
-            {t('workOrder.action.review')}
-          </Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             {t('workOrder.action.edit')}
           </Button>
@@ -607,6 +605,10 @@ export function WorkOrderManagePage() {
               <Descriptions.Item label={t('workOrder.table.harnessCode')}>{viewingWorkOrder.harnessCode}</Descriptions.Item>
               <Descriptions.Item label={t('workOrder.table.harnessType')}>{viewingWorkOrder.harnessType}</Descriptions.Item>
               <Descriptions.Item label={t('workOrder.table.stationCode')}>{viewingWorkOrder.stationCode}</Descriptions.Item>
+              <Descriptions.Item label={t('workOrder.detail.defectType')}>{viewingWorkOrder.defectType || '-'}</Descriptions.Item>
+              <Descriptions.Item label={t('workOrder.detail.defectDescription')} span={2}>
+                {viewingWorkOrder.defectDescription || '-'}
+              </Descriptions.Item>
             </Descriptions>
 
             <Card size="small" title={t('workOrder.detail.harness2dTitle')}>
@@ -698,6 +700,7 @@ export function WorkOrderManagePage() {
             <Card size="small" title={t('workOrder.detail.pointListTitle')}>
               <Table rowKey="id" columns={pointColumns} dataSource={inspectionPoints} pagination={false} size="small" scroll={{ x: 'max-content' }} />
             </Card>
+
           </Space>
         ) : null}
       </Modal>
@@ -767,6 +770,8 @@ export function WorkOrderManagePage() {
               detectionDuration: Number(values.detectionDuration),
               startedAt: values.startedAt,
               endedAt: values.endedAt,
+              defectType: values.defectType,
+              defectDescription: values.defectDescription,
             })
           }
         >
@@ -803,6 +808,12 @@ export function WorkOrderManagePage() {
           <Form.Item label={t('workOrder.table.endedAt')} name="endedAt">
             <Input />
           </Form.Item>
+          <Form.Item label={t('workOrder.detail.defectType')} name="defectType">
+            <Select allowClear options={defectTypeOptions.map((item) => ({ label: item, value: item }))} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.detail.defectDescription')} name="defectDescription">
+            <Input.TextArea rows={2} />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -820,7 +831,7 @@ export function WorkOrderManagePage() {
         <Form
           form={createForm}
           layout="vertical"
-          initialValues={{ status: 'pending', qualityResult: 'pending', movingDuration: 0, detectionDuration: 0, startedAt: '-', endedAt: '-' }}
+          initialValues={{ status: 'pending', qualityResult: 'pending', movingDuration: 0, detectionDuration: 0, startedAt: '-', endedAt: '-', defectType: undefined, defectDescription: '' }}
           onFinish={(values) => {
             createWorkOrder({
               workOrderNo: values.workOrderNo,
@@ -834,6 +845,8 @@ export function WorkOrderManagePage() {
               detectionDuration: Number(values.detectionDuration),
               startedAt: values.startedAt,
               endedAt: values.endedAt,
+              defectType: values.defectType,
+              defectDescription: values.defectDescription,
             });
             setCreatingOpen(false);
             createForm.resetFields();
@@ -872,6 +885,12 @@ export function WorkOrderManagePage() {
           </Form.Item>
           <Form.Item label={t('workOrder.table.endedAt')} name="endedAt">
             <Input />
+          </Form.Item>
+          <Form.Item label={t('workOrder.detail.defectType')} name="defectType">
+            <Select allowClear options={defectTypeOptions.map((item) => ({ label: item, value: item }))} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.detail.defectDescription')} name="defectDescription">
+            <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
       </Modal>

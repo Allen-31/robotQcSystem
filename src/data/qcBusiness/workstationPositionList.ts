@@ -18,6 +18,8 @@ export interface WorkOrderInfo {
   stationCode: string;
   status: WorkOrderStatus;
   qualityResult: QualityResult;
+  defectType: string;
+  defectDescription: string;
   taskIds: string[];
   detectionDuration: number;
   createdAt: string;
@@ -68,6 +70,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
       stationCode: 'A1-01',
       status: 'running',
       qualityResult: 'pending',
+      defectType: '-',
+      defectDescription: '-',
       taskIds: ['TSK-001', 'TSK-002', 'TSK-003'],
       detectionDuration: 8.1,
       createdAt: '2026-02-28 08:10:22',
@@ -82,6 +86,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
         stationCode: 'A1-01',
         status: 'finished',
         qualityResult: 'ok',
+        defectType: '-',
+        defectDescription: '-',
         taskIds: ['TSK-996', 'TSK-997'],
         detectionDuration: 7.6,
         createdAt: '2026-02-28 07:44:10',
@@ -95,6 +101,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
         stationCode: 'A1-01',
         status: 'ng',
         qualityResult: 'ng',
+        defectType: '外观异常',
+        defectDescription: '端子护套边缘有破损',
         taskIds: ['TSK-944', 'TSK-945', 'TSK-946'],
         detectionDuration: 9.3,
         createdAt: '2026-02-27 17:31:44',
@@ -108,6 +116,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
         stationCode: 'A1-01',
         status: 'finished',
         qualityResult: 'ok',
+        defectType: '-',
+        defectDescription: '-',
         taskIds: ['TSK-900'],
         detectionDuration: 6.8,
         createdAt: '2026-02-27 15:20:09',
@@ -145,6 +155,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
       stationCode: 'A1-02',
       status: 'pending',
       qualityResult: 'pending',
+      defectType: '-',
+      defectDescription: '-',
       taskIds: ['TSK-031'],
       detectionDuration: 0,
       createdAt: '2026-02-28 09:05:40',
@@ -159,6 +171,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
         stationCode: 'A1-02',
         status: 'finished',
         qualityResult: 'ok',
+        defectType: '-',
+        defectDescription: '-',
         taskIds: ['TSK-022', 'TSK-023'],
         detectionDuration: 6.5,
         createdAt: '2026-02-28 08:25:12',
@@ -172,6 +186,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
         stationCode: 'A1-02',
         status: 'finished',
         qualityResult: 'ok',
+        defectType: '-',
+        defectDescription: '-',
         taskIds: ['TSK-854', 'TSK-855'],
         detectionDuration: 7.2,
         createdAt: '2026-02-27 14:15:54',
@@ -209,6 +225,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
       stationCode: 'A1-03',
       status: 'ng',
       qualityResult: 'ng',
+      defectType: '工艺偏差',
+      defectDescription: '压接长度不符合工艺阈值',
       taskIds: ['TSK-061', 'TSK-062'],
       detectionDuration: 12.3,
       createdAt: '2026-02-28 09:40:08',
@@ -223,6 +241,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
         stationCode: 'A1-03',
         status: 'finished',
         qualityResult: 'ok',
+        defectType: '-',
+        defectDescription: '-',
         taskIds: ['TSK-051'],
         detectionDuration: 10.2,
         createdAt: '2026-02-28 09:08:20',
@@ -236,6 +256,8 @@ export const workstationPositionList: WorkstationPositionItem[] = [
         stationCode: 'A1-03',
         status: 'ng',
         qualityResult: 'ng',
+        defectType: '接线错误',
+        defectDescription: '线序与工艺定义不一致',
         taskIds: ['TSK-802', 'TSK-803', 'TSK-804'],
         detectionDuration: 13.8,
         createdAt: '2026-02-27 10:22:41',

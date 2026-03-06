@@ -12,6 +12,7 @@ export interface ReinspectionRecordItem {
   qualityResult: ReinspectionResult;
   status: ReinspectionStatus;
   reinspectionResult: ReinspectionResult;
+  defectType: string;
   reinspectionTime: string;
   reviewer: string;
   videoUrl: string;
@@ -29,6 +30,7 @@ export const reinspectionRecordList: ReinspectionRecordItem[] = [
     qualityResult: 'ok',
     status: 'completed',
     reinspectionResult: 'ok',
+    defectType: '-',
     reinspectionTime: '2026-02-28 10:25:14',
     reviewer: 'Zhang Wei',
     videoUrl: 'https://example.com/reinspection/video/ri-001',
@@ -44,6 +46,7 @@ export const reinspectionRecordList: ReinspectionRecordItem[] = [
     qualityResult: 'ng',
     status: 'completed',
     reinspectionResult: 'ng',
+    defectType: '外观异常',
     reinspectionTime: '2026-02-28 09:58:43',
     reviewer: 'Li Na',
     videoUrl: 'https://example.com/reinspection/video/ri-002',
@@ -59,6 +62,7 @@ export const reinspectionRecordList: ReinspectionRecordItem[] = [
     qualityResult: 'pending',
     status: 'pending',
     reinspectionResult: 'pending',
+    defectType: '-',
     reinspectionTime: '2026-02-28 09:31:10',
     reviewer: 'Wang Hao',
     videoUrl: 'https://example.com/reinspection/video/ri-003',
@@ -74,6 +78,7 @@ export const reinspectionRecordList: ReinspectionRecordItem[] = [
     qualityResult: 'pending',
     status: 'cancelled',
     reinspectionResult: 'pending',
+    defectType: '-',
     reinspectionTime: '2026-02-27 17:55:26',
     reviewer: 'Chen Yu',
     videoUrl: 'https://example.com/reinspection/video/ri-004',

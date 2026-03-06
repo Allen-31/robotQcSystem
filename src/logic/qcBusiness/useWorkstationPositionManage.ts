@@ -2,6 +2,12 @@ import { useMemo, useState } from 'react';
 import { getStationCodeOptions, normalizeHarnessType, normalizeStationCode } from '../../data/qcBusiness/qcConfigReference';
 import { workstationPositionList, type WorkOrderInfo, type WorkstationPositionItem } from '../../data/qcBusiness/workstationPositionList';
 
+export interface CurrentWorkOrderReviewPayload {
+  qualityResult: 'ok' | 'ng';
+  defectType?: string;
+  defectDescription?: string;
+}
+
 function parseTime(value: string): number {
   if (value === '-') {
     return 0;
@@ -10,6 +16,7 @@ function parseTime(value: string): number {
 }
 
 export function useWorkstationPositionManage() {
+  const defectTypeOptions = useMemo(() => ['接线错误', '外观异常', '工艺偏差', '尺寸偏差', '压接不良'], []);
   const [positionList, setPositionList] = useState<WorkstationPositionItem[]>(() => {
     const stationOptions = getStationCodeOptions();
     const normalized = workstationPositionList.map((item, index) => {
@@ -49,6 +56,8 @@ export function useWorkstationPositionManage() {
           workOrderNo: `WO-CFG-${String(index + 1).padStart(3, '0')}`,
           stationCode,
           fixtureLineType: normalizeHarnessType((template?.currentWorkOrder ?? workstationPositionList[0].currentWorkOrder).fixtureLineType, index),
+          defectType: '-',
+          defectDescription: '-',
         },
       }));
 
@@ -128,7 +137,7 @@ export function useWorkstationPositionManage() {
     );
   };
 
-  const reviewCurrentWorkOrder = () => {
+  const reviewCurrentWorkOrder = (payload: CurrentWorkOrderReviewPayload) => {
     if (!selectedPosition) {
       return;
     }
@@ -140,8 +149,10 @@ export function useWorkstationPositionManage() {
               ...item,
               currentWorkOrder: {
                 ...item.currentWorkOrder,
-                status: 'finished',
-                qualityResult: 'ok',
+                status: payload.qualityResult === 'ng' ? 'ng' : 'finished',
+                qualityResult: payload.qualityResult,
+                defectType: payload.qualityResult === 'ng' ? payload.defectType || '-' : '-',
+                defectDescription: payload.qualityResult === 'ng' ? payload.defectDescription || '-' : '-',
                 endedAt: item.currentWorkOrder.endedAt === '-' ? '2026-02-28 10:12:00' : item.currentWorkOrder.endedAt,
               },
             }
@@ -157,6 +168,7 @@ export function useWorkstationPositionManage() {
     selectedPosition,
     positionRank,
     historyWorkOrders,
+    defectTypeOptions,
     emergencyStopRobot,
     resetRobot,
     reviewCurrentWorkOrder,

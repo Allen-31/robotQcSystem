@@ -1,5 +1,5 @@
 import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Descriptions, Image, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
@@ -152,9 +152,11 @@ function resolveWireHarnessId(harnessType: string): string | null {
 
 export function WorkstationPositionManagePage() {
   const { t } = useI18n();
+  const [reviewForm] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const [viewingHistoryWorkOrder, setViewingHistoryWorkOrder] = useState<WorkOrderInfo | null>(null);
   const [previewPoint, setPreviewPoint] = useState<InspectionPointItem | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [summaryPeriod, setSummaryPeriod] = useState<'day' | 'week'>('day');
   const {
     positionList,
@@ -163,6 +165,7 @@ export function WorkstationPositionManagePage() {
     selectedPosition,
     positionRank,
     historyWorkOrders,
+    defectTypeOptions,
     emergencyStopRobot,
     resetRobot,
     reviewCurrentWorkOrder,
@@ -526,6 +529,10 @@ export function WorkstationPositionManagePage() {
           <Descriptions.Item label={t('workstationPosition.currentOrder.createdAt')}>{selectedPosition?.currentWorkOrder.createdAt ?? '-'}</Descriptions.Item>
           <Descriptions.Item label={t('workstationPosition.currentOrder.startedAt')}>{selectedPosition?.currentWorkOrder.startedAt ?? '-'}</Descriptions.Item>
           <Descriptions.Item label={t('workstationPosition.currentOrder.endedAt')}>{selectedPosition?.currentWorkOrder.endedAt ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('workOrder.detail.defectType')}>{selectedPosition?.currentWorkOrder.defectType ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('workOrder.detail.defectDescription')} span={2}>
+            {selectedPosition?.currentWorkOrder.defectDescription ?? '-'}
+          </Descriptions.Item>
         </Descriptions>
         <Card size="small" title={t('workOrder.detail.harness2dTitle')} style={{ marginTop: 12 }}>
           {currentOrderHarness2DImage ? (
@@ -594,23 +601,99 @@ export function WorkstationPositionManagePage() {
             </div>
           )}
         </Card>
-        {selectedPosition?.currentWorkOrder.qualityResult === 'ng' ? (
-          <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12 }}>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+            {t('workstationPosition.currentOrder.reviewHintAlways')}
+          </Typography.Text>
+          {selectedPosition?.currentWorkOrder.qualityResult === 'ng' ? (
             <Typography.Text type="warning" style={{ display: 'block', marginBottom: 8 }}>
-              该线束检测不合格，请人工复检
+              {t('workstationPosition.currentOrder.reviewHint')}
             </Typography.Text>
-            <Button
-              type="primary"
-              onClick={() => {
-                reviewCurrentWorkOrder();
-                messageApi.success(t('workstationPosition.currentOrder.reviewDone'));
-              }}
-            >
-              {t('workstationPosition.currentOrder.review')}
-            </Button>
-          </div>
-        ) : null}
+          ) : null}
+          <Button
+            type="primary"
+            onClick={() => {
+              const currentOrder = selectedPosition?.currentWorkOrder;
+              if (!currentOrder) {
+                return;
+              }
+              reviewForm.setFieldsValue({
+                reviewResult: currentOrder.qualityResult === 'pending' ? 'ok' : currentOrder.qualityResult,
+                defectType:
+                  currentOrder.defectType === '-' || !currentOrder.defectType
+                    ? []
+                    : currentOrder.defectType.split(',').map((item) => item.trim()).filter(Boolean),
+                defectDescription: currentOrder.defectDescription === '-' ? '' : currentOrder.defectDescription,
+              });
+              setReviewOpen(true);
+            }}
+          >
+            {t('workstationPosition.currentOrder.review')}
+          </Button>
+        </div>
       </Card>
+
+      <Modal
+        title={t('workstationPosition.currentOrder.reviewModalTitle')}
+        open={reviewOpen}
+        onCancel={() => {
+          setReviewOpen(false);
+          reviewForm.resetFields();
+        }}
+        onOk={() => reviewForm.submit()}
+        okText={t('workstationPosition.currentOrder.review')}
+        cancelText={t('workstationPosition.robot.confirmCancel')}
+      >
+        <Form
+          form={reviewForm}
+          layout="vertical"
+          onFinish={(values) => {
+            reviewCurrentWorkOrder({
+              qualityResult: values.reviewResult,
+              defectType: Array.isArray(values.defectType) ? values.defectType.join(', ') : values.defectType,
+              defectDescription: values.defectDescription,
+            });
+            messageApi.success(t('workstationPosition.currentOrder.reviewDone'));
+            setReviewOpen(false);
+            reviewForm.resetFields();
+          }}
+        >
+          <Form.Item label={t('workstationPosition.currentOrder.qualityResult')} name="reviewResult" rules={[{ required: true }]}>
+            <Select
+              options={[
+                { label: t('workOrder.detail.ok'), value: 'ok' },
+                { label: t('workOrder.detail.ng'), value: 'ng' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.reviewResult !== curr.reviewResult}>
+            {({ getFieldValue }) => (
+              <Form.Item
+                label={t('workOrder.detail.defectType')}
+                name="defectType"
+                rules={getFieldValue('reviewResult') === 'ng' ? [{ required: true, message: t('workOrder.detail.defectTypeRequired') }] : []}
+              >
+                <Select mode="multiple" allowClear options={defectTypeOptions.map((item) => ({ label: item, value: item }))} />
+              </Form.Item>
+            )}
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.reviewResult !== curr.reviewResult}>
+            {({ getFieldValue }) => (
+              <Form.Item
+                label={t('workOrder.detail.defectDescription')}
+                name="defectDescription"
+                rules={
+                  getFieldValue('reviewResult') === 'ng'
+                    ? [{ required: true, message: t('workstationPosition.currentOrder.defectDescriptionRequired') }]
+                    : []
+                }
+              >
+                <Input.TextArea rows={3} placeholder={t('workOrder.detail.defectDescription')} />
+              </Form.Item>
+            )}
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Card title={t('workstationPosition.history.title')}>
         <Table
