@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { menuList } from '../../data/menuList';
 import { getCurrentRole } from '../../logic/deployConfig/permissionStore';
 import { filterMenuTreeByRole } from '../../logic/menu/menuPermission';
@@ -63,9 +63,8 @@ const userManagePath = '/deployConfig/user/userManage';
 const roleManagePath = '/deployConfig/user/roleManage';
 const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
-const sceneDeviceManagePath = '/deployConfig/scene/deviceManage';
-const mapEditorPath = '/deployConfig/scene/mapManage/:mapCode/edit';
 const deviceManagePath = '/deployConfig/scene/deviceManage';
+const mapEditorPath = '/deployConfig/scene/mapManage/:mapCode/edit';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
 const taskTemplatePath = '/deployConfig/task/taskTemplate';
 const actionTemplatePath = '/deployConfig/task/actionTemplate';
@@ -177,9 +176,8 @@ export function AppRouter() {
             <Route path={roleManagePath} element={<RoleManagePage />} />
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
-            <Route path={sceneDeviceManagePath} element={<SceneDeviceManagePage />} />
-            <Route path={mapEditorPath} element={<MapEditorPage />} />
             <Route path={deviceManagePath} element={<DeviceManagePage />} />
+            <Route path={mapEditorPath} element={<MapEditorPage />} />
             <Route path={taskTemplatePath} element={<TaskTemplatePage />} />
             <Route path={actionTemplatePath} element={<ActionTemplatePage />} />
             <Route path="/deployConfig/task/taskDesign/:step" element={<TaskDesignPage />} />

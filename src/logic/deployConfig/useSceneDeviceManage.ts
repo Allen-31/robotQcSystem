@@ -1,5 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { SceneDeviceItem } from '../../shared/api/deploySceneDeviceApi';
+
+export interface SceneDeviceItem {
+  code: string;
+  name: string;
+  type: string;
+  onlineStatus: 'online' | 'offline';
+  isAbnormal: boolean;
+  exceptionDetail: string | null;
+  ip: string | null;
+}
 
 const MOCK_DEVICES: SceneDeviceItem[] = [
   { code: 'DEV-A', name: '呼叫盒A', type: '呼叫盒', onlineStatus: 'online', isAbnormal: false, exceptionDetail: null, ip: '192.168.1.101' },

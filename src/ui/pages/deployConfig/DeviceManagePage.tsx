@@ -3,8 +3,7 @@ import { Button, Card, Col, Form, Input, Modal, Row, Space, Table, Tag, Typograp
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
-import { useSceneDeviceManage } from '../../../logic/deployConfig/useSceneDeviceManage';
-import type { SceneDeviceItem } from '../../../shared/api/deploySceneDeviceApi';
+import { useSceneDeviceManage, type SceneDeviceItem } from '../../../logic/deployConfig/useSceneDeviceManage';
 
 interface DeviceFormValues {
   code: string;
