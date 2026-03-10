@@ -1,0 +1,51 @@
+/* Pad/手机风格：紧凑、竖排、全宽控件 */
+.device-statistics-pad {
+  padding: 0 4px;
+  max-width: 100%;
+}
+
+.device-statistics-pad .ant-card {
+  border-radius: 10px;
+}
+
+.device-statistics-pad .ant-card-small > .ant-card-body {
+  padding: 12px 14px;
+}
+
+.device-statistics-pad .filter-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.device-statistics-pad .filter-block .ant-select,
+.device-statistics-pad .filter-block .ant-input {
+  width: 100% !important;
+}
+
+.device-statistics-pad .filter-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.device-statistics-pad .filter-actions .ant-btn {
+  flex: 1;
+}
+
+.device-statistics-pad .more-filters-grid .ant-select {
+  width: 100% !important;
+}
+
+.device-statistics-pad .stat-card-mini {
+  border-radius: 10px;
+}
+
+.device-statistics-pad .ant-statistic-title {
+  font-size: 12px;
+}
+
+.device-statistics-pad .ant-statistic-content-value {
+  font-size: 20px;
+}
