@@ -1,4 +1,4 @@
-﻿.home-dashboard {
+.home-dashboard {
   position: relative;
   min-height: calc(100vh - 64px);
   padding: 22px;
@@ -192,4 +192,13 @@
   .metric-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Pad-only layout (when HomeDashboardPad is rendered) */
+.home-dashboard-pad .home-shell {
+  margin-top: 24px;
+}
+
+.home-dashboard-pad .home-dashboard {
+  padding: 16px;
 }
