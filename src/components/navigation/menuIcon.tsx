@@ -20,6 +20,7 @@ import {
   SettingOutlined,
   ShopOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
   ToolOutlined,
   UnorderedListOutlined,
   UserOutlined,
@@ -68,6 +69,8 @@ const iconMapByCode: Record<string, ReactNode> = {
   qualityReport: <RadarChartOutlined />,
 
   taskOrchestration: <ClusterOutlined />,
+  taskTemplate: <FileOutlined />,
+  actionTemplate: <ThunderboltOutlined />,
   robotList: <RobotOutlined />,
   robotType: <AppstoreOutlined />,
   robotParts: <ToolOutlined />,
@@ -76,6 +79,7 @@ const iconMapByCode: Record<string, ReactNode> = {
   homingStrategy: <DeploymentUnitOutlined />,
   configTemplate: <FileOutlined />,
   mapManage: <ApartmentOutlined />,
+  deviceManage: <ClusterOutlined />,
   userManage: <UserOutlined />,
   roleManage: <LockOutlined />,
 

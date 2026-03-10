@@ -11,6 +11,8 @@ export interface StationConfig {
   workstationId: string;
   stationId: string;
   mapPoint: string;
+  callBoxCode: string;
+  wireHarnessType: string;
   detectionEnabled: boolean;
   enabled: boolean;
 }

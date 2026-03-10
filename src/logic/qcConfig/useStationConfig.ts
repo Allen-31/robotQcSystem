@@ -14,8 +14,9 @@ export function useStationConfig() {
       return records;
     }
 
-    return records.filter((item) =>
-      `${item.workstationId} ${item.stationId} ${item.mapPoint}`.toLowerCase().includes(normalized),
+    return records.filter(
+      (item) =>
+        `${item.workstationId} ${item.stationId} ${item.mapPoint} ${item.callBoxCode} ${item.wireHarnessType}`.toLowerCase().includes(normalized),
     );
   }, [keyword, records]);
 
