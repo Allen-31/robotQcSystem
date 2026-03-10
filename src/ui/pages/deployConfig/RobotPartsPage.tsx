@@ -1,5 +1,5 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Space, Table, Typography, message } from 'antd';
+import { Button, Card, Form, Input, Modal, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { getStoredRobotParts, setStoredRobotParts, type RobotPartRecord } from '../../../logic/deployConfig/robotPartStore';
@@ -48,7 +48,17 @@ export function RobotPartsPage() {
     const values = await form.validateFields();
     if (editing) {
       setList((prev) => {
-        const next = prev.map((item) => (item.id === editing.id ? { ...item, ...values } : item));
+        const next = prev.map((item) =>
+          item.id === editing.id
+            ? {
+                ...item,
+                ...values,
+                // keep existing values; UI is hiding these fields
+                model: item.model ?? '-',
+                vendor: item.vendor ?? '-',
+              }
+            : item,
+        );
         setStoredRobotParts(next);
         return next;
       });
@@ -61,8 +71,8 @@ export function RobotPartsPage() {
             partNo: values.partNo,
             name: values.name,
             type: values.type,
-            model: '',
-            vendor: '',
+            model: '-',
+            vendor: '-',
             position: '其他',
             supplier: '-',
             lifecycle: '-',
@@ -141,7 +151,7 @@ export function RobotPartsPage() {
       </Card>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 900 }} />
+        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 700 }} />
       </Card>
 
       <Modal
