@@ -46,6 +46,7 @@ export const messages: Messages = {
     'menu.configTemplate': '配置模板',
     'menu.mapBuilding': '建图',
     'menu.mapManage': '地图管理',
+    'menu.sceneDeviceManage': '设备管理',
     'menu.setting': '设定',
     'menu.multilingual': '多语言',
     'menu.licenseManage': '许可证管理',

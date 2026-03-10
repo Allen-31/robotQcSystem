@@ -76,6 +76,7 @@ const iconMapByCode: Record<string, ReactNode> = {
   homingStrategy: <DeploymentUnitOutlined />,
   configTemplate: <FileOutlined />,
   mapManage: <ApartmentOutlined />,
+  sceneDeviceManage: <VideoCameraOutlined />,
   userManage: <UserOutlined />,
   roleManage: <LockOutlined />,
 

@@ -202,6 +202,13 @@ export const menuList: MenuNode[] = [
             path: '/deployConfig/scene/mapManage',
             permission: 'deployConfig:scene:mapManage:view',
           },
+          {
+            id: '3-3-3',
+            name: 'menu.sceneDeviceManage',
+            code: 'sceneDeviceManage',
+            path: '/deployConfig/scene/deviceManage',
+            permission: 'deployConfig:scene:deviceManage:view',
+          },
         ],
         permission: 'deployConfig:scene:view',
       },

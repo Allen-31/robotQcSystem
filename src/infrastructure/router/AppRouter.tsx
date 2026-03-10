@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { menuList } from '../../data/menuList';
 import { getCurrentRole } from '../../logic/deployConfig/permissionStore';
 import { filterMenuTreeByRole } from '../../logic/menu/menuPermission';
@@ -25,6 +25,7 @@ import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePa
 import { HomingStrategyPage } from '../../ui/pages/deployConfig/HomingStrategyPage';
 import { MapEditorPage } from '../../ui/pages/deployConfig/MapEditorPage';
 import { MapManagePage } from '../../ui/pages/deployConfig/MapManagePage';
+import { SceneDeviceManagePage } from '../../ui/pages/deployConfig/SceneDeviceManagePage';
 import { SettingPage } from '../../ui/pages/deployConfig/SettingPage';
 import { UserManagePage } from '../../ui/pages/deployConfig/UserManagePage';
 import { StationConfigPage } from '../../ui/pages/qcConfig/StationConfigPage';
@@ -59,6 +60,7 @@ const userManagePath = '/deployConfig/user/userManage';
 const roleManagePath = '/deployConfig/user/roleManage';
 const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
+const sceneDeviceManagePath = '/deployConfig/scene/deviceManage';
 const mapEditorPath = '/deployConfig/scene/mapManage/:mapCode/edit';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
 const chargeStrategyPath = '/deployConfig/robot/chargeStrategy';
@@ -102,6 +104,7 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== roleManagePath &&
     route.path !== settingPath &&
     route.path !== mapManagePath &&
+    route.path !== sceneDeviceManagePath &&
     route.path !== configTemplatePath &&
     route.path !== chargeStrategyPath &&
     route.path !== homingStrategyPath &&
@@ -166,6 +169,7 @@ export function AppRouter() {
             <Route path={roleManagePath} element={<RoleManagePage />} />
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
+            <Route path={sceneDeviceManagePath} element={<SceneDeviceManagePage />} />
             <Route path={mapEditorPath} element={<MapEditorPage />} />
             <Route path={configTemplatePath} element={<RobotConfigPage />} />
             <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />

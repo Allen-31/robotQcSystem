@@ -189,7 +189,13 @@ export function MapManagePage() {
       </Card>
 
       <Card>
-        <Table rowKey="code" columns={columns} dataSource={filteredList} pagination={{ pageSize: 10, showSizeChanger: false }} scroll={{ x: 1700 }} />
+        <Table
+          rowKey="code"
+          columns={columns}
+          dataSource={filteredList}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          scroll={{ x: 1700 }}
+        />
       </Card>
 
       <Modal
@@ -211,7 +217,11 @@ export function MapManagePage() {
           <Form.Item label={t('mapManage.form.type')} name="type" rules={[{ required: true, message: t('mapManage.form.typeRequired') }]}>
             <Select options={[{ value: '2D', label: '2D' }, { value: '3D', label: '3D' }]} />
           </Form.Item>
-          <Form.Item label={t('mapManage.form.editStatus')} name="editStatus" rules={[{ required: true, message: t('mapManage.form.editStatusRequired') }]}>
+          <Form.Item
+            label={t('mapManage.form.editStatus')}
+            name="editStatus"
+            rules={[{ required: true, message: t('mapManage.form.editStatusRequired') }]}
+          >
             <Select
               options={[
                 { value: 'editing', label: t('mapManage.status.editing') },
