@@ -113,7 +113,10 @@ export function ActionTemplatePage() {
           >
             {record.enabled ? t('qcConfig.common.disable') : t('qcConfig.common.enable')}
           </Button>
-          <Button type="link" onClick={() => navigate('/deployConfig/task/taskDesign/2', { state: { from: 'actionTemplate' } })}>
+          <Button
+            type="link"
+            onClick={() => window.open(`${window.location.origin}/deployConfig/task/taskDesign/2?from=actionTemplate`, '_blank')}
+          >
             {t('actionTemplate.action.design')}
           </Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
