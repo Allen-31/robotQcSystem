@@ -1,10 +1,10 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Space, Table, Typography, message } from 'antd';
+import { Button, Card, Form, Input, Modal, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { getStoredRobotParts, setStoredRobotParts, type RobotPartRecord } from '../../../logic/deployConfig/robotPartStore';
 
-type PartFormValues = Pick<RobotPartRecord, 'partNo' | 'name' | 'type' | 'model' | 'vendor'>;
+type PartFormValues = Pick<RobotPartRecord, 'partNo' | 'name' | 'type'>;
 
 const typeOptions = ['电机', '传感器', '控制板', '执行件'];
 
@@ -34,8 +34,6 @@ export function RobotPartsPage() {
       partNo: record.partNo,
       name: record.name,
       type: record.type,
-      model: record.model,
-      vendor: record.vendor,
     });
     setModalOpen(true);
   };
@@ -50,7 +48,17 @@ export function RobotPartsPage() {
     const values = await form.validateFields();
     if (editing) {
       setList((prev) => {
-        const next = prev.map((item) => (item.id === editing.id ? { ...item, ...values } : item));
+        const next = prev.map((item) =>
+          item.id === editing.id
+            ? {
+                ...item,
+                ...values,
+                // keep existing values; UI is hiding these fields
+                model: item.model ?? '-',
+                vendor: item.vendor ?? '-',
+              }
+            : item,
+        );
         setStoredRobotParts(next);
         return next;
       });
@@ -63,8 +71,8 @@ export function RobotPartsPage() {
             partNo: values.partNo,
             name: values.name,
             type: values.type,
-            model: values.model,
-            vendor: values.vendor,
+            model: '-',
+            vendor: '-',
             position: '其他',
             supplier: '-',
             lifecycle: '-',
@@ -105,8 +113,6 @@ export function RobotPartsPage() {
     { title: '编码', dataIndex: 'partNo', key: 'partNo', width: 120 },
     { title: '名称', dataIndex: 'name', key: 'name', width: 180 },
     { title: '类型', dataIndex: 'type', key: 'type', width: 120 },
-    { title: '型号', dataIndex: 'model', key: 'model', width: 160 },
-    { title: '厂商', dataIndex: 'vendor', key: 'vendor', width: 160 },
     {
       title: '操作',
       key: 'actions',
@@ -145,7 +151,7 @@ export function RobotPartsPage() {
       </Card>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 900 }} />
+        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 700 }} />
       </Card>
 
       <Modal
@@ -172,12 +178,6 @@ export function RobotPartsPage() {
               </Form.Item>
               <Form.Item label="类型" name="type" rules={[{ required: true, message: '请输入类型' }]}>
                 <Input placeholder="例如：电机" />
-              </Form.Item>
-              <Form.Item label="型号" name="model" rules={[{ required: true, message: '请输入型号' }]}>
-                <Input placeholder="例如：MTR-LW-02" />
-              </Form.Item>
-              <Form.Item label="厂商" name="vendor" rules={[{ required: true, message: '请输入厂商' }]}>
-                <Input placeholder="例如：星辰机电" />
               </Form.Item>
             </Form>
           </Card>

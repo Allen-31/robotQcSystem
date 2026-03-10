@@ -1,4 +1,4 @@
-﻿import { ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Typography, Upload, message } from 'antd';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -617,7 +617,6 @@ export function RobotTypeEditorPage() {
               columns={[
                 { title: '名称', dataIndex: 'name', key: 'name' },
                 { title: '部位', dataIndex: 'position', key: 'position' },
-                { title: '型号', dataIndex: 'model', key: 'model' },
                 {
                   title: '操作',
                   key: 'action',
