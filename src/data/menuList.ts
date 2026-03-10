@@ -125,10 +125,17 @@ export const menuList: MenuNode[] = [
         children: [
           {
             id: '3-1-1',
-            name: 'menu.taskOrchestration',
-            code: 'taskOrchestration',
-            path: '/deployConfig/task/taskOrchestration',
-            permission: 'deployConfig:task:taskOrchestration:view',
+            name: 'menu.taskTemplate',
+            code: 'taskTemplate',
+            path: '/deployConfig/task/taskTemplate',
+            permission: 'deployConfig:task:taskTemplate:view',
+          },
+          {
+            id: '3-1-2',
+            name: 'menu.actionTemplate',
+            code: 'actionTemplate',
+            path: '/deployConfig/task/actionTemplate',
+            permission: 'deployConfig:task:actionTemplate:view',
           },
         ],
         permission: 'deployConfig:task:view',
@@ -204,8 +211,8 @@ export const menuList: MenuNode[] = [
           },
           {
             id: '3-3-3',
-            name: 'menu.sceneDeviceManage',
-            code: 'sceneDeviceManage',
+            name: 'menu.deviceManage',
+            code: 'deviceManage',
             path: '/deployConfig/scene/deviceManage',
             permission: 'deployConfig:scene:deviceManage:view',
           },

@@ -19,7 +19,7 @@ export function StationConfigPage() {
 
   const openCreate = () => {
     form.resetFields();
-    form.setFieldsValue({ detectionEnabled: true, enabled: true });
+    form.setFieldsValue({ detectionEnabled: true, enabled: true, callBoxCode: '', wireHarnessType: '' });
     setCreateOpen(true);
   };
 
@@ -49,6 +49,8 @@ export function StationConfigPage() {
     { title: t('qcConfig.station.table.workstationId'), dataIndex: 'workstationId', key: 'workstationId', width: 180 },
     { title: t('qcConfig.station.table.stationId'), dataIndex: 'stationId', key: 'stationId', width: 150 },
     { title: t('qcConfig.station.table.mapPoint'), dataIndex: 'mapPoint', key: 'mapPoint', width: 170 },
+    { title: t('qcConfig.station.table.callBoxCode'), dataIndex: 'callBoxCode', key: 'callBoxCode', width: 140 },
+    { title: t('qcConfig.station.table.wireHarnessType'), dataIndex: 'wireHarnessType', key: 'wireHarnessType', width: 120 },
     {
       title: t('qcConfig.station.table.detectionEnabled'),
       dataIndex: 'detectionEnabled',
@@ -156,6 +158,12 @@ export function StationConfigPage() {
           </Form.Item>
           <Form.Item label={t('qcConfig.station.form.mapPoint')} name="mapPoint" rules={[{ required: true, message: t('qcConfig.station.form.mapPointRequired') }]}>
             <Input />
+          </Form.Item>
+          <Form.Item label={t('qcConfig.station.form.callBoxCode')} name="callBoxCode" rules={[{ required: true, message: t('qcConfig.station.form.callBoxCodeRequired') }]}>
+            <Input placeholder={t('qcConfig.station.form.callBoxCodePlaceholder')} />
+          </Form.Item>
+          <Form.Item label={t('qcConfig.station.form.wireHarnessType')} name="wireHarnessType" rules={[{ required: true, message: t('qcConfig.station.form.wireHarnessTypeRequired') }]}>
+            <Input placeholder={t('qcConfig.station.form.wireHarnessTypePlaceholder')} />
           </Form.Item>
           <Form.Item
             label={t('qcConfig.station.form.detectionEnabled')}

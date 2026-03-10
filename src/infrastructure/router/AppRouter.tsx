@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+﻿import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { menuList } from '../../data/menuList';
 import { getCurrentRole } from '../../logic/deployConfig/permissionStore';
 import { filterMenuTreeByRole } from '../../logic/menu/menuPermission';
@@ -24,8 +24,11 @@ import { ChargeStrategyPage } from '../../ui/pages/deployConfig/ChargeStrategyPa
 import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
 import { HomingStrategyPage } from '../../ui/pages/deployConfig/HomingStrategyPage';
 import { MapEditorPage } from '../../ui/pages/deployConfig/MapEditorPage';
+import { DeviceManagePage } from '../../ui/pages/deployConfig/DeviceManagePage';
 import { MapManagePage } from '../../ui/pages/deployConfig/MapManagePage';
-import { SceneDeviceManagePage } from '../../ui/pages/deployConfig/SceneDeviceManagePage';
+import { TaskTemplatePage } from '../../ui/pages/deployConfig/TaskTemplatePage';
+import { ActionTemplatePage } from '../../ui/pages/deployConfig/ActionTemplatePage';
+import { TaskDesignPage } from '../../ui/pages/deployConfig/TaskDesignPage';
 import { SettingPage } from '../../ui/pages/deployConfig/SettingPage';
 import { UserManagePage } from '../../ui/pages/deployConfig/UserManagePage';
 import { StationConfigPage } from '../../ui/pages/qcConfig/StationConfigPage';
@@ -62,7 +65,10 @@ const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
 const sceneDeviceManagePath = '/deployConfig/scene/deviceManage';
 const mapEditorPath = '/deployConfig/scene/mapManage/:mapCode/edit';
+const deviceManagePath = '/deployConfig/scene/deviceManage';
 const configTemplatePath = '/deployConfig/scene/configTemplate';
+const taskTemplatePath = '/deployConfig/task/taskTemplate';
+const actionTemplatePath = '/deployConfig/task/actionTemplate';
 const chargeStrategyPath = '/deployConfig/robot/chargeStrategy';
 const homingStrategyPath = '/deployConfig/robot/homingStrategy';
 const fileManagePath = '/operationMaintenance/file/fileManage';
@@ -104,8 +110,10 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== roleManagePath &&
     route.path !== settingPath &&
     route.path !== mapManagePath &&
-    route.path !== sceneDeviceManagePath &&
+    route.path !== deviceManagePath &&
     route.path !== configTemplatePath &&
+    route.path !== taskTemplatePath &&
+    route.path !== actionTemplatePath &&
     route.path !== chargeStrategyPath &&
     route.path !== homingStrategyPath &&
     route.path !== fileManagePath &&
@@ -171,6 +179,10 @@ export function AppRouter() {
             <Route path={mapManagePath} element={<MapManagePage />} />
             <Route path={sceneDeviceManagePath} element={<SceneDeviceManagePage />} />
             <Route path={mapEditorPath} element={<MapEditorPage />} />
+            <Route path={deviceManagePath} element={<DeviceManagePage />} />
+            <Route path={taskTemplatePath} element={<TaskTemplatePage />} />
+            <Route path={actionTemplatePath} element={<ActionTemplatePage />} />
+            <Route path="/deployConfig/task/taskDesign/:step" element={<TaskDesignPage />} />
             <Route path={configTemplatePath} element={<RobotConfigPage />} />
             <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
             <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
