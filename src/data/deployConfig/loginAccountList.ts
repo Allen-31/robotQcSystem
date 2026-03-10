@@ -1,4 +1,4 @@
-﻿import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
+import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
 import { roleList } from './roleList';
 
 export interface LoginAccount {
