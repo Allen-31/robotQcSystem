@@ -1,0 +1,13 @@
+---
+description: I18n 规则（所有界面文案与标签）
+alwaysApply: true
+---
+
+# I18n 规则
+
+- TS/TSX 中禁止硬编码 UI 文案。所有标题、标签、占位、提示、消息均使用 `useI18n().t(...)`。
+- 新增文案必须在 `src/i18n/messages.ts` 的 `zh-CN` 和 `en-US` 同步补齐。
+- 动态文案用占位符 `{token}`，并通过 `t('key', { token })` 传参。
+- 禁止 `locale === 'en-US' ? ... : ...` 这种写法，统一放到 i18n 中。
+- `src/data` 里的列表文案优先使用 `LocalizedText` + `resolveLocalizedText`。
+- 新增页面/模块时预留统一前缀，如 `moduleName.*`。

@@ -37,3 +37,7 @@ description: 根据字段列表或类型生成 Ant Design 表单项
 ```
 
 需要时为表单项配置 `label` 和 `aria-label` 以保障可访问性。
+
+I18n：
+- 所有 label / placeholder / message 必须使用 `t('key')`。
+- 新增文案必须同步添加到 `src/i18n/messages.ts` 的 `zh-CN` 和 `en-US`。

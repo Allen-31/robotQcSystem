@@ -1,0 +1,16 @@
+---
+name: apply-i18n
+description: 将硬编码 UI 文案替换为 i18n 并补齐 messages
+---
+
+当用户要求为页面/组件增加 i18n 支持时：
+
+1. 将硬编码 UI 文案替换为 `const { t } = useI18n()` 和 `t('key')`。
+2. 在 `src/i18n/messages.ts` 的 `zh-CN` 和 `en-US` 同步新增 key。
+3. 动态文案使用占位符：`t('key', { count })`。
+4. `src/data` 的列表文案使用 `LocalizedText` + `resolveLocalizedText`。
+5. 禁止 `locale === 'en-US' ? ... : ...`，统一放到 i18n 中。
+
+交付物：
+- 更新后的 TS/TSX 文件，统一使用 `t()`
+- `src/i18n/messages.ts` 两种语言的新增 key
