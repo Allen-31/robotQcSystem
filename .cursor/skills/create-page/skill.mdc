@@ -1,0 +1,24 @@
+---
+name: create-page
+description: 生成单页管理页（搜索 + 表格 + 弹窗表单）
+---
+
+当用户要求创建单个页面（不要求完整模块）时：
+
+1. 创建 `src/pages/{Entity}/index.tsx` — 薄页面，组合：
+   - PageContainer（若项目中使用）
+   - {Entity}Search
+   - {Entity}Table
+   - Pagination
+   - 新增/编辑 Modal 与 {Entity}Form
+
+2. 创建 `src/pages/{Entity}/components/`：
+   - {Entity}Search.tsx — 内联 Form，onSearch 回调
+   - {Entity}Table.tsx — Table，含 rowKey、columns、dataSource、loading
+   - {Entity}Form.tsx — 在 Modal 内使用的 Form
+
+3. 创建 `src/pages/{Entity}/hooks/use{Entity}Page.ts`：
+   - loading、data、分页状态
+   - fetchList、handleSearch、handleCreate、handleEdit、handleDelete
+
+使用 Ant Design（Form、Table、Modal、Button、Input 等）和 TypeScript 类型。

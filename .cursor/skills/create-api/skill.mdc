@@ -1,0 +1,39 @@
+---
+name: create-api
+description: 在 src/api 中生成 API 请求方法
+---
+
+在 **src/api** 中创建 API 请求方法。
+
+- 按实体或领域一个文件（如 `user.ts`、`order.ts`）。
+- 使用项目统一的 **request 封装**（如带拦截器的 axios 实例），不要在组件中直接使用裸 axios。
+
+示例：
+
+```ts
+import { request } from '@/utils/request';
+
+export interface UserQuery {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+}
+
+export const getUserList = (params: UserQuery) => {
+  return request.get<ApiResponse<User[]>>('/users', { params });
+};
+
+export const createUser = (data: UserCreateDto) => {
+  return request.post<ApiResponse<null>>('/users', data);
+};
+
+export const updateUser = (id: number, data: UserUpdateDto) => {
+  return request.put<ApiResponse<null>>(`/users/${id}`, data);
+};
+
+export const deleteUser = (id: number) => {
+  return request.delete<ApiResponse<null>>(`/users/${id}`);
+};
+```
+
+禁止在组件中直接调用 axios，一律通过 api 层。

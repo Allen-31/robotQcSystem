@@ -1,0 +1,23 @@
+---
+description: React 组件规范（函数组件、TypeScript、拆分与行数限制）
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# React 规范
+
+- 使用 **React 18+**。
+- 组件必须：
+  - 仅使用 **函数组件**
+  - 使用 **TypeScript** 编写
+  - **小而可复用**
+
+禁止：
+
+- class 组件
+- 过大组件（超过 300 行）
+
+若组件超过 300 行，应拆分为：
+
+- 更小的子组件
+- 自定义 hooks

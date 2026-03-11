@@ -1,0 +1,23 @@
+---
+description: Ant Design 使用规范（Form、Table、Modal 等）
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# Ant Design 规范
+
+- UI 优先使用 **Ant Design** 组件。
+
+使用：
+
+- Button、Form、Input、Select、Table、Modal、DatePicker
+
+表单须遵循：
+
+- `Form` + `Form.Item` + `Form.useForm()`
+
+表格须包含：
+
+- `rowKey`
+- 带类型的列（`ColumnsType<T>`）
+- `pagination`（或外部 Pagination 组件）

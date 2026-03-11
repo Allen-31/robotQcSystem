@@ -1,0 +1,26 @@
+---
+name: create-router
+description: 生成或更新路由配置
+---
+
+为页面添加或更新路由配置。
+
+- 若项目使用 React Router v6 的路由配置数组，则添加对应项。
+- 若项目使用 `<Route>` 树，则添加对应的 `<Route path="..." element={<... />} />`。
+
+示例（配置式）：
+
+```ts
+{
+  path: '/users',
+  element: <UserPage />,
+}
+```
+
+示例（JSX）：
+
+```tsx
+<Route path="/users" element={<UserPage />} />
+```
+
+确保 path 与菜单/导航一致，并已导入页面组件。添加到正确的布局下（如 BasicLayout 或 AdminLayout）。

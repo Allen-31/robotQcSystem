@@ -1,0 +1,29 @@
+---
+description: TypeScript 规范（strict、禁止 any、API 响应类型）
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+# TypeScript 规范
+
+- 使用 **严格模式 TypeScript**。
+
+禁止：
+
+- `any`
+
+推荐：
+
+- `interface`
+- `type`
+- 泛型
+
+API 响应须符合以下结构：
+
+```ts
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+```

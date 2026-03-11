@@ -1,0 +1,78 @@
+---
+description: 前端规范补充（与 react/ts/antd/architecture/comment/performance/naming 互补）
+alwaysApply: true
+---
+
+# 前端开发规范 · 补充 (Admin System)
+
+本文件与以下 7 条规则**互补**，不重复其内容：
+
+- `react.mdc` — 组件、Hooks、行数
+- `typescript.mdc` — 类型、ApiResponse
+- `antd.mdc` — Form / Table / Modal
+- `architecture.mdc` — 目录、CRUD 页面结构
+- `comment.mdc` — JSDoc 注释
+- `performance.mdc` — memoization
+- `naming.mdc` — 命名与文件大小
+
+下面仅约定**上述规则未单独覆盖**的内容。
+
+---
+
+## 1. 页面容器 (PageContainer)
+
+每个页面使用统一容器，保证布局、面包屑一致：
+
+```tsx
+<PageContainer title="User Management">
+  <UserSearch />
+  <UserTable />
+</PageContainer>
+```
+
+---
+
+## 2. API 与请求
+
+- 所有接口定义在 **src/api**，按模块分文件。
+- **禁止在组件中直接调用 axios**，必须通过 api 层。
+- 使用统一 **request 封装**（拦截器、统一错误处理）。
+- 响应类型：`interface ApiResponse<T> { code: number; message: string; data: T }`。
+
+---
+
+## 3. 权限
+
+- 使用权限包裹组件：`<Permission code="user:add">...</Permission>`。
+- 权限码/数据以后端为准，不在前端写死。
+
+---
+
+## 4. 状态管理
+
+- 优先使用 **Zustand**。
+- 全局/跨页状态放 store，页面内状态用 useState + hooks。
+
+---
+
+## 5. 安全与可访问性
+
+- 禁止使用 **dangerouslySetInnerHTML**。
+- 表单需带 **label** 与 **aria-label**。
+
+---
+
+## 6. Git 提交
+
+使用 **Conventional Commits**：`feat:`、`fix:`、`refactor:`、`style:`、`docs:` 等。
+
+---
+
+## 7. AI 生成代码时
+
+生成代码须同时遵守本文件与上述 7 条规则，并：
+
+- 遵循 CRUD 页面模式（Search + Table + Modal + Pagination）。
+- 逻辑放入 hooks，页面保持薄。
+- 控制单文件行数，按 naming.mdc 上限拆分。
+- 对列表、回调做 memoization；组件/hooks 按 comment.mdc 写 JSDoc。

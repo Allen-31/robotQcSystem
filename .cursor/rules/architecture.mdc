@@ -1,0 +1,29 @@
+---
+description: 项目架构与页面结构（目录、CRUD 页面模式）
+alwaysApply: true
+---
+
+# 架构规范
+
+- 采用 **按功能/特性划分** 的目录结构。
+
+```
+src
+├── api
+├── pages
+├── components
+├── hooks
+├── store
+├── router
+├── utils
+└── types
+```
+
+页面模式（CRUD）：
+
+1. **SearchForm**（搜索表单）
+2. **Table**（表格）
+3. **Pagination**（分页）
+4. **ModalForm**（新增/编辑弹窗）
+
+页面保持薄；逻辑放在 hooks，UI 放在 components。

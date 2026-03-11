@@ -1,0 +1,29 @@
+---
+description: 注释规范（JSDoc、组件与 hooks 说明）
+alwaysApply: false
+---
+
+# 注释规范
+
+- 以下内容须使用 **JSDoc** 注释：
+  - 组件
+  - Hooks
+  - 复杂逻辑
+
+每个对外组件必须包含：
+- 用途（purpose）
+- 主要功能（main functionality）
+
+自定义 hooks 必须包含描述。
+
+避免废话注释（不要重复代码已表达的意思）。
+
+示例：
+
+```ts
+/**
+ * UserTable
+ * 展示用户列表与分页
+ */
+export function UserTable() {}
+```

@@ -1,0 +1,13 @@
+---
+description: 命名规范（组件、Hooks、API、类型）
+alwaysApply: true
+---
+
+# 命名约定
+
+| 类型       | 约定         | 示例              |
+|------------|--------------|-------------------|
+| 组件       | PascalCase   | `UserTable.tsx`   |
+| Hooks      | 驼峰，use 前缀 | `useUserPage.ts`  |
+| API 文件   | 驼峰         | `user.ts`         |
+| 类型       | 类型用 PascalCase，文件可用实体名 | `user.ts` 中 `interface User` |

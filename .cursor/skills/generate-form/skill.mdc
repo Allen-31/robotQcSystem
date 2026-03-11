@@ -1,0 +1,39 @@
+---
+name: generate-form
+description: 根据字段列表或类型生成 Ant Design 表单项
+---
+
+将字段类型映射到 Ant Design 表单控件：
+
+| 类型    | 组件       | 说明                 |
+|---------|------------|----------------------|
+| string  | Input      | 长文本用 TextArea    |
+| number  | InputNumber|                      |
+| date    | DatePicker |                      |
+| boolean | Switch     | 或 Checkbox          |
+| enum    | Select     | options 来自枚举     |
+
+- 使用 `Form.Item`，配置 `name`、`label`、`rules`（required、message）。
+- 使用 `Form.useForm()` 并将 `form` 传给 Form。
+- 编辑时初始值用 `form.setFieldsValue(record)` 设置。
+
+示例：
+
+```tsx
+<Form form={form} layout="vertical">
+  <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+    <Input />
+  </Form.Item>
+  <Form.Item name="email" label="邮箱" rules={[{ required: true }, { type: 'email' }]}>
+    <Input />
+  </Form.Item>
+  <Form.Item name="role" label="角色" rules={[{ required: true }]}>
+    <Select options={[{ value: 'admin', label: '管理员' }, { value: 'user', label: '用户' }]} />
+  </Form.Item>
+  <Form.Item name="enabled" label="启用" valuePropName="checked">
+    <Switch />
+  </Form.Item>
+</Form>
+```
+
+需要时为表单项配置 `label` 和 `aria-label` 以保障可访问性。

@@ -1,0 +1,16 @@
+---
+description: 性能规范（memoization、避免多余渲染）
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# 性能规范
+
+- 在需要时使用 **记忆化**：
+  - `React.memo`
+  - `useMemo`
+  - `useCallback`
+
+- 避免不必要的重复渲染。
+
+- 大表格与列表类组件应做记忆化。

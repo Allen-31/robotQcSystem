@@ -1,0 +1,37 @@
+---
+name: generate-types
+description: 根据 JSON 或字段描述生成 TypeScript 类型
+---
+
+当用户提供：
+
+- 一段 JSON 响应示例，或
+- 字段列表（如 id、name、email、role、createdAt）
+
+在合适位置生成 **TypeScript 接口**（如 `src/types/{entity}.ts` 或模块同目录）。
+
+规则：
+
+- 使用 `interface` 或 `type`。
+- 禁止 `any`。
+- 使用明确类型：`string`、`number`、`boolean`、`Date`（或 ISO 字符串）、枚举用联合类型。
+- 可选字段使用 `?`。
+- API 响应推荐使用泛型 `ApiResponse<T>`。
+
+示例：
+
+```ts
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  createdAt: string;
+}
+
+export interface UserQuery {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+}
+```

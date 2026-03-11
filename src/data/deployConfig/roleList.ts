@@ -35,6 +35,13 @@ const localizedRoleList: LocalizedRoleManageRecord[] = [
     memberCount: 1,
     updatedAt: '2026-03-02 09:24:52',
   },
+  {
+    code: 'ROLE-005',
+    name: { zh: 'PAD', en: 'PAD' },
+    description: { zh: 'PAD 终端用户', en: 'PAD terminal user' },
+    memberCount: 0,
+    updatedAt: '2026-03-02 09:25:00',
+  },
 ];
 
 export function getRoleList(locale: DataLocale): RoleManageRecord[] {

@@ -1,0 +1,42 @@
+---
+name: create-module
+description: 使用 React、TypeScript、Ant Design 生成完整管理模块
+---
+
+当用户提出创建模块，例如：
+
+-「用户管理页面」
+-「订单管理页面」
+
+按以下结构生成：
+
+**路径：** `src/pages/{Entity}`
+
+**结构：**
+
+```
+src/pages/{Entity}
+├── index.tsx
+├── components
+│   ├── {Entity}Search.tsx
+│   ├── {Entity}Table.tsx
+│   └── {Entity}Form.tsx
+├── hooks
+│   └── use{Entity}Page.ts
+```
+
+并创建或更新：
+
+- `src/types/{entity}.ts` — TypeScript 接口
+- `src/api/{entity}.ts` — API 请求方法
+- 路由配置 — 增加该页面的路由
+- 可选：`src/store/{entity}Store.ts` — 需要时使用 Zustand store
+
+**页面须包含：**
+
+- 搜索表单（inline，每行最多 4 个搜索项）
+- 表格（rowKey、类型化 columns、pagination=false 且使用外部 Pagination）
+- 新增/编辑弹窗（Modal + Form）
+- 分页组件
+
+使用 Ant Design 组件，并遵循项目规则（react.mdc、typescript.mdc、antd.mdc、architecture.mdc）。
