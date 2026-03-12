@@ -75,7 +75,7 @@ export function useWorkOrderManage() {
     return [...source].sort((a, b) => parseTime(b.createdAt) - parseTime(a.createdAt));
   }, [keyword, workOrders]);
 
-  /** 工单管理-操作类：仅未执行、执行中、已暂停 */
+  /** 工单管理-仅显示未执行、执行中、已暂停的工单（不含已完成/已取消等） */
   const operationWorkOrders = useMemo(
     () =>
       filteredAndSortedWorkOrders.filter((item) =>

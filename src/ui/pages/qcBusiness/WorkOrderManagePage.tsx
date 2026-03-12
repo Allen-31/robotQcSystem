@@ -14,7 +14,6 @@ import {
   Select,
   Space,
   Table,
-  Tabs,
   Tag,
   Typography,
   Upload,
@@ -608,83 +607,39 @@ export function WorkOrderManagePage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('workOrder.pageTitle')}
           </Typography.Title>
-          <Tabs
-            items={[
-              {
-                key: 'operation',
-                label: t('workOrder.tab.operation'),
-                children: (
-                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                    <Row gutter={[12, 12]} align="middle">
-                      <Col xs={24} lg={10}>
-                        <Input
-                          allowClear
-                          prefix={<SearchOutlined />}
-                          placeholder={t('workOrder.searchPlaceholder')}
-                          value={keyword}
-                          onChange={(event) => setKeyword(event.target.value)}
-                        />
-                      </Col>
-                      <Col xs={24} lg={14}>
-                        <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreatingOpen(true)}>
-                            {t('workOrder.toolbar.create')}
-                          </Button>
-                          <Upload {...uploadProps}>
-                            <Button icon={<UploadOutlined />}>{t('workOrder.toolbar.import')}</Button>
-                          </Upload>
-                          <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
-                        </Space>
-                      </Col>
-                    </Row>
-                    <Table
-                      rowKey="id"
-                      rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-                      columns={columns}
-                      dataSource={operationWorkOrders}
-                      pagination={{ pageSize: 8, showSizeChanger: false }}
-                      scroll={{ x: 'max-content' }}
-                    />
-                  </Space>
-                ),
-              },
-              {
-                key: 'query',
-                label: t('workOrder.tab.query'),
-                children: (
-                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                    <Row gutter={[12, 12]} align="middle">
-                      <Col xs={24} lg={10}>
-                        <Input
-                          allowClear
-                          prefix={<SearchOutlined />}
-                          placeholder={t('workOrder.searchPlaceholder')}
-                          value={keyword}
-                          onChange={(event) => setKeyword(event.target.value)}
-                        />
-                      </Col>
-                      <Col xs={24} lg={14}>
-                        <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                          <Button type="primary" onClick={() => setNgModalOpen(true)}>
-                            {t('workOrder.toolbar.queryNg')}
-                          </Button>
-                          <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
-                        </Space>
-                      </Col>
-                    </Row>
-                    <Table
-                      rowKey="id"
-                      rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-                      columns={queryColumns}
-                      dataSource={operationWorkOrders}
-                      pagination={{ pageSize: 8, showSizeChanger: false }}
-                      scroll={{ x: 'max-content' }}
-                    />
-                  </Space>
-                ),
-              },
-            ]}
-          />
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Row gutter={[12, 12]} align="middle">
+              <Col xs={24} lg={10}>
+                <Input
+                  allowClear
+                  prefix={<SearchOutlined />}
+                  placeholder={t('workOrder.searchPlaceholder')}
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                />
+              </Col>
+              <Col xs={24} lg={14}>
+                <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreatingOpen(true)}>
+                    {t('workOrder.toolbar.create')}
+                  </Button>
+                  <Upload {...uploadProps}>
+                    <Button icon={<UploadOutlined />}>{t('workOrder.toolbar.import')}</Button>
+                  </Upload>
+                  <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
+                  <Button onClick={() => setNgModalOpen(true)}>{t('workOrder.toolbar.queryNg')}</Button>
+                </Space>
+              </Col>
+            </Row>
+            <Table
+              rowKey="id"
+              rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+              columns={columns}
+              dataSource={operationWorkOrders}
+              pagination={{ pageSize: 8, showSizeChanger: false }}
+              scroll={{ x: 'max-content' }}
+            />
+          </Space>
         </Space>
       </Card>
 
