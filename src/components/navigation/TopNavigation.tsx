@@ -1,12 +1,13 @@
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Grid, Menu, Select, Space, Typography } from 'antd';
-import { useMemo } from 'react';
+import { BellOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { Badge, Button, Dropdown, Grid, Menu, Select, Space, Typography } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { menuList } from '../../data/menuList';
 import { topMenus } from '../../data/topMenus';
 import { useI18n } from '../../i18n/I18nProvider';
 import { logout } from '../../logic/auth/authStore';
 import { useAuthUser } from '../../logic/auth/useAuthUser';
+import { getNotifications, seedMockNotifications, subscribeNotifications, type NotificationItem } from '../../logic/notification/notificationStore';
 import { useCurrentRole } from '../../logic/deployConfig/useCurrentRole';
 import { filterMenuTreeByRole, filterTopMenusByRole } from '../../logic/menu/menuPermission';
 import { findFirstLeafPathByCode } from '../../logic/menu/menuRoute';
@@ -24,6 +25,31 @@ export function TopNavigation() {
   const visibleTopMenus = useMemo(() => filterTopMenusByRole(topMenus, currentRole), [currentRole, permissionVersion]);
 
   const selectedKey = visibleTopMenus.find((item) => pathname === item.basePath || pathname.startsWith(`${item.basePath}/`))?.key;
+
+  const [notifications, setNotificationsState] = useState<NotificationItem[]>(getNotifications);
+  useEffect(() => {
+    seedMockNotifications();
+    setNotificationsState(getNotifications());
+    const unsub = subscribeNotifications(() => setNotificationsState(getNotifications()));
+    return unsub;
+  }, []);
+
+  const notificationMenuItems = useMemo(
+    () =>
+      notifications.length === 0
+        ? [{ key: 'empty', label: locale === 'en-US' ? 'No notifications' : '暂无提醒', disabled: true }]
+        : notifications.map((item) => ({
+            key: item.id,
+            label: (
+              <div style={{ maxWidth: 320 }}>
+                <div style={{ fontWeight: 600 }}>{item.title}</div>
+                {item.description ? <div style={{ fontSize: 12, color: '#666' }}>{item.description}</div> : null}
+              </div>
+            ),
+            onClick: () => navigate(item.link),
+          })),
+    [notifications, navigate, locale],
+  );
 
   return (
     <div
@@ -81,6 +107,11 @@ export function TopNavigation() {
       </div>
 
       <Space size={isLaptop ? 8 : 12} style={{ color: '#fff', marginLeft: 8, minWidth: isTight ? 240 : 420, justifyContent: 'flex-end' }}>
+        <Dropdown menu={{ items: notificationMenuItems }} trigger={['click']} placement="bottomRight">
+          <Badge count={notifications.length} size="small" offset={[-2, 2]}>
+            <Button type="text" size="middle" icon={<BellOutlined style={{ color: '#fff', fontSize: 18 }} />} />
+          </Badge>
+        </Dropdown>
         <Space size={6} style={{ display: isTight ? 'none' : 'inline-flex' }}>
           <Typography.Text style={{ color: '#fff' }}>{t('app.language')}</Typography.Text>
           <Select
@@ -104,8 +135,8 @@ export function TopNavigation() {
         <Button
           size="small"
           icon={<LogoutOutlined />}
-          onClick={() => {
-            logout();
+          onClick={async () => {
+            await logout();
             navigate('/home/login');
           }}
         >

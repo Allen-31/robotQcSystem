@@ -1,12 +1,16 @@
 import { EyeOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Descriptions, Modal, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography } from 'antd';
+import { Badge, Button, Card, Col, Descriptions, Modal, Row, Segmented, Space, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../../i18n/I18nProvider';
 import type { StationRecord } from '../../../logic/qcBusiness/useWorkstationManage';
 import { useWorkstationManage } from '../../../logic/qcBusiness/useWorkstationManage';
 
+const mockNgCountByWorkstationId: Record<string, number> = { 'WS-A': 2, 'WS-B': 1 };
+
 export function WorkstationManagePage() {
+  const navigate = useNavigate();
   const { t } = useI18n();
   const [viewingStation, setViewingStation] = useState<StationRecord | null>(null);
   const [summaryPeriod, setSummaryPeriod] = useState<'day' | 'week'>('day');
@@ -21,15 +25,6 @@ export function WorkstationManagePage() {
     stationList,
     toggleStationEnabled,
   } = useWorkstationManage();
-
-  const workstationOptions = useMemo(
-    () =>
-      workstations.map((item) => ({
-        label: `${item.name} (${item.id})`,
-        value: item.id,
-      })),
-    [workstations],
-  );
 
   const columns: ColumnsType<StationRecord> = [
     {
@@ -100,17 +95,54 @@ export function WorkstationManagePage() {
           </Typography.Title>
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
             <Typography.Text strong>{t('workstation.current')}</Typography.Text>
-            <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} lg={14}>
-                <Select style={{ width: '100%' }} options={workstationOptions} value={selectedWorkstationId} onChange={setSelectedWorkstationId} />
-              </Col>
-              <Col xs={24} lg={5}>
+            <Row gutter={[12, 12]}>
+              {workstations.map((ws) => {
+                const ngCount = mockNgCountByWorkstationId[ws.id] ?? 0;
+                const selected = selectedWorkstationId === ws.id;
+                return (
+                  <Col key={ws.id} xs={24} sm={12} md={8} lg={6}>
+                    <Badge count={ngCount} size="small" offset={[8, 0]} title={ngCount ? t('workstation.ngBadge') : undefined}>
+                      <Card
+                        size="small"
+                        hoverable
+                        onClick={() => setSelectedWorkstationId(ws.id)}
+                        style={{
+                          borderColor: selected ? '#1677ff' : undefined,
+                          borderWidth: selected ? 2 : 1,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                          <Typography.Text strong>{ws.name}</Typography.Text>
+                          <Typography.Text type="secondary">{ws.id}</Typography.Text>
+                          {ngCount > 0 ? (
+                            <Button
+                              type="link"
+                              size="small"
+                              style={{ padding: 0, height: 'auto' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/qualityInspection/workOrderManage', { state: { openNgModal: true } });
+                              }}
+                            >
+                              {t('workstation.viewNgList')}
+                            </Button>
+                          ) : null}
+                        </Space>
+                      </Card>
+                    </Badge>
+                  </Col>
+                );
+              })}
+            </Row>
+            <Row gutter={[16, 16]} align="middle" style={{ marginTop: 8 }}>
+              <Col xs={24} lg={8}>
                 <Space size={6}>
                   <Typography.Text type="secondary">{t('workstation.rank')}:</Typography.Text>
                   <Typography.Text strong>{workstationRank > 0 ? `#${workstationRank}` : '-'}</Typography.Text>
                 </Space>
               </Col>
-              <Col xs={24} lg={5}>
+              <Col xs={24} lg={8}>
                 <Space size={6} align="center">
                   <Typography.Text type="secondary">{t('workstation.enabledStatus')}:</Typography.Text>
                   {workstationEnabled ? <Tag color="success">{t('workstation.enabled')}</Tag> : <Tag color="default">{t('workstation.disabled')}</Tag>}

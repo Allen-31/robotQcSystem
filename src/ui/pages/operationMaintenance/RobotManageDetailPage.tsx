@@ -1,4 +1,4 @@
-﻿import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Descriptions, Divider, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -20,7 +20,10 @@ export function RobotManageDetailPage() {
   const exceptionNotificationList = useMemo(() => getExceptionNotificationList(locale), [locale]);
   const robotManageList = useMemo(() => getRobotManageList(locale), [locale]);
 
-  const robot = useMemo(() => robotManageList.find((item) => item.id === robotId), [robotId, robotManageList]);
+  const robot = useMemo(
+    () => robotManageList.find((item) => item.id === robotId || item.code === robotId),
+    [robotId, robotManageList],
+  );
   const [dispatchMode, setDispatchMode] = useState<'auto' | 'semi-auto' | 'manual'>('auto');
   const [controlStatus, setControlStatus] = useState<'running' | 'paused'>('running');
   const [isCharging, setIsCharging] = useState(false);

@@ -75,6 +75,15 @@ export function useWorkOrderManage() {
     return [...source].sort((a, b) => parseTime(b.createdAt) - parseTime(a.createdAt));
   }, [keyword, workOrders]);
 
+  /** 工单管理-操作类：仅未执行、执行中、已暂停 */
+  const operationWorkOrders = useMemo(
+    () =>
+      filteredAndSortedWorkOrders.filter((item) =>
+        ['pending', 'running', 'paused'].includes(item.status),
+      ),
+    [filteredAndSortedWorkOrders],
+  );
+
   const appendWorkOrders = (items: WorkOrderItem[]) => {
     setWorkOrders((prev) => {
       const map = new Map<string, WorkOrderItem>();
@@ -156,6 +165,24 @@ export function useWorkOrderManage() {
     setWorkOrders((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const pauseWorkOrder = (id: string) => {
+    setWorkOrders((prev) =>
+      prev.map((item) => (item.id === id && item.status === 'running' ? { ...item, status: 'paused' as const } : item)),
+    );
+    setViewingWorkOrder((prev) =>
+      prev && prev.id === id && prev.status === 'running' ? { ...prev, status: 'paused' as const } : prev,
+    );
+  };
+
+  const resumeWorkOrder = (id: string) => {
+    setWorkOrders((prev) =>
+      prev.map((item) => (item.id === id && item.status === 'paused' ? { ...item, status: 'running' as const } : item)),
+    );
+    setViewingWorkOrder((prev) =>
+      prev && prev.id === id && prev.status === 'paused' ? { ...prev, status: 'running' as const } : prev,
+    );
+  };
+
   const saveEdit = (payload: WorkOrderEditPayload) => {
     const taskIds = payload.taskIdsRaw
       .split(',')
@@ -233,6 +260,7 @@ export function useWorkOrderManage() {
 
   return {
     workOrders: filteredAndSortedWorkOrders,
+    operationWorkOrders,
     rawWorkOrders: workOrders,
     harnessTypeOptions,
     stationCodeOptions,
@@ -246,6 +274,8 @@ export function useWorkOrderManage() {
     openEdit,
     closeEdit,
     reviewWorkOrder,
+    pauseWorkOrder,
+    resumeWorkOrder,
     cancelWorkOrder,
     removeWorkOrder,
     saveEdit,

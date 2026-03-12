@@ -1,5 +1,5 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, InputNumber, Modal, Row, Space, Table, Typography, message } from 'antd';
+import { App, Button, Card, Col, Form, Input, Modal, Row, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
@@ -9,9 +9,10 @@ import { PermissionManagePageInner } from './PermissionManagePage';
 
 export function RoleManagePage() {
   const { t } = useI18n();
+  const { modal } = App.useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<RoleManageFormValues>();
-  const { filteredList, keyword, setKeyword, createRole, updateRole, removeRole } = useRoleManage();
+  const { filteredList, loading, keyword, setKeyword, createRole, updateRole, removeRole } = useRoleManage();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RoleManageRecord | null>(null);
@@ -19,7 +20,6 @@ export function RoleManagePage() {
 
   const openCreate = () => {
     form.resetFields();
-    form.setFieldsValue({ memberCount: 0 });
     setCreateOpen(true);
   };
 
@@ -28,7 +28,6 @@ export function RoleManagePage() {
       code: record.code,
       name: record.name,
       description: record.description,
-      memberCount: record.memberCount,
     });
     setEditingRecord(record);
   };
@@ -39,21 +38,25 @@ export function RoleManagePage() {
     form.resetFields();
   };
 
-  const submit = (values: RoleManageFormValues) => {
-    const result = createOpen ? createRole(values) : updateRole(values);
-    if (!result.success) {
-      messageApi.error(t('roleManage.message.duplicate'));
-      return;
+  const submit = async (values: RoleManageFormValues) => {
+    try {
+      const result = createOpen ? await createRole(values) : await updateRole(values);
+      if (!result.success) {
+        const errMsg = 'message' in result ? (result as { message?: string }).message : undefined;
+        messageApi.error(errMsg || t('roleManage.message.duplicate'));
+        return;
+      }
+      messageApi.success(createOpen ? t('roleManage.message.created') : t('roleManage.message.updated'));
+      closeModal();
+    } catch (e) {
+      messageApi.error(e instanceof Error ? e.message : t('roleManage.message.updateFailed'));
     }
-    messageApi.success(createOpen ? t('roleManage.message.created') : t('roleManage.message.updated'));
-    closeModal();
   };
 
   const columns: ColumnsType<RoleManageRecord> = [
     { title: t('roleManage.table.code'), dataIndex: 'code', key: 'code', width: 160 },
     { title: t('roleManage.table.name'), dataIndex: 'name', key: 'name', width: 180 },
     { title: t('roleManage.table.description'), dataIndex: 'description', key: 'description', width: 280 },
-    { title: t('roleManage.table.memberCount'), dataIndex: 'memberCount', key: 'memberCount', width: 120 },
     { title: t('roleManage.table.updatedAt'), dataIndex: 'updatedAt', key: 'updatedAt', width: 190 },
     {
       title: t('roleManage.table.action'),
@@ -72,20 +75,27 @@ export function RoleManagePage() {
             danger
             icon={<DeleteOutlined />}
             onClick={() =>
-              Modal.confirm({
+              modal.confirm({
                 title: t('roleManage.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
-                content: `${record.name} (${record.code})`,
+                content: t('roleManage.deleteConfirmContent', { name: record.name, code: record.code }),
                 okText: t('qcConfig.common.delete'),
                 okButtonProps: { danger: true },
                 cancelText: t('qcConfig.common.cancel'),
-                onOk: () => {
-                  const result = removeRole(record.code);
-                  if (!result.success) {
-                    messageApi.warning(result.error === 'last_role' ? t('roleManage.message.lastRoleForbidden') : t('roleManage.message.notFound'));
-                    return;
+                onOk: async () => {
+                  try {
+                    const result = await removeRole(record.code);
+                    if (!result.success) {
+                      messageApi.warning(
+                        result.error === 'last_role' ? t('roleManage.message.lastRoleForbidden') : (result as { message?: string }).message || t('roleManage.message.notFound'),
+                      );
+                      return Promise.reject(new Error('delete failed'));
+                    }
+                    messageApi.success(t('roleManage.message.deleted'));
+                  } catch (e) {
+                    messageApi.error(e instanceof Error ? e.message : t('roleManage.message.updateFailed'));
+                    return Promise.reject(e);
                   }
-                  messageApi.success(t('roleManage.message.deleted'));
                 },
               })
             }
@@ -127,7 +137,14 @@ export function RoleManagePage() {
       </Card>
 
       <Card>
-        <Table rowKey="code" columns={columns} dataSource={filteredList} pagination={{ pageSize: 10, showSizeChanger: false }} scroll={{ x: 1200 }} />
+        <Table
+        rowKey="code"
+        columns={columns}
+        dataSource={filteredList}
+        loading={loading}
+        pagination={{ pageSize: 10, showSizeChanger: false }}
+        scroll={{ x: 1200 }}
+      />
       </Card>
 
       <Modal
@@ -149,9 +166,6 @@ export function RoleManagePage() {
           <Form.Item label={t('roleManage.form.description')} name="description" rules={[{ required: true, message: t('roleManage.form.descriptionRequired') }]}>
             <Input.TextArea rows={3} />
           </Form.Item>
-          <Form.Item label={t('roleManage.form.memberCount')} name="memberCount" rules={[{ required: true, message: t('roleManage.form.memberCountRequired') }]}>
-            <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-          </Form.Item>
         </Form>
       </Modal>
 
@@ -163,7 +177,13 @@ export function RoleManagePage() {
         footer={null}
         destroyOnClose
       >
-        {permissionRoleRecord ? <PermissionManagePageInner fixedRole={permissionRoleRecord.name} hideHeaderCard={false} /> : null}
+        {permissionRoleRecord ? (
+          <PermissionManagePageInner
+            fixedRole={permissionRoleRecord.code}
+            fixedRoleName={permissionRoleRecord.name}
+            hideHeaderCard={false}
+          />
+        ) : null}
       </Modal>
     </Space>
   );

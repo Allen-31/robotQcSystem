@@ -1,0 +1,53 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+build/
+.next/
+out/
+docs/
+
+# cache
+.cache/
+.parcel-cache/
+.vite/
+.eslintcache
+
+# logs
+*.log
+logs/
+
+# coverage
+coverage/
+
+# git
+.git/
+
+# env
+.env*
+
+# ide
+.vscode/
+.idea/
+
+# system
+.DS_Store
+Thumbs.db
+
+# lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# assets
+public/images/
+public/videos/
+public/assets/
+
+# temp
+tmp/
+temp/
+
+# typescript
+*.tsbuildinfo

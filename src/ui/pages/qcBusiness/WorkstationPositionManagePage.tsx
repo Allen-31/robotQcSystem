@@ -1,7 +1,8 @@
 import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Badge, Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
 import type { RobotStatus, WorkOrderInfo, WorkOrderStatus } from '../../../data/qcBusiness/workstationPositionList';
 import { useI18n } from '../../../i18n/I18nProvider';
@@ -150,7 +151,10 @@ function resolveWireHarnessId(harnessType: string): string | null {
   return null;
 }
 
+const mockNgCountByPositionId: Record<string, number> = { 'PS-CFG-1': 1, 'PS-CFG-2': 2 };
+
 export function WorkstationPositionManagePage() {
+  const navigate = useNavigate();
   const { t } = useI18n();
   const [reviewForm] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
@@ -385,17 +389,54 @@ export function WorkstationPositionManagePage() {
       <Card>
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Typography.Text strong>{t('workstationPosition.currentStation')}</Typography.Text>
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} lg={14}>
-              <Select style={{ width: '100%' }} value={selectedPositionId} options={positionOptions} onChange={setSelectedPositionId} />
-            </Col>
-            <Col xs={24} lg={5}>
+          <Row gutter={[12, 12]}>
+            {positionList.map((pos) => {
+              const ngCount = mockNgCountByPositionId[pos.id] ?? 0;
+              const selected = selectedPositionId === pos.id;
+              return (
+                <Col key={pos.id} xs={24} sm={12} md={8} lg={6}>
+                  <Badge count={ngCount} size="small" offset={[8, 0]} title={ngCount ? t('workstation.ngBadge') : undefined}>
+                    <Card
+                      size="small"
+                      hoverable
+                      onClick={() => setSelectedPositionId(pos.id)}
+                      style={{
+                        borderColor: selected ? '#1677ff' : undefined,
+                        borderWidth: selected ? 2 : 1,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Typography.Text strong>{pos.name}</Typography.Text>
+                        <Typography.Text type="secondary">{pos.stationCode}</Typography.Text>
+                        {ngCount > 0 ? (
+                          <Button
+                            type="link"
+                            size="small"
+                            style={{ padding: 0, height: 'auto' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/qualityInspection/workOrderManage', { state: { openNgModal: true } });
+                            }}
+                          >
+                            {t('workstation.viewNgList')}
+                          </Button>
+                        ) : null}
+                      </Space>
+                    </Card>
+                  </Badge>
+                </Col>
+              );
+            })}
+          </Row>
+          <Row gutter={[16, 16]} align="middle" style={{ marginTop: 8 }}>
+            <Col xs={24} lg={8}>
               <Space size={6}>
                 <Typography.Text type="secondary">{t('workstationPosition.rank')}:</Typography.Text>
                 <Typography.Text strong>{positionRank > 0 ? `#${positionRank}` : '-'}</Typography.Text>
               </Space>
             </Col>
-            <Col xs={24} lg={5}>
+            <Col xs={24} lg={8}>
               <Space size={6} align="center">
                 <Typography.Text type="secondary">{t('workstationPosition.enabledStatus')}:</Typography.Text>
                 {selectedPosition?.enabled ? <Tag color="success">{t('workstationPosition.enabled')}</Tag> : <Tag>{t('workstationPosition.disabled')}</Tag>}

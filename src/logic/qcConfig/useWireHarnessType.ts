@@ -15,7 +15,7 @@ export function useWireHarnessType() {
     }
 
     return records.filter((item) =>
-      `${item.id} ${item.name} ${item.taskType} ${item.planarStructureFile} ${item.threeDStructureFile}`
+      `${item.id} ${item.name} ${item.project ?? ''} ${item.taskType} ${item.planarStructureFile} ${item.threeDStructureFile}`
         .toLowerCase()
         .includes(normalized),
     );

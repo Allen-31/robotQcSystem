@@ -149,16 +149,27 @@ export function setRolePermissionConfig(role: string, config: RolePermissionConf
   emit(PERMISSION_UPDATED_EVENT);
 }
 
+/** 将后端返回的权限列表写入本地 store（按角色 code），用于登录后同步权限 */
+export function setRolePermissionConfigFromApi(
+  roleCode: string,
+  apiList: Array<{ menuKey: string; actions: string[] }>,
+): void {
+  const list = Array.isArray(apiList) ? apiList : [];
+  const checkedKeys = list.map((p) => p.menuKey);
+  const permissionMap: Record<string, PermissionAction[]> = {};
+  list.forEach((p) => {
+    permissionMap[p.menuKey] = (p.actions ?? []) as PermissionAction[];
+  });
+  setRolePermissionConfig(roleCode, { checkedKeys, permissionMap });
+}
+
+/** 返回当前角色编码（与登录/后端一致），用于权限过滤 */
 export function getCurrentRole(): string {
-  const roleNames = getStoredRoles().map((item) => item.name);
-  if (!roleNames.length) {
-    return '管理员';
-  }
   const raw = localStorage.getItem(CURRENT_ROLE_STORAGE_KEY);
-  if (raw && roleNames.includes(raw)) {
+  if (raw && typeof raw === 'string') {
     return raw;
   }
-  return roleNames[0];
+  return 'admin';
 }
 
 export function setCurrentRole(role: string) {

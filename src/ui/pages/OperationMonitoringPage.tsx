@@ -1,7 +1,8 @@
-import { ClockCircleOutlined, PauseCircleOutlined, SearchOutlined, ThunderboltOutlined, UnorderedListOutlined, WalletOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, EyeOutlined, PauseCircleOutlined, SearchOutlined, ThunderboltOutlined, UnorderedListOutlined, WalletOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
 
 type LinkStatus = 'online' | 'unconnected' | 'offline';
@@ -31,13 +32,15 @@ interface MonitorRobot {
 
 const mapOptions = ['Map01', 'Map02', 'Map03'];
 
+const robotIdsForDetail = ['RB-001', 'RB-002', 'RB-003'];
 const robots: MonitorRobot[] = Array.from({ length: 30 }).map((_, idx) => {
   const n = idx + 1;
   const code = `RB-${String(n).padStart(3, '0')}`;
+  const id = idx < robotIdsForDetail.length ? robotIdsForDetail[idx] : String(n);
   const link: LinkStatus = n % 9 === 0 ? 'offline' : n % 4 === 0 ? 'unconnected' : 'online';
   const exception: ExceptionStatus = n % 5 === 0 ? 'abnormal' : 'normal';
   return {
-    id: String(n),
+    id,
     code,
     link,
     work: n % 3 === 0 ? 'working' : 'idle',
@@ -57,6 +60,7 @@ const robots: MonitorRobot[] = Array.from({ length: 30 }).map((_, idx) => {
 });
 
 export function OperationMonitoringPage() {
+  const navigate = useNavigate();
   const { locale, t } = useI18n();
   const [selectedMap, setSelectedMap] = useState(mapOptions[0]);
   const [pageSize, setPageSize] = useState(10);
@@ -640,6 +644,14 @@ export function OperationMonitoringPage() {
                     </div>
                   ) : null}
                   <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={() => navigate(`/operationMaintenance/robot/robotManage/${selectedRobot.id}/detail`)}
+                    >
+                      {locale === 'en-US' ? 'View detail' : '查看详情'}
+                    </Button>
                     {selectedRobot.work === 'working' ? <Typography.Text>{`${label.task}: ${selectedRobot.task}`}</Typography.Text> : null}
                     {selectedRobot.link === 'online' && selectedRobot.exception === 'normal' && selectedRobot.work === 'idle' ? (
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 10 }}>

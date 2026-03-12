@@ -1,4 +1,4 @@
-﻿import { DownloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -24,11 +24,14 @@ export function QualityStatisticsPage() {
     workstation,
     station,
     wireHarness,
+    project,
     metric,
     setPeriod,
     setCustomRange,
     setWireHarness,
+    setProject,
     setMetric,
+    setGroupBy,
     changeWorkshop,
     changeWorkstation,
     changeStation,
@@ -36,6 +39,7 @@ export function QualityStatisticsPage() {
     workstationOptions,
     stationOptions,
     wireHarnessOptions,
+    projectOptions,
     groupDimension,
     rows,
     summary,
@@ -74,6 +78,9 @@ export function QualityStatisticsPage() {
         chartTopHint: 'Chart shows top {count} items; full data is in the table',
         wireHarness: 'Wire Harness',
         allWireHarness: 'All Harness Types',
+        project: 'Project',
+        allProject: 'All Projects',
+        groupBy: 'Group By',
         export: 'Export',
         exportDone: 'Exported successfully',
         exportEmpty: 'No data to export',
@@ -105,6 +112,9 @@ export function QualityStatisticsPage() {
       chartTopHint: '图表仅展示前 {count} 项，完整数据请查看上方列表',
       wireHarness: '线束类型',
       allWireHarness: '全部线束类型',
+      project: '项目',
+      allProject: '全部项目',
+      groupBy: '分组维度',
       export: '导出',
       exportDone: '导出成功',
       exportEmpty: '暂无可导出数据',
@@ -118,8 +128,11 @@ export function QualityStatisticsPage() {
     if (groupDimension === 'workstation') {
       return label.workstation;
     }
+    if (groupDimension === 'project') {
+      return label.project;
+    }
     return label.station;
-  }, [groupDimension, label.station, label.workshop, label.workstation]);
+  }, [groupDimension, label.station, label.workshop, label.workstation, label.project]);
 
   const columns = useMemo<ColumnsType<AggregatedRow>>(() => {
     const baseColumns: ColumnsType<AggregatedRow> = [
@@ -330,6 +343,27 @@ export function QualityStatisticsPage() {
                 ...wireHarnessOptions.map((item) => ({ label: item, value: item })),
               ]}
               style={{ width: 180 }}
+            />
+            <Select
+              value={project}
+              onChange={setProject}
+              options={[
+                { label: label.allProject, value: ALL_VALUE },
+                ...projectOptions.map((item) => ({ label: item, value: item })),
+              ]}
+              style={{ width: 140 }}
+            />
+            <Select
+              value={groupDimension}
+              onChange={setGroupBy}
+              options={[
+                { label: label.workshop, value: 'workshop' },
+                { label: label.workstation, value: 'workstation' },
+                { label: label.station, value: 'station' },
+                { label: label.project, value: 'project' },
+              ]}
+              style={{ width: 120 }}
+              placeholder={label.groupBy}
             />
             <Button icon={<DownloadOutlined />} onClick={exportRows}>
               {label.export}

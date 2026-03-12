@@ -10,18 +10,19 @@ import { LoginPage } from '../../ui/pages/LoginPage';
 import { NotFoundPage } from '../../ui/pages/NotFoundPage';
 import { OperationMonitoringPage } from '../../ui/pages/OperationMonitoringPage';
 import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
+import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
 import { RobotConfigPage } from '../../ui/pages/deployConfig/RobotConfigPage';
 import { RobotGroupPage } from '../../ui/pages/deployConfig/RobotGroupPage';
 import { RobotPartsPage } from '../../ui/pages/deployConfig/RobotPartsPage';
 import { RobotTypeEditorPage } from '../../ui/pages/deployConfig/RobotTypeEditorPage';
 import { RobotTypePage } from '../../ui/pages/deployConfig/RobotTypePage';
+import { QualityRecordPage } from '../../ui/pages/qcBusiness/QualityRecordPage';
 import { ReinspectionRecordPage } from '../../ui/pages/qcBusiness/ReinspectionRecordPage';
 import { WorkOrderManagePage } from '../../ui/pages/qcBusiness/WorkOrderManagePage';
 import { WorkstationManagePage } from '../../ui/pages/qcBusiness/WorkstationManagePage';
 import { WorkstationPositionManagePage } from '../../ui/pages/qcBusiness/WorkstationPositionManagePage';
 import { RoleManagePage } from '../../ui/pages/deployConfig/RoleManagePage';
 import { ChargeStrategyPage } from '../../ui/pages/deployConfig/ChargeStrategyPage';
-import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
 import { HomingStrategyPage } from '../../ui/pages/deployConfig/HomingStrategyPage';
 import { MapEditorPage } from '../../ui/pages/deployConfig/MapEditorPage';
 import { DeviceManagePage } from '../../ui/pages/deployConfig/DeviceManagePage';
@@ -58,6 +59,7 @@ const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/hom
 const workstationManagePath = '/qualityInspection/workstationManage';
 const workstationPositionManagePath = '/qualityInspection/workstationPositionManage';
 const workOrderManagePath = '/qualityInspection/workOrderManage';
+const qualityRecordPath = '/qualityInspection/qualityRecord';
 const reinspectionRecordPath = '/qualityInspection/reinspectionRecord';
 const userManagePath = '/deployConfig/user/userManage';
 const roleManagePath = '/deployConfig/user/roleManage';
@@ -65,7 +67,6 @@ const settingPath = '/deployConfig/setting';
 const mapManagePath = '/deployConfig/scene/mapManage';
 const deviceManagePath = '/deployConfig/scene/deviceManage';
 const mapEditorPath = '/deployConfig/scene/mapManage/:mapCode/edit';
-const configTemplatePath = '/deployConfig/scene/configTemplate';
 const taskTemplatePath = '/deployConfig/task/taskTemplate';
 const actionTemplatePath = '/deployConfig/task/actionTemplate';
 const chargeStrategyPath = '/deployConfig/robot/chargeStrategy';
@@ -104,13 +105,13 @@ const placeholderRoutes = subsystemRoutes.filter(
     route.path !== workstationManagePath &&
     route.path !== workstationPositionManagePath &&
     route.path !== workOrderManagePath &&
+    route.path !== qualityRecordPath &&
     route.path !== reinspectionRecordPath &&
     route.path !== userManagePath &&
     route.path !== roleManagePath &&
     route.path !== settingPath &&
     route.path !== mapManagePath &&
     route.path !== deviceManagePath &&
-    route.path !== configTemplatePath &&
     route.path !== taskTemplatePath &&
     route.path !== actionTemplatePath &&
     route.path !== chargeStrategyPath &&
@@ -171,6 +172,7 @@ export function AppRouter() {
             <Route path={workstationManagePath} element={<WorkstationManagePage />} />
             <Route path={workstationPositionManagePath} element={<WorkstationPositionManagePage />} />
             <Route path={workOrderManagePath} element={<WorkOrderManagePage />} />
+            <Route path={qualityRecordPath} element={<QualityRecordPage />} />
             <Route path={reinspectionRecordPath} element={<ReinspectionRecordPage />} />
             <Route path={userManagePath} element={<UserManagePage />} />
             <Route path={roleManagePath} element={<RoleManagePage />} />
@@ -181,7 +183,6 @@ export function AppRouter() {
             <Route path={taskTemplatePath} element={<TaskTemplatePage />} />
             <Route path={actionTemplatePath} element={<ActionTemplatePage />} />
             <Route path="/deployConfig/task/taskDesign/:step" element={<TaskDesignPage />} />
-            <Route path={configTemplatePath} element={<RobotConfigPage />} />
             <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
             <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
             <Route path={fileManagePath} element={<FileManagePage />} />

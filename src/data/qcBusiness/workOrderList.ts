@@ -1,4 +1,4 @@
-export type WorkOrderStatus = 'pending' | 'running' | 'finished' | 'ng' | 'cancelled';
+export type WorkOrderStatus = 'pending' | 'running' | 'paused' | 'finished' | 'ng' | 'cancelled';
 
 export type QualityResult = 'ok' | 'ng' | 'pending';
 

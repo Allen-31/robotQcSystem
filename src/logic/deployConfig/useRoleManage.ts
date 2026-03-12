@@ -1,88 +1,120 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  createRoleApi,
+  deleteRoleApi,
+  getRoleListApi,
+  updateRoleApi,
+} from '../../shared/api/roleApi';
 import type { RoleManageRecord } from '../../shared/types/deployConfig';
-import { getStoredRoles, setStoredRoles } from './roleStore';
 
 export interface RoleManageFormValues {
   code: string;
   name: string;
   description: string;
-  memberCount: number;
+  memberCount?: number;
 }
 
-function nowString() {
-  const date = new Date();
-  const pad = (num: number) => String(num).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+function mapToRecord(item: {
+  code: string;
+  name: string;
+  description: string;
+  memberCount: number;
+  updatedAt: string;
+}): RoleManageRecord {
+  return {
+    code: item.code,
+    name: item.name,
+    description: item.description ?? '',
+    memberCount: item.memberCount ?? 0,
+    updatedAt: item.updatedAt ?? '',
+  };
 }
 
 export function useRoleManage() {
-  const [records, setRecords] = useState<RoleManageRecord[]>(getStoredRoles);
+  const [list, setList] = useState<RoleManageRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
 
-  const persist = (next: RoleManageRecord[]) => {
-    setRecords(next);
-    setStoredRoles(next);
-  };
+  const fetchList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getRoleListApi(keyword.trim() || undefined);
+      const data = res.data;
+      setList(Array.isArray(data) ? data.map(mapToRecord) : []);
+    } catch {
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [keyword]);
 
-  const filteredList = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    if (!normalized) {
-      return records;
-    }
-    return records.filter((item) => `${item.code} ${item.name} ${item.description}`.toLowerCase().includes(normalized));
-  }, [keyword, records]);
+  useEffect(() => {
+    fetchList();
+  }, [fetchList]);
 
-  const createRole = (payload: RoleManageFormValues) => {
-    const exists = records.some((item) => item.code === payload.code || item.name === payload.name);
-    if (exists) {
-      return { success: false as const, error: 'duplicate' as const };
-    }
-    const next: RoleManageRecord = {
-      ...payload,
-      updatedAt: nowString(),
-    };
-    persist([next, ...records]);
-    return { success: true as const };
-  };
+  const filteredList = useMemo(() => list, [list]);
 
-  const updateRole = (payload: RoleManageFormValues) => {
-    const duplicate = records.some((item) => item.code !== payload.code && item.name === payload.name);
-    if (duplicate) {
-      return { success: false as const, error: 'duplicate' as const };
-    }
-    const next = records.map((item) =>
-      item.code === payload.code
-        ? {
-            ...item,
-            ...payload,
-            updatedAt: nowString(),
-          }
-        : item,
-    );
-    persist(next);
-    return { success: true as const };
-  };
+  const createRole = useCallback(
+    async (payload: RoleManageFormValues) => {
+      try {
+        await createRoleApi({
+          code: payload.code,
+          name: payload.name,
+          description: payload.description,
+        });
+        await fetchList();
+        return { success: true as const };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        return { success: false as const, error: 'duplicate' as const, message: msg };
+      }
+    },
+    [fetchList],
+  );
 
-  const removeRole = (code: string) => {
-    const next = records.filter((item) => item.code !== code);
-    if (next.length === records.length) {
-      return { success: false as const, error: 'not_found' as const };
-    }
-    if (next.length === 0) {
-      return { success: false as const, error: 'last_role' as const };
-    }
-    persist(next);
-    return { success: true as const };
-  };
+  const updateRole = useCallback(
+    async (payload: RoleManageFormValues) => {
+      try {
+        await updateRoleApi(payload.code, {
+          name: payload.name,
+          description: payload.description,
+        });
+        await fetchList();
+        return { success: true as const };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        return { success: false as const, error: 'duplicate' as const, message: msg };
+      }
+    },
+    [fetchList],
+  );
+
+  const removeRole = useCallback(
+    async (code: string) => {
+      try {
+        await deleteRoleApi(code);
+        await fetchList();
+        return { success: true as const };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        if (msg.includes('至少') || msg.includes('last') || msg.includes('保留')) {
+          return { success: false as const, error: 'last_role' as const, message: msg };
+        }
+        return { success: false as const, error: 'not_found' as const, message: msg };
+      }
+    },
+    [fetchList],
+  );
 
   return {
-    records,
+    records: list,
     filteredList,
+    loading,
     keyword,
     setKeyword,
     createRole,
     updateRole,
     removeRole,
+    refreshList: fetchList,
   };
 }
-

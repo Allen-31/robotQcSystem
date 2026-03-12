@@ -88,6 +88,7 @@ export function WireHarnessTypePage() {
   const columns: ColumnsType<WireHarnessTypeConfig> = [
     { title: t('qcConfig.wireHarness.table.id'), dataIndex: 'id', key: 'id', width: 140 },
     { title: t('qcConfig.wireHarness.table.name'), dataIndex: 'name', key: 'name', width: 180 },
+    { title: t('qcConfig.wireHarness.table.project'), dataIndex: 'project', key: 'project', width: 120 },
     { title: t('qcConfig.wireHarness.table.taskType'), dataIndex: 'taskType', key: 'taskType', width: 180 },
     {
       title: t('qcConfig.wireHarness.table.planarFile'),
@@ -278,6 +279,9 @@ export function WireHarnessTypePage() {
           </Form.Item>
           <Form.Item label={t('qcConfig.wireHarness.form.name')} name="name" rules={[{ required: true, message: t('qcConfig.wireHarness.form.nameRequired') }]}>
             <Input />
+          </Form.Item>
+          <Form.Item label={t('qcConfig.wireHarness.form.project')} name="project">
+            <Input placeholder={t('qcConfig.wireHarness.form.projectPlaceholder')} />
           </Form.Item>
           <Form.Item
             label={t('qcConfig.wireHarness.form.taskType')}

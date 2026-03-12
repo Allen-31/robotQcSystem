@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowLeftOutlined,
   CheckCircleFilled,
   ClockCircleOutlined,
@@ -102,8 +102,8 @@ function buildWorkflowNodes(task: TaskManageRecord, locale: string): FlowNode[] 
   const base: Array<Omit<FlowNode, 'status'>> = [
     {
       key: 'dispatch',
-      name: locale === 'en-US' ? 'Dispatch Task' : '任务下发',
-      command: locale === 'en-US' ? 'Dispatch' : '下发任务',
+      name: locale === 'en-US' ? 'Dispatch' : '调度下发',
+      command: locale === 'en-US' ? 'Dispatch' : '下发调度',
       params: `{"taskCode":"${task.code}","robot":"${task.robot}"}`,
       durationSec: 2,
     },
@@ -206,7 +206,7 @@ function buildJournalLogs(task: TaskManageRecord, locale: string, nodes: FlowNod
 function buildActivityRows(task: TaskManageRecord, locale: string): DetailRow[] {
   return [
     { key: 'id', label: 'ID', value: task.id.toLowerCase() },
-    { key: 'type', label: locale === 'en-US' ? 'Type' : '类型', value: locale === 'en-US' ? 'Task.Flowchart' : '任务流程图' },
+    { key: 'type', label: locale === 'en-US' ? 'Type' : '类型', value: locale === 'en-US' ? 'Dispatch.Flowchart' : '调度流程图' },
     { key: 'version', label: locale === 'en-US' ? 'Version' : '版本', value: String((task.priority % 3) + 1) },
     { key: 'status', label: locale === 'en-US' ? 'Status' : '状态', value: statusText(task.status, locale) },
     { key: 'instance', label: locale === 'en-US' ? 'Instance ID' : '实例ID', value: toInstanceId(task) },
@@ -278,7 +278,7 @@ export function TaskManageDetailPage() {
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/operationMaintenance/task/taskManage')}>
             {locale === 'en-US' ? 'Back' : '返回'}
           </Button>
-          <Empty description={locale === 'en-US' ? 'Task not found' : '任务不存在'} />
+          <Empty description={locale === 'en-US' ? 'Dispatch not found' : '调度不存在'} />
         </Space>
       </Card>
     );
@@ -311,7 +311,7 @@ export function TaskManageDetailPage() {
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space>
             <Typography.Title level={4} style={{ margin: 0 }}>
-              {locale === 'en-US' ? 'Task Detail' : '任务详情'}
+              {locale === 'en-US' ? 'Dispatch Detail' : '调度详情'}
             </Typography.Title>
             <Tag color={statusColor(task.status)}>{statusText(task.status, locale)}</Tag>
           </Space>
@@ -418,7 +418,7 @@ export function TaskManageDetailPage() {
             <span className="tab active">{locale === 'en-US' ? 'DETAILS' : '详情'}</span>
             <span className="tab">{locale === 'en-US' ? 'VARIA' : '变量'}</span>
           </div>
-          <Card size="small" title={locale === 'en-US' ? 'Workflow' : '任务流'} styles={{ body: { padding: 0 } }}>
+          <Card size="small" title={locale === 'en-US' ? 'Workflow' : '调度流'} styles={{ body: { padding: 0 } }}>
             <div className="detail-kv-list">
               {detailRows.map((row) => (
                 <div className="detail-kv-row" key={row.key}>

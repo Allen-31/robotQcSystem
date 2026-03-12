@@ -20,6 +20,7 @@ export interface StationConfig {
 export interface WireHarnessTypeConfig {
   id: string;
   name: string;
+  project?: string;
   taskType: string;
   planarStructureFile: string;
   threeDStructureFile: string;

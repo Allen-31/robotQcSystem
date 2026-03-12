@@ -3,7 +3,7 @@ import { qualityStatsMock, type QualityStatRecord } from '../../data/qcStatistic
 
 export type PeriodKey = 'day3' | 'day7' | 'month1' | 'custom';
 export type MetricKey = 'reinspectionRate' | 'detectionRate' | 'falseDetectionRate' | 'inspectionCount' | 'avgDurationMin' | 'abnormalCount';
-export type GroupDimension = 'workshop' | 'workstation' | 'station';
+export type GroupDimension = 'workshop' | 'workstation' | 'station' | 'project';
 
 export interface AggregatedRow {
   key: string;
@@ -121,6 +121,8 @@ export function useQualityStatistics(records: QualityStatRecord[] = qualityStats
   const [workstation, setWorkstation] = useState<string>(ALL_VALUE);
   const [station, setStation] = useState<string>(ALL_VALUE);
   const [wireHarness, setWireHarness] = useState<string>(ALL_VALUE);
+  const [project, setProject] = useState<string>(ALL_VALUE);
+  const [groupBy, setGroupBy] = useState<GroupDimension>('workshop');
   const [metric, setMetric] = useState<MetricKey>('inspectionCount');
 
   const periodFiltered = useMemo(() => applyPeriod(records, period, customRange), [records, period, customRange]);
@@ -168,6 +170,25 @@ export function useQualityStatistics(records: QualityStatRecord[] = qualityStats
     [periodFiltered, workshop, workstation, station],
   );
 
+  const projectOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          periodFiltered
+            .filter(
+              (item) =>
+                (workshop === ALL_VALUE || item.workshop === workshop) &&
+                (workstation === ALL_VALUE || item.workstation === workstation) &&
+                (station === ALL_VALUE || item.station === station) &&
+                (wireHarness === ALL_VALUE || item.wireHarness === wireHarness),
+            )
+            .map((item) => item.project)
+            .filter(Boolean),
+        ),
+      ) as string[],
+    [periodFiltered, workshop, workstation, station, wireHarness],
+  );
+
   const drilledRecords = useMemo(
     () =>
       periodFiltered.filter(
@@ -175,25 +196,18 @@ export function useQualityStatistics(records: QualityStatRecord[] = qualityStats
           (workshop === ALL_VALUE || item.workshop === workshop) &&
           (workstation === ALL_VALUE || item.workstation === workstation) &&
           (station === ALL_VALUE || item.station === station) &&
-          (wireHarness === ALL_VALUE || item.wireHarness === wireHarness),
+          (wireHarness === ALL_VALUE || item.wireHarness === wireHarness) &&
+          (project === ALL_VALUE || item.project === project),
       ),
-    [periodFiltered, workshop, workstation, station, wireHarness],
+    [periodFiltered, workshop, workstation, station, wireHarness, project],
   );
 
-  const groupDimension = useMemo<GroupDimension>(() => {
-    if (workshop === ALL_VALUE) {
-      return 'workshop';
-    }
-    if (workstation === ALL_VALUE) {
-      return 'workstation';
-    }
-    return 'station';
-  }, [workshop, workstation]);
+  const groupDimension = groupBy;
 
   const rows = useMemo<AggregatedRow[]>(() => {
     const grouped = new Map<string, QualityStatRecord[]>();
     drilledRecords.forEach((item) => {
-      const key = item[groupDimension];
+      const key = groupDimension === 'project' ? (item.project ?? '未分类') : item[groupDimension];
       grouped.set(key, [...(grouped.get(key) ?? []), item]);
     });
 
@@ -332,11 +346,14 @@ export function useQualityStatistics(records: QualityStatRecord[] = qualityStats
     workstation,
     station,
     wireHarness,
+    project,
     metric,
     setPeriod,
     setCustomRange,
     setWireHarness,
+    setProject,
     setMetric,
+    setGroupBy,
     changeWorkshop,
     changeWorkstation,
     changeStation,
@@ -344,6 +361,7 @@ export function useQualityStatistics(records: QualityStatRecord[] = qualityStats
     workstationOptions,
     stationOptions,
     wireHarnessOptions,
+    projectOptions,
     groupDimension,
     rows,
     summary,

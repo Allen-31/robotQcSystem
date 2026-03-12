@@ -20,6 +20,7 @@ export interface RobotManageRecord {
   onlineStatus: RobotOnlineStatus;
   location: string;
   battery: number;
+  mileageKm?: number;
   currentMap: string;
   dispatchMode: RobotDispatchMode;
   controlStatus: RobotControlStatus;
@@ -41,6 +42,7 @@ interface LocalizedRobotManageRecord extends Omit<RobotManageRecord, 'location' 
   currentMap: LocalizedText;
   type: LocalizedText;
   group: LocalizedText;
+  mileageKm?: number;
   exceptionLogs: LocalizedText[];
   runtimeLogs: LocalizedRobotRuntimeLogRecord[];
 }
@@ -52,6 +54,7 @@ const localizedRobotManageList: LocalizedRobotManageRecord[] = [
     onlineStatus: 'online',
     location: { zh: '总装一线 / 工位 A-03', en: 'Assembly Line 1 / Station A-03' },
     battery: 82,
+    mileageKm: 1250.6,
     currentMap: { zh: '总装一线地图', en: 'Assembly Line 1 Map' },
     dispatchMode: 'auto',
     controlStatus: 'running',
@@ -78,6 +81,7 @@ const localizedRobotManageList: LocalizedRobotManageRecord[] = [
     onlineStatus: 'online',
     location: { zh: '质检二线 / 工位 B-08', en: 'Quality Line 2 / Station B-08' },
     battery: 47,
+    mileageKm: 892.3,
     currentMap: { zh: '质检二线地图', en: 'Quality Line 2 Map' },
     dispatchMode: 'semi-auto',
     controlStatus: 'paused',
@@ -107,6 +111,7 @@ const localizedRobotManageList: LocalizedRobotManageRecord[] = [
     onlineStatus: 'offline',
     location: { zh: '仓储区 / 充电桩 C-02', en: 'Warehouse Zone / Charging Pile C-02' },
     battery: 16,
+    mileageKm: 2105.8,
     currentMap: { zh: '仓储区地图', en: 'Warehouse Zone Map' },
     dispatchMode: 'manual',
     controlStatus: 'paused',

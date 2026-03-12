@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, EyeOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, ExclamationCircleFilled, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -14,6 +14,7 @@ import {
   Select,
   Space,
   Table,
+  Tabs,
   Tag,
   Typography,
   Upload,
@@ -22,6 +23,7 @@ import {
 import type { UploadProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useWorkOrderManage } from '../../../logic/qcBusiness/useWorkOrderManage';
@@ -31,6 +33,7 @@ import type { QualityResult, WorkOrderItem, WorkOrderStatus } from '../../../dat
 const statusColorMap: Record<WorkOrderStatus, string> = {
   pending: 'default',
   running: 'processing',
+  paused: 'warning',
   finished: 'success',
   ng: 'error',
   cancelled: 'warning',
@@ -42,7 +45,7 @@ const qualityColorMap: Record<QualityResult, string> = {
   pending: 'default',
 };
 
-const statusOptions: WorkOrderStatus[] = ['pending', 'running', 'finished', 'ng', 'cancelled'];
+const statusOptions: WorkOrderStatus[] = ['pending', 'running', 'paused', 'finished', 'ng', 'cancelled'];
 const qualityOptions: QualityResult[] = ['ok', 'ng', 'pending'];
 
 function escapeCsv(value: string | number): string {
@@ -315,6 +318,7 @@ function buildInspectionPointsFromAnnotation(workOrder: WorkOrderItem, points: Q
 }
 
 export function WorkOrderManagePage() {
+  const location = useLocation();
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
@@ -324,8 +328,18 @@ export function WorkOrderManagePage() {
   const [creatingOpen, setCreatingOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [previewPoint, setPreviewPoint] = useState<InspectionPointItem | null>(null);
+  const [ngModalOpen, setNgModalOpen] = useState(false);
+
+  useEffect(() => {
+    const state = location.state as { openNgModal?: boolean } | undefined;
+    if (state?.openNgModal) {
+      setNgModalOpen(true);
+      window.history.replaceState(null, '', location.pathname);
+    }
+  }, [location.state, location.pathname]);
   const {
     workOrders,
+    operationWorkOrders,
     rawWorkOrders,
     harnessTypeOptions,
     stationCodeOptions,
@@ -338,6 +352,9 @@ export function WorkOrderManagePage() {
     closeDetail,
     openEdit,
     closeEdit,
+    reviewWorkOrder,
+    pauseWorkOrder,
+    resumeWorkOrder,
     cancelWorkOrder,
     removeWorkOrder,
     saveEdit,
@@ -395,6 +412,8 @@ export function WorkOrderManagePage() {
     const keySet = new Set(selectedRowKeys.map(String));
     return rawWorkOrders.filter((item) => keySet.has(item.id));
   }, [rawWorkOrders, selectedRowKeys]);
+
+  const ngRecords = useMemo(() => rawWorkOrders.filter((item) => item.qualityResult === 'ng'), [rawWorkOrders]);
 
   const exportSelected = () => {
     if (selectedWorkOrders.length === 0) {
@@ -514,10 +533,23 @@ export function WorkOrderManagePage() {
       render: (_, record) => (
         <Space size={4} wrap>
           <Button type="link" icon={<EyeOutlined />} onClick={() => openDetail(record)}>
-            {t('workOrder.action.detail')}
+            {t('workOrder.action.review')}
           </Button>
-          <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
-            {t('workOrder.action.edit')}
+          <Button
+            type="link"
+            icon={<PauseCircleOutlined />}
+            onClick={() => pauseWorkOrder(record.id)}
+            disabled={record.status !== 'running'}
+          >
+            {t('workOrder.action.pause')}
+          </Button>
+          <Button
+            type="link"
+            icon={<PlayCircleOutlined />}
+            onClick={() => resumeWorkOrder(record.id)}
+            disabled={record.status !== 'paused'}
+          >
+            {t('workOrder.action.resume')}
           </Button>
           <Button
             type="link"
@@ -553,6 +585,21 @@ export function WorkOrderManagePage() {
     },
   ];
 
+  const queryColumns: ColumnsType<WorkOrderItem> = [
+    ...columns.slice(0, -1),
+    {
+      title: t('workOrder.table.action'),
+      key: 'action',
+      width: 100,
+      fixed: 'right',
+      render: (_, record) => (
+        <Button type="link" icon={<EyeOutlined />} onClick={() => openDetail(record)}>
+          {t('workOrder.action.detail')}
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
@@ -561,41 +608,101 @@ export function WorkOrderManagePage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('workOrder.pageTitle')}
           </Typography.Title>
-          <Row gutter={[12, 12]} align="middle">
-            <Col xs={24} lg={10}>
-              <Input
-                allowClear
-                prefix={<SearchOutlined />}
-                placeholder={t('workOrder.searchPlaceholder')}
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-              />
-            </Col>
-            <Col xs={24} lg={14}>
-              <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreatingOpen(true)}>
-                  {t('workOrder.toolbar.create')}
-                </Button>
-                <Upload {...uploadProps}>
-                  <Button icon={<UploadOutlined />}>{t('workOrder.toolbar.import')}</Button>
-                </Upload>
-                <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
-              </Space>
-            </Col>
-          </Row>
+          <Tabs
+            items={[
+              {
+                key: 'operation',
+                label: t('workOrder.tab.operation'),
+                children: (
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <Row gutter={[12, 12]} align="middle">
+                      <Col xs={24} lg={10}>
+                        <Input
+                          allowClear
+                          prefix={<SearchOutlined />}
+                          placeholder={t('workOrder.searchPlaceholder')}
+                          value={keyword}
+                          onChange={(event) => setKeyword(event.target.value)}
+                        />
+                      </Col>
+                      <Col xs={24} lg={14}>
+                        <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreatingOpen(true)}>
+                            {t('workOrder.toolbar.create')}
+                          </Button>
+                          <Upload {...uploadProps}>
+                            <Button icon={<UploadOutlined />}>{t('workOrder.toolbar.import')}</Button>
+                          </Upload>
+                          <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
+                        </Space>
+                      </Col>
+                    </Row>
+                    <Table
+                      rowKey="id"
+                      rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+                      columns={columns}
+                      dataSource={operationWorkOrders}
+                      pagination={{ pageSize: 8, showSizeChanger: false }}
+                      scroll={{ x: 'max-content' }}
+                    />
+                  </Space>
+                ),
+              },
+              {
+                key: 'query',
+                label: t('workOrder.tab.query'),
+                children: (
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <Row gutter={[12, 12]} align="middle">
+                      <Col xs={24} lg={10}>
+                        <Input
+                          allowClear
+                          prefix={<SearchOutlined />}
+                          placeholder={t('workOrder.searchPlaceholder')}
+                          value={keyword}
+                          onChange={(event) => setKeyword(event.target.value)}
+                        />
+                      </Col>
+                      <Col xs={24} lg={14}>
+                        <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                          <Button type="primary" onClick={() => setNgModalOpen(true)}>
+                            {t('workOrder.toolbar.queryNg')}
+                          </Button>
+                          <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
+                        </Space>
+                      </Col>
+                    </Row>
+                    <Table
+                      rowKey="id"
+                      rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+                      columns={queryColumns}
+                      dataSource={operationWorkOrders}
+                      pagination={{ pageSize: 8, showSizeChanger: false }}
+                      scroll={{ x: 'max-content' }}
+                    />
+                  </Space>
+                ),
+              },
+            ]}
+          />
         </Space>
       </Card>
 
-      <Card>
+      <Modal
+        title={t('workOrder.ngModalTitle')}
+        open={ngModalOpen}
+        onCancel={() => setNgModalOpen(false)}
+        footer={null}
+        width={isLaptop ? 'calc(100vw - 48px)' : 1280}
+      >
         <Table
           rowKey="id"
-          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-          columns={columns}
-          dataSource={workOrders}
+          columns={queryColumns}
+          dataSource={ngRecords}
           pagination={{ pageSize: 8, showSizeChanger: false }}
           scroll={{ x: 'max-content' }}
         />
-      </Card>
+      </Modal>
 
       <Modal title={t('workOrder.detailTitle')} open={Boolean(viewingWorkOrder)} onCancel={closeDetail} footer={null} width={isLaptop ? 'calc(100vw - 48px)' : 1280}>
         {viewingWorkOrder ? (

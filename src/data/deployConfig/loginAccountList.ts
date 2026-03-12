@@ -1,5 +1,4 @@
 import { resolveLocalizedText, type DataLocale, type LocalizedText } from '../localized';
-import { roleList } from './roleList';
 
 export interface LoginAccount {
   username: string;
@@ -13,8 +12,16 @@ interface LocalizedLoginAccount extends Omit<LoginAccount, 'displayName' | 'role
   role: LocalizedText;
 }
 
+const ROLE_NAME_BY_CODE: Record<string, string> = {
+  'ROLE-001': '管理员',
+  'ROLE-002': '质检员',
+  'ROLE-003': '工艺工程师',
+  'ROLE-004': '运维工程师',
+  'ROLE-005': 'PAD',
+};
+
 function getRoleNameByCode(code: string, fallback: string): string {
-  return roleList.find((item) => item.code === code)?.name ?? fallback;
+  return ROLE_NAME_BY_CODE[code] ?? fallback;
 }
 
 const localizedLoginAccountList: LocalizedLoginAccount[] = [

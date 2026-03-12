@@ -1,4 +1,4 @@
-﻿import { DeleteOutlined, DownloadOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tabs, Tree, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
@@ -538,7 +538,6 @@ export function RobotConfigPage() {
   const configColumns: ColumnsType<RobotConfigRecord> = [
     { title: '配置编号', dataIndex: 'configNo', key: 'configNo', width: 120 },
     { title: '配置名称', dataIndex: 'configName', key: 'configName', width: 180 },
-    { title: '当前模板', dataIndex: 'currentTemplate', key: 'currentTemplate', width: 220, render: (value?: string) => value || '-' },
     { title: '机器人类型', dataIndex: 'robotType', key: 'robotType', width: 140 },
     { title: '分组', dataIndex: 'group', key: 'group', width: 100 },
     { title: '适用固件版本', dataIndex: 'firmware', key: 'firmware', width: 140 },
@@ -549,16 +548,10 @@ export function RobotConfigPage() {
     {
       title: '操作',
       key: 'actions',
-      width: 220,
+      width: 100,
       fixed: 'right',
       render: (_, record) => (
         <Space size={4} wrap>
-          <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
-            编辑
-          </Button>
-          <Button type="link" onClick={() => openCompareModal(record)}>
-            对比
-          </Button>
           <Button type="link" danger icon={<DeleteOutlined />} onClick={() => deleteRecord(record)}>
             删除
           </Button>
@@ -964,6 +957,34 @@ export function RobotConfigPage() {
     messageApi.success('导出成功');
   };
 
+  const backupConfigAndState = () => {
+    const snapshots = loadConfigTemplateSnapshots();
+    const backup = {
+      backupAt: new Date().toISOString(),
+      snapshots,
+      configList: filteredList.map((item) => ({
+        id: item.id,
+        configNo: item.configNo,
+        configName: item.configName,
+        robotType: item.robotType,
+        group: item.group,
+        currentVersion: item.currentVersion,
+        status: item.status,
+        params: item.params,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `robot-config-backup-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    messageApi.success('配置与状态备份已下载');
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
@@ -1015,6 +1036,9 @@ export function RobotConfigPage() {
             </Upload>
             <Button icon={<DownloadOutlined />} onClick={exportExcel}>
               导出Excel
+            </Button>
+            <Button onClick={backupConfigAndState}>
+              备份
             </Button>
           </Space>
         </Space>

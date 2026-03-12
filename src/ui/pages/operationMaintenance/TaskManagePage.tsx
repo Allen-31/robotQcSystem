@@ -1,4 +1,4 @@
-﻿import { ExportOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
+import { ExportOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useState } from 'react';
@@ -75,12 +75,12 @@ export function TaskManagePage() {
         statusPaused: 'Paused',
         statusCompleted: 'Completed',
         statusStopped: 'Stopped',
-        createTitle: 'Create Task',
-        createDone: 'Task created',
-        exportDone: 'Task list exported',
-        stopDone: 'Task stopped',
-        pauseDone: 'Task paused',
-        resumeDone: 'Task resumed',
+        createTitle: 'Create Dispatch',
+        createDone: 'Dispatch created',
+        exportDone: 'Dispatch list exported',
+        stopDone: 'Dispatch stopped',
+        pauseDone: 'Dispatch paused',
+        resumeDone: 'Dispatch resumed',
       };
     }
 
@@ -104,12 +104,12 @@ export function TaskManagePage() {
       statusPaused: '已暂停',
       statusCompleted: '已完成',
       statusStopped: '已停止',
-      createTitle: '新增任务',
-      createDone: '任务创建成功',
-      exportDone: '任务列表导出成功',
-      stopDone: '任务已停止',
-      pauseDone: '任务已暂停',
-      resumeDone: '任务已恢复',
+      createTitle: '新增调度',
+      createDone: '调度创建成功',
+      exportDone: '调度列表导出成功',
+      stopDone: '调度已停止',
+      pauseDone: '调度已暂停',
+      resumeDone: '调度已恢复',
     };
   }, [locale]);
 
@@ -187,7 +187,7 @@ export function TaskManagePage() {
             disabled={record.status === 'completed' || record.status === 'stopped'}
             onClick={() => {
               Modal.confirm({
-                title: locale === 'en-US' ? 'Stop this task?' : '确认停止该任务？',
+                title: locale === 'en-US' ? 'Stop this dispatch?' : '确认停止该调度？',
                 content: record.code,
                 okButtonProps: { danger: true },
                 onOk: () => {
@@ -243,7 +243,7 @@ export function TaskManagePage() {
             <Button
               icon={<ExportOutlined />}
               onClick={() => {
-                downloadCsv(buildCsv(tableData), `task-manage-${new Date().toISOString().slice(0, 10)}.csv`);
+                downloadCsv(buildCsv(tableData), `dispatch-manage-${new Date().toISOString().slice(0, 10)}.csv`);
                 messageApi.success(label.exportDone);
               }}
             >

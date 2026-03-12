@@ -8,7 +8,7 @@ import { getCurrentUser } from '../../../logic/auth/authStore';
 import { SimpleBarChart } from '../../components/charts/SimpleCharts';
 
 type ReportType = 'daily' | 'weekly' | 'monthly' | 'custom';
-type ReportDimension = 'workshop' | 'workstation' | 'station' | 'wireHarness' | 'workOrder' | 'inspector';
+type ReportDimension = 'workshop' | 'workstation' | 'station' | 'wireHarness' | 'workOrder' | 'inspector' | 'project';
 type ReportMetric = 'inspectionCount' | 'detectionRate' | 'reinspectionRate' | 'falseDetectionRate' | 'avgDurationMin' | 'abnormalCount';
 
 interface ReportRecord {
@@ -97,9 +97,12 @@ function formatTypeSummary(typeCounts: Record<string, number>, locale: string): 
     .join(locale === 'en-US' ? ', ' : '、');
 }
 
-function getDimensionValue(record: QualityStatRecord, dimension: ReportDimension): string {
+function getDimensionValue(record: QualityStatRecord, dimension: ReportDimension, locale?: string): string {
   if (dimension === 'workOrder') {
     return `WO-${record.date.replace(/-/g, '')}-${record.station}`;
+  }
+  if (dimension === 'project') {
+    return record.project ?? (locale === 'en-US' ? 'Uncategorized' : '未分类');
   }
   return record[dimension];
 }
@@ -175,6 +178,7 @@ export function QualityReportPage() {
         wireHarness: 'Wire Harness',
         workOrder: 'Work Order',
         inspector: 'Inspector',
+        project: 'Project',
         inspectionCount: 'Inspection Count',
         detectionRate: 'Detection Rate',
         reinspectionRate: 'Reinspection Rate',
@@ -208,6 +212,7 @@ export function QualityReportPage() {
       wireHarness: '线束',
       workOrder: '工单',
       inspector: '质检员',
+      project: '项目',
       inspectionCount: '质检数量',
       detectionRate: '检出率',
       reinspectionRate: '复检率',
@@ -235,6 +240,7 @@ export function QualityReportPage() {
     wireHarness: label.wireHarness,
     workOrder: label.workOrder,
     inspector: label.inspector,
+    project: label.project,
   };
 
   const filtered = useMemo(() => filterByReportType(qualityStatsMock, reportType), [reportType]);
@@ -242,7 +248,7 @@ export function QualityReportPage() {
   const aggregatedRows = useMemo<AggregatedRow[]>(() => {
     const grouped = new Map<string, QualityStatRecord[]>();
     filtered.forEach((item) => {
-      const key = getDimensionValue(item, dimension);
+      const key = getDimensionValue(item, dimension, locale);
       grouped.set(key, [...(grouped.get(key) ?? []), item]);
     });
     return Array.from(grouped.entries())
@@ -418,6 +424,7 @@ export function QualityReportPage() {
                 { label: label.wireHarness, value: 'wireHarness' },
                 { label: label.workOrder, value: 'workOrder' },
                 { label: label.inspector, value: 'inspector' },
+                { label: label.project, value: 'project' },
               ]}
             />
             <Button

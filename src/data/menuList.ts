@@ -34,6 +34,13 @@ export const menuList: MenuNode[] = [
             permission: 'qualityInspection:workOrderManage:view',
           },
           {
+            id: '2-1-4',
+            name: 'menu.qualityRecord',
+            code: 'qualityRecord',
+            path: '/qualityInspection/qualityRecord',
+            permission: 'qualityInspection:qualityRecord:view',
+          },
+          {
             id: '2-1-5',
             name: 'menu.reinspectionRecord',
             code: 'reinspectionRecord',
@@ -186,13 +193,6 @@ export const menuList: MenuNode[] = [
             code: 'homingStrategy',
             path: '/deployConfig/robot/homingStrategy',
             permission: 'deployConfig:robot:homingStrategy:view',
-          },
-          {
-            id: '3-2-7',
-            name: 'menu.configTemplate',
-            code: 'configTemplate',
-            path: '/deployConfig/scene/configTemplate',
-            permission: 'deployConfig:scene:configTemplate:view',
           },
         ],
         permission: 'deployConfig:robot:view',

@@ -1,4 +1,4 @@
-﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tree, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
@@ -490,7 +490,7 @@ const columns: ColumnsType<RobotConfigRecord> = [
     {
       title: '操作',
       key: 'action',
-      width: 500,
+      width: 280,
       fixed: 'right',
       render: (_, record) => (
         <Space size={4} wrap>
@@ -503,22 +503,8 @@ const columns: ColumnsType<RobotConfigRecord> = [
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             编辑
           </Button>
-          <Button type="link" onClick={() => openConfigure(record)}>
-            配置
-          </Button>
           <Button type="link" danger icon={<DeleteOutlined />} onClick={() => deleteRecord(record)}>
             删除
-          </Button>
-          <Button
-            type="link"
-            onClick={() => {
-              const options = list.filter((item) => item.id !== record.id);
-              setCompareBase(record);
-              setCompareTargetId(options[0]?.id);
-              setCompareCategory(defaultCompareCategory);
-            }}
-          >
-            对比配置
           </Button>
         </Space>
       ),

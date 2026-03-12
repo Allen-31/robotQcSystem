@@ -8,7 +8,7 @@ import {
   TeamOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
+import { App, Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
 import { useState } from 'react';
@@ -24,6 +24,7 @@ interface PasswordFormValues {
 
 export function UserManagePage() {
   const { locale, t } = useI18n();
+  const { modal } = App.useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<UserManageFormValues>();
   const [roleForm] = Form.useForm<{ roles: string[] }>();
@@ -31,15 +32,21 @@ export function UserManagePage() {
   const {
     filteredList,
     records,
+    total,
+    loading,
     keyword,
     setKeyword,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
     roleOptions,
     createRecord,
     updateRecord,
     removeRecord,
     updateRoles,
     changePassword,
-  } = useUserManage(locale);
+  } = useUserManage();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<UserManageRecord | null>(null);
@@ -70,15 +77,19 @@ export function UserManagePage() {
     form.resetFields();
   };
 
-  const submitUser = (values: UserManageFormValues) => {
-    if (createOpen) {
-      createRecord(values);
-      messageApi.success(t('userManage.message.created'));
-    } else if (editingRecord) {
-      updateRecord(values);
-      messageApi.success(t('userManage.message.updated'));
+  const submitUser = async (values: UserManageFormValues) => {
+    try {
+      if (createOpen) {
+        await createRecord(values);
+        messageApi.success(t('userManage.message.created'));
+      } else if (editingRecord) {
+        await updateRecord(values);
+        messageApi.success(t('userManage.message.updated'));
+      }
+      closeEditModal();
+    } catch (e) {
+      messageApi.error(e instanceof Error ? e.message : t('userManage.message.updateFailed'));
     }
-    closeEditModal();
   };
 
   const openRoleModal = (record: UserManageRecord) => {
@@ -86,14 +97,16 @@ export function UserManagePage() {
     setRoleRecord(record);
   };
 
-  const submitRole = ({ roles }: { roles: string[] }) => {
-    if (!roleRecord) {
-      return;
+  const submitRole = async ({ roles }: { roles: string[] }) => {
+    if (!roleRecord) return;
+    try {
+      await updateRoles(roleRecord.code, roles);
+      messageApi.success(t('userManage.message.roleUpdated'));
+      setRoleRecord(null);
+      roleForm.resetFields();
+    } catch (e) {
+      messageApi.error(e instanceof Error ? e.message : t('userManage.message.updateFailed'));
     }
-    updateRoles(roleRecord.code, roles);
-    messageApi.success(t('userManage.message.roleUpdated'));
-    setRoleRecord(null);
-    roleForm.resetFields();
   };
 
   const openPasswordModal = (record: UserManageRecord) => {
@@ -101,18 +114,20 @@ export function UserManagePage() {
     setPasswordRecord(record);
   };
 
-  const submitPassword = (values: PasswordFormValues) => {
-    if (!passwordRecord) {
-      return;
+  const submitPassword = async (values: PasswordFormValues) => {
+    if (!passwordRecord) return;
+    try {
+      const result = await changePassword(passwordRecord.code, values.oldPassword, values.newPassword);
+      if (!result.success) {
+        messageApi.error(t('userManage.message.oldPasswordInvalid'));
+        return;
+      }
+      messageApi.success(t('userManage.message.passwordUpdated'));
+      setPasswordRecord(null);
+      passwordForm.resetFields();
+    } catch (e) {
+      messageApi.error(e instanceof Error ? e.message : t('userManage.message.updateFailed'));
     }
-    const result = changePassword(passwordRecord.code, values.oldPassword, values.newPassword);
-    if (!result.success) {
-      messageApi.error(t('userManage.message.oldPasswordInvalid'));
-      return;
-    }
-    messageApi.success(t('userManage.message.passwordUpdated'));
-    setPasswordRecord(null);
-    passwordForm.resetFields();
   };
 
   const exportCsv = () => {
@@ -194,16 +209,21 @@ export function UserManagePage() {
             danger
             icon={<DeleteOutlined />}
             onClick={() =>
-              Modal.confirm({
+              modal.confirm({
                 title: t('userManage.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
-                content: `${record.name} (${record.code})`,
+                content: t('userManage.deleteConfirmContent', { name: record.name, code: record.code }),
                 okText: t('userManage.action.delete'),
                 okButtonProps: { danger: true },
                 cancelText: t('qcConfig.common.cancel'),
-                onOk: () => {
-                  removeRecord(record.code);
-                  messageApi.success(t('userManage.message.deleted'));
+                onOk: async () => {
+                  try {
+                    await removeRecord(record.code);
+                    messageApi.success(t('userManage.message.deleted'));
+                  } catch (e) {
+                    messageApi.error(e instanceof Error ? e.message : t('userManage.message.updateFailed'));
+                    return Promise.reject(e);
+                  }
                 },
               })
             }
@@ -252,7 +272,24 @@ export function UserManagePage() {
       </Card>
 
       <Card>
-        <Table rowKey="code" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1600 }} />
+        <Table
+        rowKey="code"
+        columns={columns}
+        dataSource={filteredList}
+        loading={loading}
+        pagination={{
+          current: page,
+          pageSize,
+          total,
+          showSizeChanger: true,
+          showTotal: (total) => t('userManage.paginationTotal', { total }),
+          onChange: (p, size) => {
+            setPage(p);
+            if (typeof size === 'number') setPageSize(size);
+          },
+        }}
+        scroll={{ x: 1600 }}
+      />
       </Card>
 
       <Modal
@@ -271,16 +308,13 @@ export function UserManagePage() {
           <Form.Item label={t('userManage.form.name')} name="name" rules={[{ required: true, message: t('userManage.form.nameRequired') }]}>
             <Input />
           </Form.Item>
-          <Form.Item label={t('userManage.form.phone')} name="phone" rules={[{ required: true, message: t('userManage.form.phoneRequired') }]}>
+          <Form.Item label={t('userManage.form.phone')} name="phone">
             <Input />
           </Form.Item>
           <Form.Item
             label={t('userManage.form.email')}
             name="email"
-            rules={[
-              { required: true, message: t('userManage.form.emailRequired') },
-              { type: 'email', message: t('userManage.form.emailInvalid') },
-            ]}
+            rules={[{ type: 'email', message: t('userManage.form.emailInvalid') }]}
           >
             <Input />
           </Form.Item>
@@ -295,6 +329,15 @@ export function UserManagePage() {
           <Form.Item label={t('userManage.form.roles')} name="roles" rules={[{ required: true, message: t('userManage.form.rolesRequired') }]}>
             <Select mode="multiple" options={roleOptions} />
           </Form.Item>
+          {createOpen ? (
+            <Form.Item
+              label={t('userManage.form.password')}
+              name="password"
+              rules={[{ required: true, message: t('userManage.form.passwordRequired') }]}
+            >
+              <Input.Password placeholder={t('userManage.form.passwordPlaceholder')} />
+            </Form.Item>
+          ) : null}
         </Form>
       </Modal>
 

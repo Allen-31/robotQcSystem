@@ -38,6 +38,7 @@ export function RobotManagePage() {
     },
     { title: t('op.robotManage.table.location'), dataIndex: 'location', key: 'location', width: 180 },
     { title: t('op.robotManage.table.battery'), dataIndex: 'battery', key: 'battery', width: 90, render: (value: number) => `${value}%` },
+    { title: t('op.robotManage.table.mileage'), dataIndex: 'mileageKm', key: 'mileageKm', width: 110, render: (v: number | undefined) => (v != null ? `${v}` : '-') },
     { title: t('op.robotManage.table.currentMap'), dataIndex: 'currentMap', key: 'currentMap', width: 150 },
     { title: t('op.robotManage.table.dispatchMode'), dataIndex: 'dispatchMode', key: 'dispatchMode', width: 120, render: (v: RobotDispatchMode) => dispatchText(v) },
     { title: t('op.robotManage.table.controlStatus'), dataIndex: 'controlStatus', key: 'controlStatus', width: 110, render: (v: RobotControlStatus) => controlText(v) },

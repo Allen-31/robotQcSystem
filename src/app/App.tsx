@@ -1,4 +1,4 @@
-import { ConfigProvider } from 'antd';
+import { App as AntdApp, ConfigProvider } from 'antd';
 import { theme as antdTheme } from 'antd';
 import enUS from 'antd/locale/en_US';
 import zhCN from 'antd/locale/zh_CN';
@@ -31,7 +31,9 @@ export default function App() {
       componentSize={isLaptop ? 'small' : 'middle'}
       theme={{ algorithm: actualTheme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }}
     >
-      <AppRouter />
+      <AntdApp>
+        <AppRouter />
+      </AntdApp>
     </ConfigProvider>
   );
 }

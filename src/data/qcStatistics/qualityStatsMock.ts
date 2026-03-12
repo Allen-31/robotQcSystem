@@ -6,6 +6,7 @@ export interface QualityStatRecord {
   station: string;
   inspector: string;
   wireHarness: string;
+  project?: string;
   inspectionCount: number;
   defectCount: number;
   reinspectionCount: number;
@@ -44,6 +45,12 @@ const zoneSeeds: ZoneSeed[] = [
 
 const inspectorNames = ['张凯', '李哲', '吴晨', '王锐', '刘洋', '周扬', '丁波', '姜玲', '陈琳', '赵文', '沈悦', '马志'];
 const wireHarnessTypes = ['主驱线束-A', '控制线束-B', '高压线束-C', '低压线束-D'];
+const wireHarnessToProject: Record<string, string> = {
+  '主驱线束-A': '项目A',
+  '控制线束-B': '项目A',
+  '高压线束-C': '项目B',
+  '低压线束-D': '项目B',
+};
 
 const stationSeeds: StationSeed[] = zoneSeeds.flatMap((zone, zoneIndex) =>
   Array.from({ length: 6 }, (_, stationIndex) => {
@@ -95,6 +102,7 @@ export const qualityStatsMock: QualityStatRecord[] = dates.flatMap((date, dayInd
       station: seed.station,
       inspector: seed.inspector,
       wireHarness: seed.wireHarness,
+      project: wireHarnessToProject[seed.wireHarness] ?? '未分类',
       inspectionCount,
       defectCount,
       reinspectionCount,

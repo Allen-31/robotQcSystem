@@ -1,11 +1,16 @@
-﻿import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DataNode } from 'antd/es/tree';
 import { menuList } from '../../data/menuList';
 import { topMenus } from '../../data/topMenus';
+import {
+  getRoleListApi,
+  getRolePermissionsApi,
+  saveRolePermissionsApi,
+  type RoleListItem,
+} from '../../shared/api/roleApi';
 import type { PermissionAction } from '../../shared/types/deployConfig';
 import type { MenuNode } from '../../shared/types/menu';
-import { getStoredPermissionConfig } from './permissionStore';
-import { getStoredRoles } from './roleStore';
+import { setRolePermissionConfig } from './permissionStore';
 
 interface PermissionMenuNode {
   key: string;
@@ -14,24 +19,28 @@ interface PermissionMenuNode {
 }
 
 function mapMenuNode(node: MenuNode, depth: number): PermissionMenuNode {
-  const key = node.path ?? node.id;
+  const key = String(node.path ?? node.id ?? '');
+  const titleKey = node.name ?? '';
   if (depth >= 3 || !node.children?.length) {
-    return { key, titleKey: node.name };
+    return { key, titleKey };
   }
 
   return {
     key,
-    titleKey: node.name,
+    titleKey,
     children: node.children.map((item) => mapMenuNode(item, depth + 1)),
   };
 }
 
 function toTreeData(nodes: PermissionMenuNode[], resolveTitle: (titleKey: string) => string): DataNode[] {
-  return nodes.map((node) => ({
-    key: node.key,
-    title: resolveTitle(node.titleKey),
-    children: node.children ? toTreeData(node.children, resolveTitle) : undefined,
-  }));
+  return nodes.map((node) => {
+    const key = node.key ?? '';
+    return {
+      key,
+      title: resolveTitle(node.titleKey ?? ''),
+      children: node.children?.length ? toTreeData(node.children, resolveTitle) : undefined,
+    };
+  });
 }
 
 function buildTitleMap(nodes: PermissionMenuNode[]): Record<string, string> {
@@ -90,8 +99,34 @@ function collectAllKeys(nodes: PermissionMenuNode[]): string[] {
   return keys;
 }
 
-export function usePermissionManage() {
-  const storedPermissionConfig = useMemo(() => getStoredPermissionConfig(), []);
+export interface UsePermissionManageOptions {
+  fixedRole?: string;
+}
+
+type CheckedKeyByRole = Record<string, string[]>;
+type PermissionMapByRole = Record<string, Record<string, PermissionAction[]>>;
+
+function apiPermissionsToState(apiList: { menuKey: string; actions: string[] }[]): {
+  checkedKeys: string[];
+  permissionMap: Record<string, PermissionAction[]>;
+} {
+  const checkedKeys = apiList.map((p) => p.menuKey);
+  const permissionMap: Record<string, PermissionAction[]> = {};
+  apiList.forEach((p) => {
+    permissionMap[p.menuKey] = (p.actions ?? []) as PermissionAction[];
+  });
+  return { checkedKeys, permissionMap };
+}
+
+function stateToApiPermissions(checkedKeys: string[], permissionMap: Record<string, PermissionAction[]>): { menuKey: string; actions: string[] }[] {
+  return checkedKeys.map((menuKey) => ({
+    menuKey,
+    actions: permissionMap[menuKey] ?? [],
+  }));
+}
+
+export function usePermissionManage(options: UsePermissionManageOptions = {}) {
+  const { fixedRole } = options;
 
   const rootNodes = useMemo(() => {
     return topMenus.map((topMenu) => {
@@ -112,18 +147,86 @@ export function usePermissionManage() {
   const childrenMap = useMemo(() => buildChildrenMap(rootNodes), [rootNodes]);
   const allKeys = useMemo(() => collectAllKeys(rootNodes), [rootNodes]);
 
-  const defaultRoles = useMemo(() => getStoredRoles().map((item) => item.name), []);
-
-  const [roles, setRoles] = useState<string[]>(defaultRoles);
-  const roleOptions = useMemo(() => roles.map((role) => ({ label: role, value: role })), [roles]);
-  const [selectedRole, setSelectedRole] = useState<string>(roles[0] ?? '管理员');
+  const [roleList, setRoleList] = useState<RoleListItem[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const roleOptions = useMemo(() => roleList.map((r) => ({ label: r.name, value: r.code })), [roleList]);
+  const [selectedRole, setSelectedRole] = useState<string>(() => fixedRole ?? '');
   const [selectedKey, setSelectedKey] = useState<string | null>(rootNodes[0]?.key ?? null);
-  const [checkedKeyByRole, setCheckedKeyByRole] = useState<Record<string, string[]>>(() =>
-    Object.fromEntries(Object.entries(storedPermissionConfig).map(([role, config]) => [role, config.checkedKeys])),
+  const [checkedKeyByRole, setCheckedKeyByRole] = useState<CheckedKeyByRole>({});
+  const [permissionMapByRole, setPermissionMapByRole] = useState<PermissionMapByRole>({});
+
+  const fetchRoles = useCallback(async () => {
+    setRolesLoading(true);
+    try {
+      const res = await getRoleListApi();
+      const list = Array.isArray(res.data) ? res.data : [];
+      setRoleList(list);
+      if (list.length > 0 && !selectedRole) {
+        setSelectedRole(fixedRole ?? list[0].code);
+      }
+      if (fixedRole && list.some((r) => r.code === fixedRole)) {
+        setSelectedRole(fixedRole);
+      }
+    } catch {
+      setRoleList([]);
+    } finally {
+      setRolesLoading(false);
+    }
+  }, [fixedRole]);
+
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
+
+  useEffect(() => {
+    if (fixedRole) {
+      setSelectedRole(fixedRole);
+    }
+  }, [fixedRole]);
+
+  const fetchPermissions = useCallback(
+    async (roleCode: string) => {
+      setPermissionsLoading(true);
+      try {
+        const res = await getRolePermissionsApi(roleCode);
+        const list = Array.isArray(res.data) ? res.data : [];
+        let keys: string[];
+        let map: Record<string, PermissionAction[]>;
+        if (list.length === 0 && (roleCode === 'admin' || roleCode === 'ROLE-001')) {
+          keys = [...allKeys];
+          map = {};
+          keys.forEach((k) => {
+            map[k] = ['display'];
+          });
+        } else {
+          const next = apiPermissionsToState(list);
+          keys = next.checkedKeys;
+          map = next.permissionMap;
+        }
+        setCheckedKeyByRole((prev) => ({ ...prev, [roleCode]: keys }));
+        setPermissionMapByRole((prev) => ({ ...prev, [roleCode]: map }));
+      } catch {
+        setCheckedKeyByRole((prev) => ({ ...prev, [roleCode]: [] }));
+        setPermissionMapByRole((prev) => ({ ...prev, [roleCode]: {} }));
+      } finally {
+        setPermissionsLoading(false);
+      }
+    },
+    [allKeys],
   );
-  const [permissionMapByRole, setPermissionMapByRole] = useState<Record<string, Record<string, PermissionAction[]>>>(() =>
-    Object.fromEntries(Object.entries(storedPermissionConfig).map(([role, config]) => [role, config.permissionMap])),
-  );
+
+  useEffect(() => {
+    if (selectedRole) {
+      fetchPermissions(selectedRole);
+    }
+  }, [selectedRole, fetchPermissions]);
+
+  useEffect(() => {
+    if (fixedRole && roleList.length > 0 && !roleList.some((r) => r.code === selectedRole)) {
+      setSelectedRole(fixedRole);
+    }
+  }, [fixedRole, roleList, selectedRole]);
 
   const checkedKeys = checkedKeyByRole[selectedRole] ?? [];
 
@@ -225,15 +328,33 @@ export function usePermissionManage() {
     });
   };
 
+  const savePermissionsToBackend = useCallback(async () => {
+    if (!selectedRole) return;
+    const keys = checkedKeyByRole[selectedRole] ?? [];
+    const map = permissionMapByRole[selectedRole] ?? {};
+    const payload = stateToApiPermissions(keys, map);
+    await saveRolePermissionsApi(selectedRole, payload);
+    setRolePermissionConfig(selectedRole, { checkedKeys: keys, permissionMap: map });
+  }, [selectedRole, checkedKeyByRole, permissionMapByRole]);
+
+  const memberCount = useMemo(
+    () => roleList.find((r) => r.code === selectedRole)?.memberCount ?? 0,
+    [roleList, selectedRole],
+  );
+
   return {
     rootNodes,
     titleMap,
     parentMap,
     allKeys,
-    roles,
+    roleList,
+    rolesLoading,
+    permissionsLoading,
     roleOptions,
     selectedRole,
     setSelectedRole,
+    memberCount,
+    savePermissionsToBackend,
     checkedKeys,
     setCheckedKeys,
     addCheckedKey,

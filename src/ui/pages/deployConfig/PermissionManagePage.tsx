@@ -1,10 +1,8 @@
-﻿import { Button, Card, Checkbox, Col, Input, Modal, Row, Select, Space, Tag, Tree, Typography, message } from 'antd';
+import { Button, Card, Checkbox, Col, Input, Modal, Row, Select, Space, Tag, Tree, Typography, message } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { usePermissionManage } from '../../../logic/deployConfig/usePermissionManage';
-import { setRolePermissionConfig } from '../../../logic/deployConfig/permissionStore';
-import { getStoredRoles } from '../../../logic/deployConfig/roleStore';
 import type { PermissionAction } from '../../../shared/types/deployConfig';
 import './PermissionManagePage.css';
 
@@ -108,11 +106,12 @@ export function PermissionManagePage() {
 
 interface PermissionManagePageProps {
   fixedRole?: string;
+  fixedRoleName?: string;
   hideHeaderCard?: boolean;
   onSaved?: () => void;
 }
 
-export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, onSaved }: PermissionManagePageProps = {}) {
+export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeaderCard = false, onSaved }: PermissionManagePageProps = {}) {
   const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
@@ -137,7 +136,9 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
     getAncestorKeys,
     getDescendantKeys,
     toTreeData,
-  } = usePermissionManage();
+    savePermissionsToBackend,
+    permissionsLoading,
+  } = usePermissionManage({ fixedRole });
 
   const rawTreeData = useMemo(() => toTreeData(rootNodes, t), [rootNodes, t, toTreeData]);
 
@@ -190,7 +191,6 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  const memberCount = useMemo(() => getStoredRoles().find((item) => item.name === selectedRole)?.memberCount ?? 0, [selectedRole]);
   const selectedMenuCount = checkedKeys.length;
   const selectedButtonCount = Object.values(permissionMapForSelectedRole).reduce((sum, actions) => sum + actions.length, 0);
 
@@ -339,22 +339,25 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
     }
   };
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
     const snapshot = {
       checkedKeys: [...checkedKeys],
       permissionMap: normalizePermissionMap(permissionMapForSelectedRole),
     };
-
-    setRolePermissionConfig(selectedRole, snapshot);
-    setSnapshotsByRole((prev) => ({
-      ...prev,
-      [selectedRole]: {
-        checkedKeys: snapshot.checkedKeys,
-        permissionMap: snapshot.permissionMap,
-      },
-    }));
-    messageApi.success(t('permissionManage.saveSuccess'));
-    onSaved?.();
+    try {
+      await savePermissionsToBackend();
+      setSnapshotsByRole((prev) => ({
+        ...prev,
+        [selectedRole]: {
+          checkedKeys: snapshot.checkedKeys,
+          permissionMap: snapshot.permissionMap,
+        },
+      }));
+      messageApi.success(t('permissionManage.saveSuccess'));
+      onSaved?.();
+    } catch (e) {
+      messageApi.error(e instanceof Error ? e.message : t('permissionManage.saveFailed'));
+    }
   };
 
   const rollbackChanges = () => {
@@ -447,7 +450,7 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
               <Space wrap={false}>
                 {fixedRole ? (
                   <Tag color="purple" style={{ marginInlineEnd: 0 }}>
-                    {`${t('permissionManage.roleLabel')}: ${selectedRole}`}
+                    {`${t('permissionManage.roleLabel')}: ${fixedRoleName ?? roleOptions.find((r) => r.value === selectedRole)?.label ?? selectedRole}`}
                   </Tag>
                 ) : (
                   <>
@@ -455,7 +458,6 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
                     <Select style={{ width: 220 }} value={selectedRole} options={roleOptions} onChange={switchRole} disabled={Boolean(fixedRole)} />
                   </>
                 )}
-                <Tag color="processing">{t('permissionManage.summary.memberCount', { count: memberCount })}</Tag>
                 <Tag color="blue">{t('permissionManage.summary.totalCount', { count: selectedMenuCount + selectedButtonCount })}</Tag>
               </Space>
             </Col>
@@ -476,7 +478,7 @@ export function PermissionManagePageInner({ fixedRole, hideHeaderCard = false, o
         </Card>
       )}
 
-      <Card title={t('permissionManage.menuTreeTitle')} styles={{ body: { minHeight: 460 } }}>
+      <Card title={t('permissionManage.menuTreeTitle')} styles={{ body: { minHeight: 460 } }} loading={permissionsLoading}>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Input.Search
             allowClear
