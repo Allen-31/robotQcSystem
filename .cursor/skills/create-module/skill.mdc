@@ -40,3 +40,7 @@ src/pages/{Entity}
 - 分页组件
 
 使用 Ant Design 组件，并遵循项目规则（react.mdc、typescript.mdc、antd.mdc、architecture.mdc）。
+
+I18n：
+- 所有 UI 文案必须使用 `useI18n().t(...)`。
+- 新增文案必须同步添加到 `src/i18n/messages.ts` 的 `zh-CN` 和 `en-US`。

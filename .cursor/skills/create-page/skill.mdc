@@ -22,3 +22,7 @@ description: 生成单页管理页（搜索 + 表格 + 弹窗表单）
    - fetchList、handleSearch、handleCreate、handleEdit、handleDelete
 
 使用 Ant Design（Form、Table、Modal、Button、Input 等）和 TypeScript 类型。
+
+I18n：
+- 所有 UI 文案必须使用 `useI18n().t(...)`。
+- 新增文案必须同步添加到 `src/i18n/messages.ts` 的 `zh-CN` 和 `en-US`。
