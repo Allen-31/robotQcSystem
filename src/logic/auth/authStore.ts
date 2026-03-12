@@ -63,8 +63,8 @@ export async function login(username: string, password: string, remember?: boole
     emitAuthChanged();
     return { success: true, user };
   } catch (e) {
-    const message = e instanceof Error ? e.message : '登录失败';
-    return { success: false, message };
+    const msg = e instanceof Error ? e.message : '登录失败';
+    return { success: false, message: msg || '用户名或密码错误' };
   }
 }
 

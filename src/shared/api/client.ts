@@ -68,7 +68,9 @@ export async function request<T>(
 
   if (res.status === 401) {
     setToken(null);
-    onUnauthorized?.();
+    if (!skipAuth) {
+      onUnauthorized?.();
+    }
     throw new Error(body?.message || '未授权');
   }
 
