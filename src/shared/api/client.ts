@@ -33,7 +33,7 @@ export interface PageData<T> {
   pages: number;
 }
 
-/** 401 时回调（如跳转登录），默认跳转登录页 */
+/** 401 时回调（如跳转登录页） */
 let onUnauthorized: (() => void) | null = () => {
   window.location.href = '/home/login';
 };
@@ -59,11 +59,7 @@ export async function request<T>(
     }
   }
 
-  const res = await fetch(url, {
-    ...init,
-    headers,
-  });
-
+  const res = await fetch(url, { ...init, headers });
   const body = (await res.json().catch(() => ({}))) as ApiResponse<T>;
 
   if (res.status === 401) {

@@ -1,4 +1,4 @@
-import { DeleteOutlined, ExclamationCircleFilled, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, ExclamationCircleFilled, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, SearchOutlined, StopOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -16,18 +16,15 @@ import {
   Table,
   Tag,
   Typography,
-  Upload,
   message,
 } from 'antd';
-import type { UploadProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
+import type { QualityResult, WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
 import { useI18n } from '../../../i18n/I18nProvider';
-import { useWorkOrderManage } from '../../../logic/qcBusiness/useWorkOrderManage';
+import { useWorkOrderManage, type WorkOrderItem } from '../../../logic/qcBusiness/useWorkOrderManage';
 import { loadQcWireHarnessAnnotations, type QcPoint } from '../../../shared/qcWireHarnessAnnotation';
-import type { QualityResult, WorkOrderItem, WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
 
 const statusColorMap: Record<WorkOrderStatus, string> = {
   pending: 'default',
@@ -253,37 +250,44 @@ function buildInspectionPoints(workOrder: WorkOrderItem): InspectionPointItem[] 
 function resolveWireHarnessId(harnessType: string): string | null {
   const normalized = harnessType.trim();
   const explicitId = normalized.match(/WH-\d{3}/i)?.[0]?.toUpperCase();
-  if (explicitId && wireHarnessTypeList.some((item) => item.id.toUpperCase() === explicitId)) {
+  if (explicitId && wireHarnessTypeList.some((item) => String(item.id).toUpperCase() === explicitId)) {
     return explicitId;
   }
   const suffix = normalized.match(/[-－]([ABC])$/i)?.[1]?.toUpperCase();
   if (suffix === 'A') {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
+    const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-001');
+    return found != null ? String(found.id) : null;
   }
   if (suffix === 'B') {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
+    const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-002');
+    return found != null ? String(found.id) : null;
   }
   if (suffix === 'C') {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
+    const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-003');
+    return found != null ? String(found.id) : null;
   }
-  const exact = wireHarnessTypeList.find((item) => item.id === harnessType || item.name === harnessType);
+  const exact = wireHarnessTypeList.find((item) => String(item.id) === harnessType || item.name === harnessType);
   if (exact) {
-    return exact.id;
+    return String(exact.id);
   }
   if (harnessType.includes('主驱') || harnessType.includes('-A')) {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
+    const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-001');
+    return found != null ? String(found.id) : null;
   }
   if (harnessType.includes('控制') || harnessType.includes('-B')) {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
+    const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-002');
+    return found != null ? String(found.id) : null;
   }
   if (harnessType.includes('高压') || harnessType.includes('-C')) {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
+    const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-003');
+    return found != null ? String(found.id) : null;
   }
   const levelMatch = /L(\d+)/i.exec(harnessType);
   if (levelMatch) {
     const level = Number(levelMatch[1]);
     if (level > 0 && level <= wireHarnessTypeList.length) {
-      return wireHarnessTypeList[level - 1]?.id ?? null;
+      const found = wireHarnessTypeList[level - 1];
+      return found != null ? String(found.id) : null;
     }
   }
   return null;
@@ -317,29 +321,23 @@ function buildInspectionPointsFromAnnotation(workOrder: WorkOrderItem, points: Q
 }
 
 export function WorkOrderManagePage() {
-  const location = useLocation();
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
   const [form] = Form.useForm();
-  const [createForm] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
-  const [creatingOpen, setCreatingOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [previewPoint, setPreviewPoint] = useState<InspectionPointItem | null>(null);
-  const [ngModalOpen, setNgModalOpen] = useState(false);
-
-  useEffect(() => {
-    const state = location.state as { openNgModal?: boolean } | undefined;
-    if (state?.openNgModal) {
-      setNgModalOpen(true);
-      window.history.replaceState(null, '', location.pathname);
-    }
-  }, [location.state, location.pathname]);
   const {
-    workOrders,
     operationWorkOrders,
     rawWorkOrders,
+    total,
+    loading,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    fetchList,
     harnessTypeOptions,
     stationCodeOptions,
     defectTypeOptions,
@@ -357,8 +355,6 @@ export function WorkOrderManagePage() {
     cancelWorkOrder,
     removeWorkOrder,
     saveEdit,
-    createWorkOrder,
-    appendWorkOrders,
   } = useWorkOrderManage();
 
   useEffect(() => {
@@ -383,36 +379,10 @@ export function WorkOrderManagePage() {
     });
   }, [editingWorkOrder, form]);
 
-  const uploadProps: UploadProps = {
-    accept: '.csv',
-    showUploadList: false,
-    beforeUpload: async (file) => {
-      try {
-        const content = await file.text();
-        const parsed = parseImportedCsv(content);
-        if (parsed.length === 0) {
-          messageApi.warning(t('workOrder.importEmpty'));
-          return Upload.LIST_IGNORE;
-        }
-        const items: WorkOrderItem[] = parsed.map((item, index) => ({
-          id: `WO-IMPORT-${Date.now()}-${index}`,
-          ...item,
-        }));
-        appendWorkOrders(items);
-        messageApi.success(t('workOrder.importDone', { count: items.length }));
-      } catch {
-        messageApi.error(t('workOrder.importFailed'));
-      }
-      return Upload.LIST_IGNORE;
-    },
-  };
-
   const selectedWorkOrders = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));
-    return rawWorkOrders.filter((item) => keySet.has(item.id));
+    return rawWorkOrders.filter((item) => keySet.has(String(item.id)));
   }, [rawWorkOrders, selectedRowKeys]);
-
-  const ngRecords = useMemo(() => rawWorkOrders.filter((item) => item.qualityResult === 'ng'), [rawWorkOrders]);
 
   const exportSelected = () => {
     if (selectedWorkOrders.length === 0) {
@@ -537,7 +507,7 @@ export function WorkOrderManagePage() {
           <Button
             type="link"
             icon={<PauseCircleOutlined />}
-            onClick={() => pauseWorkOrder(record.id)}
+            onClick={() => pauseWorkOrder(record.id).catch(() => messageApi.error(t('workOrder.actionFailed')))}
             disabled={record.status !== 'running'}
           >
             {t('workOrder.action.pause')}
@@ -545,7 +515,7 @@ export function WorkOrderManagePage() {
           <Button
             type="link"
             icon={<PlayCircleOutlined />}
-            onClick={() => resumeWorkOrder(record.id)}
+            onClick={() => resumeWorkOrder(record.id).catch(() => messageApi.error(t('workOrder.actionFailed')))}
             disabled={record.status !== 'paused'}
           >
             {t('workOrder.action.resume')}
@@ -554,8 +524,9 @@ export function WorkOrderManagePage() {
             type="link"
             icon={<StopOutlined />}
             onClick={() => {
-              cancelWorkOrder(record.id);
-              messageApi.warning(t('workOrder.action.cancelDone'));
+              cancelWorkOrder(record.id)
+                .then(() => messageApi.success(t('workOrder.action.cancelDone')))
+                .catch(() => messageApi.error(t('workOrder.actionFailed')));
             }}
             disabled={record.status === 'finished' || record.status === 'cancelled'}
           >
@@ -573,28 +544,16 @@ export function WorkOrderManagePage() {
                 okText: t('workOrder.action.delete'),
                 cancelText: t('workOrder.modal.cancel'),
                 okButtonProps: { danger: true },
-                onOk: () => removeWorkOrder(record.id),
+                onOk: () =>
+                  removeWorkOrder(record.id).catch(() => {
+                    messageApi.error(t('workOrder.actionFailed'));
+                  }),
               });
             }}
           >
             {t('workOrder.action.delete')}
           </Button>
         </Space>
-      ),
-    },
-  ];
-
-  const queryColumns: ColumnsType<WorkOrderItem> = [
-    ...columns.slice(0, -1),
-    {
-      title: t('workOrder.table.action'),
-      key: 'action',
-      width: 100,
-      fixed: 'right',
-      render: (_, record) => (
-        <Button type="link" icon={<EyeOutlined />} onClick={() => openDetail(record)}>
-          {t('workOrder.action.detail')}
-        </Button>
       ),
     },
   ];
@@ -620,44 +579,32 @@ export function WorkOrderManagePage() {
               </Col>
               <Col xs={24} lg={14}>
                 <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreatingOpen(true)}>
-                    {t('workOrder.toolbar.create')}
-                  </Button>
-                  <Upload {...uploadProps}>
-                    <Button icon={<UploadOutlined />}>{t('workOrder.toolbar.import')}</Button>
-                  </Upload>
                   <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
-                  <Button onClick={() => setNgModalOpen(true)}>{t('workOrder.toolbar.queryNg')}</Button>
                 </Space>
               </Col>
             </Row>
             <Table
               rowKey="id"
+              loading={loading}
               rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
               columns={columns}
               dataSource={operationWorkOrders}
-              pagination={{ pageSize: 8, showSizeChanger: false }}
+              pagination={{
+                current: page,
+                pageSize,
+                total,
+                showSizeChanger: true,
+                showTotal: (n) => t('workOrder.paginationTotal', { total: n }),
+                onChange: (p, ps) => {
+                  setPage(p);
+                  if (ps != null) setPageSize(ps);
+                },
+              }}
               scroll={{ x: 'max-content' }}
             />
           </Space>
         </Space>
       </Card>
-
-      <Modal
-        title={t('workOrder.ngModalTitle')}
-        open={ngModalOpen}
-        onCancel={() => setNgModalOpen(false)}
-        footer={null}
-        width={isLaptop ? 'calc(100vw - 48px)' : 1280}
-      >
-        <Table
-          rowKey="id"
-          columns={queryColumns}
-          dataSource={ngRecords}
-          pagination={{ pageSize: 8, showSizeChanger: false }}
-          scroll={{ x: 'max-content' }}
-        />
-      </Modal>
 
       <Modal title={t('workOrder.detailTitle')} open={Boolean(viewingWorkOrder)} onCancel={closeDetail} footer={null} width={isLaptop ? 'calc(100vw - 48px)' : 1280}>
         {viewingWorkOrder ? (
@@ -821,7 +768,7 @@ export function WorkOrderManagePage() {
           layout="vertical"
           onFinish={(values) =>
             saveEdit({
-              id: values.id,
+              id: Number(values.id),
               harnessCode: values.harnessCode,
               harnessType: values.harnessType,
               stationCode: values.stationCode,
@@ -834,88 +781,10 @@ export function WorkOrderManagePage() {
               endedAt: values.endedAt,
               defectType: values.defectType,
               defectDescription: values.defectDescription,
-            })
+            }).then(() => messageApi.success(t('workOrder.editDone'))).catch(() => messageApi.error(t('workOrder.actionFailed')))
           }
         >
           <Form.Item name="id" hidden>
-            <Input />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.harnessCode')} name="harnessCode" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.harnessType')} name="harnessType" rules={[{ required: true }]}>
-            <Select options={harnessTypeOptions.map((item) => ({ label: item, value: item }))} />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.stationCode')} name="stationCode" rules={[{ required: true }]}>
-            <Select options={stationCodeOptions.map((item) => ({ label: item, value: item }))} />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.status')} name="status" rules={[{ required: true }]}>
-            <Select options={statusOptions.map((item) => ({ label: t(`workOrder.status.${item}`), value: item }))} />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.qualityResult')} name="qualityResult" rules={[{ required: true }]}>
-            <Select options={qualityOptions.map((item) => ({ label: t(`workOrder.qualityResult.${item}`), value: item }))} />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.taskIds')} name="taskIdsRaw" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.movingDuration')} name="movingDuration" rules={[{ required: true }]}>
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.detectionDuration')} name="detectionDuration" rules={[{ required: true }]}>
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.startedAt')} name="startedAt">
-            <Input />
-          </Form.Item>
-          <Form.Item label={t('workOrder.table.endedAt')} name="endedAt">
-            <Input />
-          </Form.Item>
-          <Form.Item label={t('workOrder.detail.defectType')} name="defectType">
-            <Select allowClear options={defectTypeOptions.map((item) => ({ label: item, value: item }))} />
-          </Form.Item>
-          <Form.Item label={t('workOrder.detail.defectDescription')} name="defectDescription">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={t('workOrder.createTitle')}
-        open={creatingOpen}
-        onCancel={() => {
-          setCreatingOpen(false);
-          createForm.resetFields();
-        }}
-        onOk={() => createForm.submit()}
-        okText={t('workOrder.modal.save')}
-        cancelText={t('workOrder.modal.cancel')}
-      >
-        <Form
-          form={createForm}
-          layout="vertical"
-          initialValues={{ status: 'pending', qualityResult: 'pending', movingDuration: 0, detectionDuration: 0, startedAt: '-', endedAt: '-', defectType: undefined, defectDescription: '' }}
-          onFinish={(values) => {
-            createWorkOrder({
-              workOrderNo: values.workOrderNo,
-              harnessCode: values.harnessCode,
-              harnessType: values.harnessType,
-              stationCode: values.stationCode,
-              status: values.status,
-              qualityResult: values.qualityResult,
-              taskIdsRaw: values.taskIdsRaw,
-              movingDuration: Number(values.movingDuration),
-              detectionDuration: Number(values.detectionDuration),
-              startedAt: values.startedAt,
-              endedAt: values.endedAt,
-              defectType: values.defectType,
-              defectDescription: values.defectDescription,
-            });
-            setCreatingOpen(false);
-            createForm.resetFields();
-            messageApi.success(t('workOrder.createDone'));
-          }}
-        >
-          <Form.Item label={t('workOrder.table.workOrderNo')} name="workOrderNo" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item label={t('workOrder.table.harnessCode')} name="harnessCode" rules={[{ required: true }]}>

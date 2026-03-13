@@ -1,33 +1,11 @@
-import {
-  DeleteOutlined,
-  DownloadOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  SearchOutlined,
-  UploadOutlined,
-} from '@ant-design/icons';
-import {
-  Button,
-  Card,
-  Checkbox,
-  Col,
-  Descriptions,
-  Input,
-  Modal,
-  Row,
-  Space,
-  Table,
-  Tag,
-  Typography,
-  Upload,
-  message,
-} from 'antd';
-import type { UploadProps } from 'antd';
+import { DownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Card, Checkbox, Col, Descriptions, Input, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { workOrderList, type QualityResult, type WorkOrderItem, type WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
-import { normalizeHarnessType, normalizeStationCode } from '../../../data/qcBusiness/qcConfigReference';
+import type { QualityResult, WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
 import { useI18n } from '../../../i18n/I18nProvider';
+import type { WorkOrderItem } from '../../../logic/qcBusiness/useWorkOrderManage';
+import { useQualityRecordList } from '../../../logic/qcBusiness/useQualityRecordList';
 
 const statusColorMap: Record<WorkOrderStatus, string> = {
   pending: 'default',
@@ -106,35 +84,12 @@ const displayDispatchCode = (record: WorkOrderItem): string =>
 export function QualityRecordPage() {
   const { t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
-  const [keyword, setKeyword] = useState('');
-  const [onlyNg, setOnlyNg] = useState(true);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [viewingRecord, setViewingRecord] = useState<WorkOrderItem | null>(null);
 
-  const linkedList = useMemo(
-    () =>
-      workOrderList.map((item, index) => ({
-        ...item,
-        harnessType: normalizeHarnessType(item.harnessType, index),
-        stationCode: normalizeStationCode(item.stationCode, index),
-      })),
-    [],
-  );
+  const { list, total, loading, keyword, setKeyword, onlyNg, setOnlyNg, page, setPage, pageSize, setPageSize, fetchList } = useQualityRecordList();
 
-  const dataSource = useMemo(() => {
-    let list = linkedList;
-    if (onlyNg) {
-      list = list.filter((item) => item.qualityResult === 'ng');
-    }
-    const normalized = keyword.trim().toLowerCase();
-    if (normalized) {
-      list = list.filter((item) => {
-        const text = `${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.taskIds?.join(' ')}`.toLowerCase();
-        return text.includes(normalized);
-      });
-    }
-    return list;
-  }, [keyword, onlyNg, linkedList]);
+  const dataSource = list;
 
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));
@@ -194,15 +149,6 @@ export function QualityRecordPage() {
     },
   ];
 
-  const uploadProps: UploadProps = {
-    accept: '.csv',
-    showUploadList: false,
-    beforeUpload: () => {
-      messageApi.info(t('qualityRecord.importPlaceholder'));
-      return Upload.LIST_IGNORE;
-    },
-  };
-
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {contextHolder}
@@ -229,13 +175,9 @@ export function QualityRecordPage() {
             </Col>
             <Col xs={24} md={10}>
               <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <Button type="primary" icon={<SearchOutlined />}>
+                <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchList()}>
                   {t('qualityRecord.toolbar.query')}
                 </Button>
-                <Button icon={<PlusOutlined />}>{t('qualityRecord.toolbar.create')}</Button>
-                <Upload {...uploadProps}>
-                  <Button icon={<UploadOutlined />}>{t('qualityRecord.toolbar.import')}</Button>
-                </Upload>
                 <Button icon={<DownloadOutlined />} onClick={exportCsv}>
                   {t('qualityRecord.toolbar.export')}
                 </Button>
@@ -244,10 +186,21 @@ export function QualityRecordPage() {
           </Row>
           <Table
             rowKey="id"
+            loading={loading}
             rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
             columns={columns}
             dataSource={dataSource}
-            pagination={{ pageSize: 10, showSizeChanger: true }}
+            pagination={{
+              current: page,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              showTotal: (n) => t('workOrder.paginationTotal', { total: n }),
+              onChange: (p, ps) => {
+                setPage(p);
+                if (ps != null) setPageSize(ps);
+              },
+            }}
             scroll={{ x: 'max-content' }}
           />
         </Space>

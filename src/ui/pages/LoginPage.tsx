@@ -1,5 +1,5 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Card, Checkbox, Form, Input, Space, Typography, message } from 'antd';
+import { App, Button, Card, Checkbox, Form, Input, Space, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
 import { login } from '../../logic/auth/authStore';
@@ -14,14 +14,15 @@ interface LoginFormValues {
 export function LoginPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const { message: messageApi } = App.useApp();
 
   const onFinish = async (values: LoginFormValues) => {
     const result = await login(values.username, values.password, values.remember);
     if (!result.success) {
-      message.error(result.message || t('login.invalid'));
+      messageApi.error(result.message || t('login.invalid'));
       return;
     }
-    message.success(t('login.welcome', { username: result.user.displayName }));
+    messageApi.success(t('login.welcome', { username: result.user.displayName }));
     navigate('/');
   };
 

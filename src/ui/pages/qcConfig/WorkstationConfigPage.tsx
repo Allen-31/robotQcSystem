@@ -1,25 +1,51 @@
-﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { App, Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
-import { workshopConfigList } from '../../../data/qcConfig/workshopConfigList';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { LongIdText } from '../../components/LongIdText';
 import { useWorkstationConfig } from '../../../logic/qcConfig/useWorkstationConfig';
+import { getWorkshopConfigListApi, getWireHarnessTypeConfigListApi } from '../../../shared/api/qcConfigApi';
 import type { WorkstationConfig } from '../../../shared/types/qcConfig';
 
 type FormValues = WorkstationConfig;
 
-const wireHarnessOptions = ['主驱线束-A', '控制线束-B', '高压线束-C', '通用线束-D'];
+function normalizeList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object' && 'list' in data) return ((data as { list: T[] }).list) ?? [];
+  return [];
+}
+
 const robotGroupOptions = ['RG-01', 'RG-02', 'RG-03', 'RG-04'];
-const workshopOptions = workshopConfigList.map((item) => ({ label: `${item.code} - ${item.name}`, value: item.code }));
 
 export function WorkstationConfigPage() {
   const [form] = Form.useForm<FormValues>();
   const { t } = useI18n();
-  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleEnabled } = useWorkstationConfig();
+  const { modal: modalApi } = App.useApp();
+  const { filteredList, loading, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleEnabled } = useWorkstationConfig();
   const [editingRecord, setEditingRecord] = useState<WorkstationConfig | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const [workshopOptions, setWorkshopOptions] = useState<{ label: string; value: string }[]>([]);
+  const [wireHarnessOptions, setWireHarnessOptions] = useState<{ label: string; value: string }[]>([]);
+
+  useEffect(() => {
+    getWorkshopConfigListApi()
+      .then((res) => {
+        const list = normalizeList<{ code: string; name: string }>(res.data);
+        setWorkshopOptions(list.map((item) => ({ label: `${item.code} - ${item.name}`, value: item.code })));
+      })
+      .catch(() => setWorkshopOptions([]));
+  }, []);
+
+  useEffect(() => {
+    getWireHarnessTypeConfigListApi()
+      .then((res) => {
+        const list = normalizeList<{ id: string | number; name: string }>(res.data);
+        setWireHarnessOptions(list.map((item) => ({ label: item.name, value: String(item.id) })));
+      })
+      .catch(() => setWireHarnessOptions([]));
+  }, []);
 
   const openCreate = () => {
     form.resetFields();
@@ -40,20 +66,20 @@ export function WorkstationConfigPage() {
 
   const submit = (values: FormValues) => {
     if (createOpen) {
-      createRecord(values);
-      messageApi.success(t('qcConfig.common.created'));
+      createRecord(values).then(() => {
+        messageApi.success(t('qcConfig.common.created'));
+        closeModal();
+      }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
     } else if (editingRecord) {
-      updateRecord({
-        ...editingRecord,
-        ...values,
-      });
-      messageApi.success(t('qcConfig.common.updated'));
+      updateRecord({ ...editingRecord, ...values }).then(() => {
+        messageApi.success(t('qcConfig.common.updated'));
+        closeModal();
+      }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
     }
-    closeModal();
   };
 
   const columns: ColumnsType<WorkstationConfig> = [
-    { title: t('qcConfig.workstation.table.id'), dataIndex: 'id', key: 'id', width: 140 },
+    { title: t('qcConfig.workstation.table.id'), dataIndex: 'id', key: 'id', width: 140, render: (val: number) => <LongIdText value={val} /> },
     { title: t('qcConfig.workstation.table.name'), dataIndex: 'name', key: 'name', width: 220 },
     { title: t('qcConfig.workstation.table.workshopCode'), dataIndex: 'workshopCode', key: 'workshopCode', width: 160 },
     { title: t('qcConfig.workstation.table.robotGroup'), dataIndex: 'robotGroup', key: 'robotGroup', width: 160 },
@@ -81,17 +107,26 @@ export function WorkstationConfigPage() {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() =>
-              Modal.confirm({
+            onClick={() => {
+              const instance = modalApi.confirm({
                 title: t('qcConfig.common.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
                 content: record.id,
                 okText: t('qcConfig.common.delete'),
                 okButtonProps: { danger: true },
                 cancelText: t('qcConfig.common.cancel'),
-                onOk: () => removeRecord(record.id),
-              })
-            }
+                onOk: () =>
+                  removeRecord(record.id)
+                    .then(() => {
+                      messageApi.success(t('qcConfig.common.deleted'));
+                      instance.destroy();
+                    })
+                    .catch(() => {
+                      messageApi.error(t('qcConfig.common.deleteFailed'));
+                      return Promise.reject();
+                    }),
+              });
+            }}
           >
             {t('qcConfig.common.delete')}
           </Button>
@@ -132,7 +167,14 @@ export function WorkstationConfigPage() {
       </Card>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1200 }} />
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={filteredList}
+          pagination={{ pageSize: 8, showSizeChanger: false }}
+          scroll={{ x: 1200 }}
+        />
       </Card>
 
       <Modal
@@ -164,7 +206,7 @@ export function WorkstationConfigPage() {
               name="wireHarnessType"
               rules={[{ required: true, message: t('qcConfig.workstation.form.wireHarnessTypeRequired') }]}
             >
-              <Select options={wireHarnessOptions.map((item) => ({ label: item, value: item }))} />
+              <Select options={wireHarnessOptions} />
             </Form.Item>
           ) : null}
           <Form.Item

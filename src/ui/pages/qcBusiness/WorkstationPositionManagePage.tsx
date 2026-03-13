@@ -1,5 +1,5 @@
 import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Badge, Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Badge, Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -164,6 +164,7 @@ export function WorkstationPositionManagePage() {
   const [summaryPeriod, setSummaryPeriod] = useState<'day' | 'week'>('day');
   const {
     positionList,
+    loading: positionListLoading,
     selectedPositionId,
     setSelectedPositionId,
     selectedPosition,
@@ -384,9 +385,10 @@ export function WorkstationPositionManagePage() {
   ];
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      {contextHolder}
-      <Card>
+    <Spin spinning={positionListLoading}>
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        {contextHolder}
+        <Card>
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Typography.Text strong>{t('workstationPosition.currentStation')}</Typography.Text>
           <Row gutter={[12, 12]}>
@@ -866,6 +868,7 @@ export function WorkstationPositionManagePage() {
           </Space>
         ) : null}
       </Modal>
-    </Space>
+      </Space>
+    </Spin>
   );
 }

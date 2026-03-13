@@ -1,25 +1,38 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  cancelWorkOrderApi,
+  deleteWorkOrderApi,
+  getWorkOrderDetailApi,
+  getWorkOrderListApi,
+  mapWorkOrderVoToItem,
+  pauseWorkOrderApi,
+  resumeWorkOrderApi,
+  reviewWorkOrderApi,
+  updateWorkOrderApi,
+} from '../../shared/api/qcBusinessApi';
 import { getHarnessTypeOptions, getStationCodeOptions, normalizeHarnessType, normalizeStationCode } from '../../data/qcBusiness/qcConfigReference';
-import { workOrderList, type QualityResult, type WorkOrderItem, type WorkOrderStatus } from '../../data/qcBusiness/workOrderList';
+import type { QualityResult, WorkOrderStatus } from '../../data/qcBusiness/workOrderList';
 
-export interface WorkOrderEditPayload {
-  id: string;
+export interface WorkOrderItem {
+  id: number;
+  workOrderNo: string;
   harnessCode: string;
   harnessType: string;
   stationCode: string;
   status: WorkOrderStatus;
   qualityResult: QualityResult;
-  taskIdsRaw: string;
+  taskIds: string[];
   movingDuration: number;
   detectionDuration: number;
+  createdAt: string;
   startedAt: string;
   endedAt: string;
   defectType: string;
   defectDescription: string;
 }
 
-export interface WorkOrderCreatePayload {
-  workOrderNo: string;
+export interface WorkOrderEditPayload {
+  id: number;
   harnessCode: string;
   harnessType: string;
   stationCode: string;
@@ -40,228 +53,163 @@ export interface WorkOrderReviewPayload {
   defectDescription?: string;
 }
 
-function parseTime(value: string): number {
-  if (value === '-') {
-    return 0;
-  }
-  return new Date(value.replace(' ', 'T')).getTime();
-}
-
 export function useWorkOrderManage() {
   const harnessTypeOptions = useMemo(() => getHarnessTypeOptions(), []);
   const stationCodeOptions = useMemo(() => getStationCodeOptions(), []);
   const defectTypeOptions = useMemo(() => ['接线错误', '外观异常', '工艺偏差', '尺寸偏差', '压接不良'], []);
-  const [workOrders, setWorkOrders] = useState<WorkOrderItem[]>(() =>
-    workOrderList.map((item, index) => ({
-      ...item,
-      harnessType: normalizeHarnessType(item.harnessType, index),
-      stationCode: normalizeStationCode(item.stationCode, index),
-    })),
-  );
+
+  const [list, setList] = useState<WorkOrderItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [keyword, setKeyword] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [viewingWorkOrder, setViewingWorkOrder] = useState<WorkOrderItem | null>(null);
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrderItem | null>(null);
-  const [keyword, setKeyword] = useState('');
 
-  const filteredAndSortedWorkOrders = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    const source = normalized
-      ? workOrders.filter((item) => {
-          const text =
-            `${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.status} ${item.qualityResult} ${item.taskIds.join(' ')} ${item.createdAt} ${item.defectType} ${item.defectDescription}`.toLowerCase();
-          return text.includes(normalized);
-        })
-      : workOrders;
+  const fetchList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getWorkOrderListApi({
+        keyword: keyword.trim() || undefined,
+        pageNum: page,
+        pageSize,
+      });
+      const data = res.data;
+      const items = (data?.list ?? []).map((vo) => mapWorkOrderVoToItem(vo));
+      setList(items);
+      setTotal(data?.total ?? 0);
+    } catch {
+      setList([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [keyword, page, pageSize]);
 
-    return [...source].sort((a, b) => parseTime(b.createdAt) - parseTime(a.createdAt));
-  }, [keyword, workOrders]);
+  useEffect(() => {
+    fetchList();
+  }, [fetchList]);
 
   /** 工单管理-仅显示未执行、执行中、已暂停的工单（不含已完成/已取消等） */
   const operationWorkOrders = useMemo(
-    () =>
-      filteredAndSortedWorkOrders.filter((item) =>
-        ['pending', 'running', 'paused'].includes(item.status),
-      ),
-    [filteredAndSortedWorkOrders],
+    () => list.filter((item) => ['pending', 'running', 'paused'].includes(item.status)),
+    [list],
   );
 
-  const appendWorkOrders = (items: WorkOrderItem[]) => {
-    setWorkOrders((prev) => {
-      const map = new Map<string, WorkOrderItem>();
-      for (const item of prev) {
-        map.set(item.id, item);
-      }
-      for (let index = 0; index < items.length; index += 1) {
-        const item = items[index];
-        map.set(item.id, {
-          ...item,
-          harnessType: normalizeHarnessType(item.harnessType, index),
-          stationCode: normalizeStationCode(item.stationCode, index),
-          defectType: item.defectType || '-',
-          defectDescription: item.defectDescription || '-',
-        });
-      }
-      return Array.from(map.values());
-    });
-  };
+  const rawWorkOrders = list;
 
-  const openDetail = (record: WorkOrderItem) => {
+  const openDetail = useCallback((record: WorkOrderItem) => {
     setViewingWorkOrder(record);
-  };
+  }, []);
 
-  const closeDetail = () => {
+  const closeDetail = useCallback(() => {
     setViewingWorkOrder(null);
-  };
+  }, []);
 
-  const openEdit = (record: WorkOrderItem) => {
+  const openEdit = useCallback((record: WorkOrderItem) => {
     setEditingWorkOrder(record);
-  };
+  }, []);
 
-  const closeEdit = () => {
+  const closeEdit = useCallback(() => {
     setEditingWorkOrder(null);
-  };
+  }, []);
 
-  const reviewWorkOrder = (id: string, payload: WorkOrderReviewPayload) => {
-    setWorkOrders((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: payload.qualityResult === 'ng' ? 'ng' : 'finished',
-              qualityResult: payload.qualityResult,
-              defectType: payload.qualityResult === 'ng' ? payload.defectType || '-' : '-',
-              defectDescription: payload.qualityResult === 'ng' ? payload.defectDescription || '-' : '-',
-            }
-          : item,
-      ),
-    );
-    setViewingWorkOrder((prev) =>
-      prev && prev.id === id
-        ? {
-            ...prev,
-            status: payload.qualityResult === 'ng' ? 'ng' : 'finished',
-            qualityResult: payload.qualityResult,
-            defectType: payload.qualityResult === 'ng' ? payload.defectType || '-' : '-',
-            defectDescription: payload.qualityResult === 'ng' ? payload.defectDescription || '-' : '-',
-          }
-        : prev,
-    );
-  };
+  const refreshDetail = useCallback(async (id: number) => {
+    try {
+      const res = await getWorkOrderDetailApi(id);
+      const item = mapWorkOrderVoToItem(res.data);
+      setViewingWorkOrder((prev) => (prev?.id === id ? item : prev));
+      setList((prev) => prev.map((x) => (x.id === id ? item : x)));
+    } catch {
+      // ignore
+    }
+  }, []);
 
-  const cancelWorkOrder = (id: string) => {
-    setWorkOrders((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: 'cancelled',
-              endedAt: item.endedAt === '-' ? '2026-02-28 11:20:00' : item.endedAt,
-            }
-          : item,
-      ),
-    );
-  };
+  const reviewWorkOrder = useCallback(
+    async (id: number, payload: WorkOrderReviewPayload) => {
+      await reviewWorkOrderApi(id, payload);
+      await refreshDetail(id);
+      await fetchList();
+    },
+    [fetchList, refreshDetail],
+  );
 
-  const removeWorkOrder = (id: string) => {
-    setWorkOrders((prev) => prev.filter((item) => item.id !== id));
-  };
+  const pauseWorkOrder = useCallback(
+    async (id: number) => {
+      await pauseWorkOrderApi(id);
+      await refreshDetail(id);
+      await fetchList();
+    },
+    [fetchList, refreshDetail],
+  );
 
-  const pauseWorkOrder = (id: string) => {
-    setWorkOrders((prev) =>
-      prev.map((item) => (item.id === id && item.status === 'running' ? { ...item, status: 'paused' as const } : item)),
-    );
-    setViewingWorkOrder((prev) =>
-      prev && prev.id === id && prev.status === 'running' ? { ...prev, status: 'paused' as const } : prev,
-    );
-  };
+  const resumeWorkOrder = useCallback(
+    async (id: number) => {
+      await resumeWorkOrderApi(id);
+      await refreshDetail(id);
+      await fetchList();
+    },
+    [fetchList, refreshDetail],
+  );
 
-  const resumeWorkOrder = (id: string) => {
-    setWorkOrders((prev) =>
-      prev.map((item) => (item.id === id && item.status === 'paused' ? { ...item, status: 'running' as const } : item)),
-    );
-    setViewingWorkOrder((prev) =>
-      prev && prev.id === id && prev.status === 'paused' ? { ...prev, status: 'running' as const } : prev,
-    );
-  };
+  const cancelWorkOrder = useCallback(
+    async (id: number) => {
+      await cancelWorkOrderApi(id);
+      await refreshDetail(id);
+      await fetchList();
+    },
+    [fetchList, refreshDetail],
+  );
 
-  const saveEdit = (payload: WorkOrderEditPayload) => {
-    const taskIds = payload.taskIdsRaw
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+  const removeWorkOrder = useCallback(
+    async (id: number) => {
+      await deleteWorkOrderApi(id);
+      setViewingWorkOrder((prev) => (prev?.id === id ? null : prev));
+      setEditingWorkOrder((prev) => (prev?.id === id ? null : prev));
+      await fetchList();
+    },
+    [fetchList],
+  );
 
-    setWorkOrders((prev) =>
-      prev.map((item) =>
-        item.id === payload.id
-          ? {
-              ...item,
-              harnessCode: payload.harnessCode,
-              harnessType: normalizeHarnessType(payload.harnessType),
-              stationCode: normalizeStationCode(payload.stationCode),
-              status: payload.status,
-              qualityResult: payload.qualityResult,
-              taskIds,
-              movingDuration: payload.movingDuration,
-              detectionDuration: payload.detectionDuration,
-              startedAt: payload.startedAt || '-',
-              endedAt: payload.endedAt || '-',
-              defectType: payload.defectType || '-',
-              defectDescription: payload.defectDescription || '-',
-            }
-          : item,
-      ),
-    );
-    setEditingWorkOrder(null);
-    setViewingWorkOrder((prev) =>
-      prev && prev.id === payload.id
-        ? {
-            ...prev,
-            harnessCode: payload.harnessCode,
-            harnessType: normalizeHarnessType(payload.harnessType),
-            stationCode: normalizeStationCode(payload.stationCode),
-            status: payload.status,
-            qualityResult: payload.qualityResult,
-            taskIds,
-            movingDuration: payload.movingDuration,
-            detectionDuration: payload.detectionDuration,
-            startedAt: payload.startedAt || '-',
-            endedAt: payload.endedAt || '-',
-            defectType: payload.defectType || '-',
-            defectDescription: payload.defectDescription || '-',
-          }
-        : prev,
-    );
-  };
-
-  const createWorkOrder = (payload: WorkOrderCreatePayload) => {
-    const taskIds = payload.taskIdsRaw
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    const record: WorkOrderItem = {
-      id: `WO-${Date.now()}`,
-      workOrderNo: payload.workOrderNo,
-      harnessCode: payload.harnessCode,
-      harnessType: normalizeHarnessType(payload.harnessType),
-      stationCode: normalizeStationCode(payload.stationCode),
-      status: payload.status,
-      qualityResult: payload.qualityResult,
-      taskIds,
-      movingDuration: payload.movingDuration,
-      detectionDuration: payload.detectionDuration,
-      createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      startedAt: payload.startedAt || '-',
-      endedAt: payload.endedAt || '-',
-      defectType: payload.defectType || '-',
-      defectDescription: payload.defectDescription || '-',
-    };
-    setWorkOrders((prev) => [record, ...prev]);
-  };
+  const saveEdit = useCallback(
+    async (payload: WorkOrderEditPayload) => {
+      const taskIds = payload.taskIdsRaw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      await updateWorkOrderApi(payload.id, {
+        harnessCode: payload.harnessCode,
+        harnessType: payload.harnessType,
+        stationCode: payload.stationCode,
+        status: payload.status,
+        qualityResult: payload.qualityResult,
+        taskIds,
+        movingDuration: payload.movingDuration,
+        detectionDuration: payload.detectionDuration,
+        startedAt: payload.startedAt || undefined,
+        endedAt: payload.endedAt || undefined,
+        defectType: payload.defectType || undefined,
+        defectDescription: payload.defectDescription || undefined,
+      });
+      setEditingWorkOrder(null);
+      await refreshDetail(payload.id);
+      await fetchList();
+    },
+    [fetchList, refreshDetail],
+  );
 
   return {
-    workOrders: filteredAndSortedWorkOrders,
+    workOrders: operationWorkOrders,
     operationWorkOrders,
-    rawWorkOrders: workOrders,
+    rawWorkOrders,
+    total,
+    loading,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    fetchList,
     harnessTypeOptions,
     stationCodeOptions,
     defectTypeOptions,
@@ -279,7 +227,5 @@ export function useWorkOrderManage() {
     cancelWorkOrder,
     removeWorkOrder,
     saveEdit,
-    createWorkOrder,
-    appendWorkOrders,
   };
 }

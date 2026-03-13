@@ -12,7 +12,7 @@ export interface UserListItem {
 }
 
 export interface UserListParams {
-  page?: number;
+  pageNum?: number;
   pageSize?: number;
   keyword?: string;
   role?: string;

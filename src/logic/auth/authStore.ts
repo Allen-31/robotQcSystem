@@ -20,13 +20,9 @@ function emitAuthChanged() {
 export function getCurrentUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as AuthUser;
-    if (!parsed || typeof parsed.username !== 'string' || typeof parsed.role !== 'string') {
-      return null;
-    }
+    if (!parsed || typeof parsed.username !== 'string' || typeof parsed.role !== 'string') return null;
     return parsed;
   } catch {
     return null;
@@ -34,9 +30,13 @@ export function getCurrentUser(): AuthUser | null {
 }
 
 /**
- * 登录：调用后端接口，成功则存储 token 与用户信息
+ * 登录：表单提交到后端 POST /api/auth/login，后端用 Keycloak 换 token 后返回；前端存 token 与用户信息。
  */
-export async function login(username: string, password: string, remember?: boolean): Promise<{ success: true; user: AuthUser } | { success: false; message?: string }> {
+export async function login(
+  username: string,
+  password: string,
+  remember?: boolean,
+): Promise<{ success: true; user: AuthUser } | { success: false; message?: string }> {
   try {
     const res = await loginApi({ username, password, remember });
     const data = res.data;
@@ -58,22 +58,24 @@ export async function login(username: string, password: string, remember?: boole
         setRolePermissionConfigFromApi(user.role, permRes.data);
       }
     } catch {
-      // 权限接口失败时仅不更新本地权限，不影响登录
+      // 权限接口失败仅不更新本地权限，不影响登录
     }
     emitAuthChanged();
     return { success: true, user };
   } catch (e) {
     const msg = e instanceof Error ? e.message : '登录失败';
-    return { success: false, message: msg || '用户名或密码错误' };
+    const fallback = '用户名或密码错误';
+    const displayMsg =
+      msg && msg !== '未授权' && msg !== '请求失败' ? msg : fallback;
+    return { success: false, message: displayMsg };
   }
 }
 
 /**
- * 登出：调用后端登出接口后清除本地 token 与用户信息
+ * 登出：清空本地 token 与用户状态；可选调用 POST /api/auth/logout。
  */
 export async function logout(): Promise<void> {
-  const token = getToken();
-  if (token) {
+  if (getToken()) {
     try {
       await logoutApi();
     } catch {
@@ -86,12 +88,10 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * 从后端刷新当前用户信息（需已登录）
+ * 从后端刷新当前用户信息（需已登录），仍调用 GET /api/auth/me，带 Authorization: Bearer <token>。
  */
 export async function refreshCurrentUser(): Promise<AuthUser | null> {
-  if (!getToken()) {
-    return getCurrentUser();
-  }
+  if (!getToken()) return getCurrentUser();
   try {
     const res = await getMeApi();
     const data = res.data;

@@ -1,20 +1,63 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { App, Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
-import { workstationConfigList } from '../../../data/qcConfig/workstationConfigList';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { LongIdText } from '../../components/LongIdText';
 import { useStationConfig } from '../../../logic/qcConfig/useStationConfig';
+import { getWireHarnessTypeConfigListApi, getWorkstationConfigListApi } from '../../../shared/api/qcConfigApi';
+import type { StationConfigVO } from '../../../shared/api/qcConfigApi';
+import { getDeployDeviceListApi } from '../../../shared/api/deployDeviceApi';
 import type { StationConfig } from '../../../shared/types/qcConfig';
 
 type FormValues = StationConfig;
 
+function normalizeList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object' && 'list' in data) return ((data as { list: T[] }).list) ?? [];
+  return [];
+}
+
 export function StationConfigPage() {
   const [form] = Form.useForm<FormValues>();
   const { t } = useI18n();
-  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleEnabled } = useStationConfig();
-  const [editingRecord, setEditingRecord] = useState<StationConfig | null>(null);
+  const { modal: modalApi } = App.useApp();
+  const { filteredList, loading, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleEnabled } = useStationConfig();
+  const [workstationOptions, setWorkstationOptions] = useState<{ label: string; value: string }[]>([]);
+  const [callBoxOptions, setCallBoxOptions] = useState<{ label: string; value: string }[]>([]);
+  const [wireHarnessTypeOptions, setWireHarnessTypeOptions] = useState<{ label: string; value: string }[]>([]);
+  const [editingRecord, setEditingRecord] = useState<StationConfigVO | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    getWorkstationConfigListApi({ pageNum: 1, pageSize: 500 })
+      .then((res) => {
+        const list = normalizeList<{ id: string | number; name: string }>(res.data);
+        setWorkstationOptions(list.map((item) => ({ label: `${item.name} (${item.id})`, value: String(item.id) })));
+      })
+      .catch(() => setWorkstationOptions([]));
+  }, []);
+
+  useEffect(() => {
+    getDeployDeviceListApi({ mapCode: 'MAP-001' })
+      .then((res) => {
+        const data = res.data;
+        const list = Array.isArray(data?.list) ? data.list : [];
+        const callBoxes = list.filter((d) => (d.type || '').toLowerCase() === 'callbox');
+        setCallBoxOptions(callBoxes.map((d) => ({ label: `${d.name} (${d.code})`, value: d.code })));
+      })
+      .catch(() => setCallBoxOptions([]));
+  }, []);
+
+  useEffect(() => {
+    getWireHarnessTypeConfigListApi()
+      .then((res) => {
+        const list = normalizeList<{ id: string | number; name: string }>(res.data);
+        setWireHarnessTypeOptions(list.map((item) => ({ label: item.name, value: item.name })));
+      })
+      .catch(() => setWireHarnessTypeOptions([]));
+  }, []);
+
   const [messageApi, contextHolder] = message.useMessage();
 
   const openCreate = () => {
@@ -23,7 +66,7 @@ export function StationConfigPage() {
     setCreateOpen(true);
   };
 
-  const openEdit = (record: StationConfig) => {
+  const openEdit = (record: StationConfigVO) => {
     form.setFieldsValue(record);
     setEditingRecord(record);
   };
@@ -36,17 +79,14 @@ export function StationConfigPage() {
 
   const submit = (values: FormValues) => {
     if (createOpen) {
-      createRecord(values);
-      messageApi.success(t('qcConfig.common.created'));
-    } else if (editingRecord) {
-      updateRecord(values);
-      messageApi.success(t('qcConfig.common.updated'));
+      createRecord(values).then(() => { messageApi.success(t('qcConfig.common.created')); closeModal(); }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
+    } else if (editingRecord && editingRecord.id != null) {
+      updateRecord({ ...editingRecord, ...values }).then(() => { messageApi.success(t('qcConfig.common.updated')); closeModal(); }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
     }
-    closeModal();
   };
 
-  const columns: ColumnsType<StationConfig> = [
-    { title: t('qcConfig.station.table.workstationId'), dataIndex: 'workstationId', key: 'workstationId', width: 180 },
+  const columns: ColumnsType<StationConfigVO> = [
+    { title: t('qcConfig.station.table.workstationId'), dataIndex: 'workstationId', key: 'workstationId', width: 140, render: (val: string | number) => <LongIdText value={val} /> },
     { title: t('qcConfig.station.table.stationId'), dataIndex: 'stationId', key: 'stationId', width: 150 },
     { title: t('qcConfig.station.table.mapPoint'), dataIndex: 'mapPoint', key: 'mapPoint', width: 170 },
     { title: t('qcConfig.station.table.callBoxCode'), dataIndex: 'callBoxCode', key: 'callBoxCode', width: 140 },
@@ -72,7 +112,7 @@ export function StationConfigPage() {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type="link" onClick={() => toggleEnabled(record.stationId)}>
+          <Button type="link" onClick={() => record.id != null && toggleEnabled(record.id)}>
             {record.enabled ? t('qcConfig.common.disable') : t('qcConfig.common.enable')}
           </Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>
@@ -82,17 +122,26 @@ export function StationConfigPage() {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() =>
-              Modal.confirm({
+            onClick={() => {
+              const instance = modalApi.confirm({
                 title: t('qcConfig.common.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
                 content: record.stationId,
                 okText: t('qcConfig.common.delete'),
                 okButtonProps: { danger: true },
                 cancelText: t('qcConfig.common.cancel'),
-                onOk: () => removeRecord(record.stationId),
-              })
-            }
+                onOk: () =>
+                  (record.id != null ? removeRecord(record.id) : Promise.resolve())
+                    .then(() => {
+                      messageApi.success(t('qcConfig.common.deleted'));
+                      instance.destroy();
+                    })
+                    .catch(() => {
+                      messageApi.error(t('qcConfig.common.deleteFailed'));
+                      return Promise.reject();
+                    }),
+              });
+            }}
           >
             {t('qcConfig.common.delete')}
           </Button>
@@ -133,7 +182,14 @@ export function StationConfigPage() {
       </Card>
 
       <Card>
-        <Table rowKey="stationId" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1200 }} />
+        <Table
+          rowKey={(r) => `${r.workstationId}-${r.stationId}`}
+          loading={loading}
+          columns={columns}
+          dataSource={filteredList}
+          pagination={{ pageSize: 8, showSizeChanger: false }}
+          scroll={{ x: 1200 }}
+        />
       </Card>
 
       <Modal
@@ -151,7 +207,7 @@ export function StationConfigPage() {
             name="workstationId"
             rules={[{ required: true, message: t('qcConfig.station.form.workstationIdRequired') }]}
           >
-            <Select options={workstationConfigList.map((item) => ({ label: `${item.name} (${item.id})`, value: item.id }))} />
+            <Select options={workstationOptions} placeholder={t('qcConfig.station.form.workstationIdRequired')} />
           </Form.Item>
           <Form.Item label={t('qcConfig.station.form.stationId')} name="stationId" rules={[{ required: true, message: t('qcConfig.station.form.stationIdRequired') }]}>
             <Input disabled={Boolean(editingRecord)} />
@@ -160,10 +216,20 @@ export function StationConfigPage() {
             <Input />
           </Form.Item>
           <Form.Item label={t('qcConfig.station.form.callBoxCode')} name="callBoxCode" rules={[{ required: true, message: t('qcConfig.station.form.callBoxCodeRequired') }]}>
-            <Input placeholder={t('qcConfig.station.form.callBoxCodePlaceholder')} />
+            <Select
+              options={callBoxOptions}
+              placeholder={t('qcConfig.station.form.callBoxCodePlaceholder')}
+              showSearch
+              filterOption={(input, opt) => (opt?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
+            />
           </Form.Item>
           <Form.Item label={t('qcConfig.station.form.wireHarnessType')} name="wireHarnessType" rules={[{ required: true, message: t('qcConfig.station.form.wireHarnessTypeRequired') }]}>
-            <Input placeholder={t('qcConfig.station.form.wireHarnessTypePlaceholder')} />
+            <Select
+              options={wireHarnessTypeOptions}
+              placeholder={t('qcConfig.station.form.wireHarnessTypePlaceholder')}
+              showSearch
+              filterOption={(input, opt) => (opt?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
+            />
           </Form.Item>
           <Form.Item
             label={t('qcConfig.station.form.detectionEnabled')}

@@ -2,9 +2,8 @@ import { DownloadOutlined, FileImageOutlined, SearchOutlined, VideoCameraOutline
 import { Button, Card, Col, Image, Input, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { normalizeHarnessType, normalizeStationCode } from '../../../data/qcBusiness/qcConfigReference';
 import { useI18n } from '../../../i18n/I18nProvider';
-import { reinspectionRecordList, type ReinspectionRecordItem, type ReinspectionResult } from '../../../data/qcBusiness/reinspectionRecordList';
+import { useReinspectionList, type ReinspectionRecordItem, type ReinspectionResult } from '../../../logic/qcBusiness/useReinspectionList';
 
 const resultColorMap: Record<ReinspectionResult, string> = {
   ok: 'success',
@@ -58,29 +57,11 @@ export function ReinspectionRecordPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const [videoRecord, setVideoRecord] = useState<ReinspectionRecordItem | null>(null);
   const [imageRecord, setImageRecord] = useState<ReinspectionRecordItem | null>(null);
-  const [keyword, setKeyword] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const linkedRecords = useMemo(
-    () =>
-      reinspectionRecordList.map((item, index) => ({
-        ...item,
-        harnessType: normalizeHarnessType(item.harnessType, index),
-        stationCode: normalizeStationCode(item.stationCode, index),
-      })),
-    [],
-  );
 
-  const dataSource = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    if (!normalized) {
-      return linkedRecords;
-    }
-    return linkedRecords.filter((item) => {
-      const text =
-        `${item.reinspectionNo} ${item.workOrderNo} ${item.harnessCode} ${item.harnessType} ${item.stationCode} ${item.qualityResult} ${item.reinspectionResult} ${item.defectType} ${item.reinspectionTime} ${item.reviewer}`.toLowerCase();
-      return text.includes(normalized);
-    });
-  }, [keyword, linkedRecords]);
+  const { list, total, loading, keyword, setKeyword, page, setPage, pageSize, setPageSize, fetchList } = useReinspectionList();
+
+  const dataSource = list;
 
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));
@@ -158,6 +139,9 @@ export function ReinspectionRecordPage() {
             </Col>
             <Col xs={24} lg={14}>
               <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchList()}>
+                  {t('reinspection.query')}
+                </Button>
                 <Button icon={<DownloadOutlined />} onClick={exportCsv}>
                   {t('reinspection.export')}
                 </Button>
@@ -170,10 +154,21 @@ export function ReinspectionRecordPage() {
       <Card>
         <Table
           rowKey="id"
+          loading={loading}
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           columns={columns}
           dataSource={dataSource}
-          pagination={{ pageSize: 8, showSizeChanger: false }}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: (n) => t('workOrder.paginationTotal', { total: n }),
+            onChange: (p, ps) => {
+              setPage(p);
+              if (ps != null) setPageSize(ps);
+            },
+          }}
           scroll={{ x: 1600 }}
         />
       </Card>

@@ -1,21 +1,43 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { App, Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { LongIdText } from '../../components/LongIdText';
 import { useTerminalConfig } from '../../../logic/qcConfig/useTerminalConfig';
+import { getUserListApi } from '../../../shared/api/userApi';
 import type { TerminalConfig } from '../../../shared/types/qcConfig';
 
 type FormValues = TerminalConfig;
 
+function normalizeUserList(data: unknown): { code: string; name: string }[] {
+  if (!data || typeof data !== 'object') return [];
+  const list = 'list' in data ? (data as { list: unknown[] }).list : Array.isArray(data) ? data : [];
+  return list.map((item: unknown) => {
+    const o = item as Record<string, unknown>;
+    return { code: String(o?.code ?? o?.id ?? ''), name: String(o?.name ?? '') };
+  });
+}
+
 export function TerminalConfigPage() {
   const [form] = Form.useForm<FormValues>();
   const { t } = useI18n();
-  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, workstationOptions, stationOptions } = useTerminalConfig();
+  const { modal: modalApi } = App.useApp();
+  const { filteredList, loading, keyword, setKeyword, createRecord, updateRecord, removeRecord, workstationOptions, stationOptions } = useTerminalConfig();
   const [editingRecord, setEditingRecord] = useState<TerminalConfig | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [onlyLoggedInDevices, setOnlyLoggedInDevices] = useState(false);
+  const [userOptions, setUserOptions] = useState<{ label: string; value: string }[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
+
+  useEffect(() => {
+    getUserListApi({ pageNum: 1, pageSize: 500 })
+      .then((res) => {
+        const list = normalizeUserList(res.data);
+        setUserOptions(list.map((u) => ({ label: `${u.name} (${u.code})`, value: u.code })));
+      })
+      .catch(() => setUserOptions([]));
+  }, []);
 
   const terminalTypeOptions = useMemo(
     () => ['工控终端', '平板终端', '手持终端'].map((item) => ({ label: item, value: item })),
@@ -24,7 +46,7 @@ export function TerminalConfigPage() {
 
   const openCreate = () => {
     form.resetFields();
-    form.setFieldsValue({ online: true, currentUser: '-', boundStationIds: [], terminalType: '工控终端' });
+    form.setFieldsValue({ online: true, currentUser: '', boundStationIds: [], terminalType: '工控终端', code: '', sn: '' });
     setCreateOpen(true);
   };
 
@@ -41,13 +63,10 @@ export function TerminalConfigPage() {
 
   const submit = (values: FormValues) => {
     if (createOpen) {
-      createRecord(values);
-      messageApi.success(t('qcConfig.common.created'));
+      createRecord(values).then(() => { messageApi.success(t('qcConfig.common.created')); closeModal(); }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
     } else if (editingRecord) {
-      updateRecord(values);
-      messageApi.success(t('qcConfig.common.updated'));
+      updateRecord(values).then(() => { messageApi.success(t('qcConfig.common.updated')); closeModal(); }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
     }
-    closeModal();
   };
 
   const displayedList = useMemo(() => {
@@ -58,11 +77,17 @@ export function TerminalConfigPage() {
   }, [filteredList, onlyLoggedInDevices]);
 
   const columns: ColumnsType<TerminalConfig> = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },
+    { title: '编码', dataIndex: 'code', key: 'code', width: 140 },
     { title: 'SN', dataIndex: 'sn', key: 'sn', width: 170 },
     { title: '终端类型', dataIndex: 'terminalType', key: 'terminalType', width: 150 },
     { title: '终端IP', dataIndex: 'terminalIp', key: 'terminalIp', width: 150 },
-    { title: t('qcConfig.terminal.table.workstationId'), dataIndex: 'workstationId', key: 'workstationId', width: 180 },
+    {
+      title: t('qcConfig.terminal.table.workstationId'),
+      dataIndex: 'workstationId',
+      key: 'workstationId',
+      width: 140,
+      render: (val: string | number) => <LongIdText value={val} />,
+    },
     {
       title: t('qcConfig.terminal.table.boundStationIds'),
       dataIndex: 'boundStationIds',
@@ -92,17 +117,26 @@ export function TerminalConfigPage() {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() =>
-              Modal.confirm({
+            onClick={() => {
+              const instance = modalApi.confirm({
                 title: t('qcConfig.common.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
-                content: record.id,
+                content: record.code || record.sn,
                 okText: t('qcConfig.common.delete'),
                 okButtonProps: { danger: true },
                 cancelText: t('qcConfig.common.cancel'),
-                onOk: () => removeRecord(record.id),
-              })
-            }
+                onOk: () =>
+                  removeRecord(record.id)
+                    .then(() => {
+                      messageApi.success(t('qcConfig.common.deleted'));
+                      instance.destroy();
+                    })
+                    .catch(() => {
+                      messageApi.error(t('qcConfig.common.deleteFailed'));
+                      return Promise.reject();
+                    }),
+              });
+            }}
           >
             {t('qcConfig.common.delete')}
           </Button>
@@ -144,7 +178,7 @@ export function TerminalConfigPage() {
       </Card>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={displayedList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1600 }} />
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={displayedList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1600 }} />
       </Card>
 
       <Modal
@@ -157,11 +191,15 @@ export function TerminalConfigPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={submit}>
-          <Form.Item label="ID" name="id" rules={[{ required: true, message: '请输入 ID' }]}>
-            <Input disabled={Boolean(editingRecord)} />
+          {/* 主键 id 由后端自动生成，编辑时隐藏带上传给更新接口 */}
+          <Form.Item name="id" hidden>
+            <Input type="number" />
+          </Form.Item>
+          <Form.Item label="编码" name="code" rules={[{ required: true, message: '请输入编码' }]}>
+            <Input placeholder="如：PAD-001" disabled={Boolean(editingRecord)} />
           </Form.Item>
           <Form.Item label="SN" name="sn" rules={[{ required: true, message: '请输入 SN' }]}>
-            <Input />
+            <Input placeholder="终端 SN 号" />
           </Form.Item>
           <Form.Item label="终端类型" name="terminalType" rules={[{ required: true, message: '请选择终端类型' }]}>
             <Select options={terminalTypeOptions} />
@@ -200,7 +238,12 @@ export function TerminalConfigPage() {
             name="currentUser"
             rules={[{ required: true, message: t('qcConfig.terminal.form.currentUserRequired') }]}
           >
-            <Input />
+            <Select
+              options={userOptions}
+              placeholder={t('qcConfig.terminal.form.currentUserRequired')}
+              showSearch
+              filterOption={(input, opt) => (opt?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
+            />
           </Form.Item>
         </Form>
       </Modal>

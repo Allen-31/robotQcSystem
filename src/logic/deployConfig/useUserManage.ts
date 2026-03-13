@@ -53,6 +53,12 @@ export function useUserManage() {
 
   const [roleOptions, setRoleOptions] = useState<{ label: string; value: string }[]>([]);
 
+  /** 角色 code -> 角色名称（用于用户列表「所属角色」列显示角色管理里的名称，并过滤 Keycloak 默认 realm 角色） */
+  const roleCodeToName = useMemo(
+    () => Object.fromEntries(roleOptions.map((o) => [o.value, o.label])),
+    [roleOptions],
+  );
+
   const fetchRoles = useCallback(async () => {
     try {
       const res = await getRoleListApi();
@@ -67,7 +73,7 @@ export function useUserManage() {
     setLoading(true);
     try {
       const res = await getUserListApi({
-        page,
+        pageNum: page,
         pageSize,
         keyword: keyword.trim() || undefined,
         role: roleFilter,
@@ -150,8 +156,8 @@ export function useUserManage() {
   const changePassword = useCallback(async (code: string, oldPassword: string, newPassword: string) => {
     const res = await changePasswordApi(code, oldPassword, newPassword);
     const data = res.data;
-    if (data?.success === false && data?.error === 'old_password_invalid') {
-      return { success: false as const, error: 'old_password_invalid' as const };
+    if (data?.success === false) {
+      return { success: false as const, error: (data?.error ?? 'unknown') as string };
     }
     return { success: true as const };
   }, []);
@@ -175,6 +181,7 @@ export function useUserManage() {
     statusFilter,
     setStatusFilter,
     roleOptions,
+    roleCodeToName,
     createRecord,
     updateRecord,
     removeRecord,

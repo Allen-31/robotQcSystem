@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "keycloak:dev": "docker compose up -d"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
+    "keycloak-js": "^26.0.0",
     "antd": "^5.27.0",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",

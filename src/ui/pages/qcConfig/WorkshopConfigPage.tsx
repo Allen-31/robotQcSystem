@@ -1,25 +1,58 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, Modal, Row, Space, Table, Typography, message } from 'antd';
+import { App, Button, Card, Col, Form, Input, Modal, Row, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
-import { workshopConfigList, type WorkshopConfigItem } from '../../../data/qcConfig/workshopConfigList';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
+import {
+  createWorkshopConfigApi,
+  deleteWorkshopConfigApi,
+  getWorkshopConfigListApi,
+  updateWorkshopConfigApi,
+  type QcWorkshopVO,
+} from '../../../shared/api/qcConfigApi';
+
+function normalizeList(data: unknown): QcWorkshopVO[] {
+  let list: QcWorkshopVO[] = [];
+  if (Array.isArray(data)) list = data as QcWorkshopVO[];
+  else if (data && typeof data === 'object' && 'list' in data) list = ((data as { list: QcWorkshopVO[] }).list) ?? [];
+  return list.map((item) => ({
+    code: item.code ?? '',
+    name: item.name ?? '',
+    location: item.location != null && item.location !== '' ? item.location : undefined,
+  }));
+}
 
 export function WorkshopConfigPage() {
-  const [form] = Form.useForm<WorkshopConfigItem>();
+  const [form] = Form.useForm<QcWorkshopVO>();
   const { t } = useI18n();
+  const { modal: modalApi } = App.useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [keyword, setKeyword] = useState('');
-  const [records, setRecords] = useState<WorkshopConfigItem[]>(workshopConfigList);
-  const [editingRecord, setEditingRecord] = useState<WorkshopConfigItem | null>(null);
+  const [records, setRecords] = useState<QcWorkshopVO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingRecord, setEditingRecord] = useState<QcWorkshopVO | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+
+  const fetchList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getWorkshopConfigListApi();
+      setRecords(normalizeList(res.data));
+    } catch {
+      setRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchList();
+  }, [fetchList]);
 
   const dataSource = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
-    if (!normalized) {
-      return records;
-    }
-    return records.filter((item) => `${item.code} ${item.name} ${item.location}`.toLowerCase().includes(normalized));
+    if (!normalized) return records;
+    return records.filter((item) => `${item.code} ${item.name} ${item.location ?? ''}`.toLowerCase().includes(normalized));
   }, [keyword, records]);
 
   const openCreate = () => {
@@ -27,7 +60,7 @@ export function WorkshopConfigPage() {
     setCreateOpen(true);
   };
 
-  const openEdit = (record: WorkshopConfigItem) => {
+  const openEdit = (record: QcWorkshopVO) => {
     setEditingRecord(record);
     form.setFieldsValue(record);
   };
@@ -38,30 +71,35 @@ export function WorkshopConfigPage() {
     form.resetFields();
   };
 
-  const submit = (values: WorkshopConfigItem) => {
+  const submit = (values: QcWorkshopVO) => {
     if (createOpen) {
-      setRecords((prev) => [values, ...prev]);
-      messageApi.success(t('qcConfig.common.created'));
-      closeModal();
+      createWorkshopConfigApi(values)
+        .then(() => { messageApi.success(t('qcConfig.common.created')); closeModal(); fetchList(); })
+        .catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
       return;
     }
-    if (!editingRecord) {
-      return;
-    }
-    setRecords((prev) => prev.map((item) => (item.code === editingRecord.code ? { ...item, ...values, code: editingRecord.code } : item)));
-    messageApi.success(t('qcConfig.common.updated'));
-    closeModal();
+    if (!editingRecord) return;
+    updateWorkshopConfigApi(editingRecord.code, values)
+      .then(() => { messageApi.success(t('qcConfig.common.updated')); closeModal(); setRecords((prev) => prev.map((item) => (item.code === editingRecord.code ? { ...item, ...values } : item))); })
+      .catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
   };
 
   const removeRecord = (code: string) => {
-    setRecords((prev) => prev.filter((item) => item.code !== code));
-    messageApi.success(t('qcConfig.common.deleted'));
+    deleteWorkshopConfigApi(code)
+      .then(() => { setRecords((prev) => prev.filter((item) => item.code !== code)); messageApi.success(t('qcConfig.common.deleted')); })
+      .catch(() => messageApi.error(t('qcConfig.common.deleteFailed')));
   };
 
-  const columns: ColumnsType<WorkshopConfigItem> = [
+  const columns: ColumnsType<QcWorkshopVO> = [
     { title: t('qcConfig.workshop.table.code'), dataIndex: 'code', key: 'code', width: 220 },
     { title: t('qcConfig.workshop.table.name'), dataIndex: 'name', key: 'name', width: 320 },
-    { title: t('qcConfig.workshop.table.location'), dataIndex: 'location', key: 'location', width: 260 },
+    {
+      title: t('qcConfig.workshop.table.location'),
+      dataIndex: 'location',
+      key: 'location',
+      width: 260,
+      render: (val: string | undefined) => (val != null && String(val).trim() !== '' ? val : '-'),
+    },
     {
       title: t('qcConfig.workshop.table.action'),
       key: 'actions',
@@ -75,17 +113,27 @@ export function WorkshopConfigPage() {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() =>
-              Modal.confirm({
+            onClick={() => {
+              const instance = modalApi.confirm({
                 title: t('qcConfig.common.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
                 content: record.code,
                 okText: t('qcConfig.common.delete'),
                 cancelText: t('qcConfig.common.cancel'),
                 okButtonProps: { danger: true },
-                onOk: () => removeRecord(record.code),
-              })
-            }
+                onOk: () =>
+                  deleteWorkshopConfigApi(record.code)
+                    .then(() => {
+                      setRecords((prev) => prev.filter((item) => item.code !== record.code));
+                      messageApi.success(t('qcConfig.common.deleted'));
+                      instance.destroy();
+                    })
+                    .catch(() => {
+                      messageApi.error(t('qcConfig.common.deleteFailed'));
+                      return Promise.reject();
+                    }),
+              });
+            }}
           >
             {t('qcConfig.common.delete')}
           </Button>
@@ -124,7 +172,7 @@ export function WorkshopConfigPage() {
       </Card>
 
       <Card>
-        <Table rowKey="code" columns={columns} dataSource={dataSource} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1100 }} />
+        <Table rowKey="code" loading={loading} columns={columns} dataSource={dataSource} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1100 }} />
       </Card>
 
       <Modal

@@ -1,5 +1,5 @@
 import { EyeOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { Badge, Button, Card, Col, Descriptions, Modal, Row, Segmented, Space, Statistic, Table, Tag, Typography } from 'antd';
+import { Badge, Button, Card, Col, Descriptions, Modal, Row, Segmented, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,8 @@ export function WorkstationManagePage() {
   const [summaryPeriod, setSummaryPeriod] = useState<'day' | 'week'>('day');
   const {
     workstations,
+    loading,
+    positionsLoading,
     selectedWorkstation,
     selectedWorkstationId,
     setSelectedWorkstationId,
@@ -185,7 +187,9 @@ export function WorkstationManagePage() {
       </Card>
 
       <Card title={selectedWorkstation ? `${selectedWorkstation.name} - ${t('workstation.station.listTitle')}` : t('workstation.station.listTitle')}>
-        <Table rowKey="id" columns={columns} dataSource={stationList} pagination={{ pageSize: 6, showSizeChanger: false }} />
+        <Spin spinning={positionsLoading}>
+          <Table rowKey="id" columns={columns} dataSource={stationList} pagination={{ pageSize: 6, showSizeChanger: false }} />
+        </Spin>
       </Card>
 
       <Modal title={t('workstation.station.viewTitle')} open={Boolean(viewingStation)} onCancel={() => setViewingStation(null)} footer={null}>

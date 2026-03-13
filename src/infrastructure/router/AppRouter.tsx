@@ -25,7 +25,7 @@ import { RoleManagePage } from '../../ui/pages/deployConfig/RoleManagePage';
 import { ChargeStrategyPage } from '../../ui/pages/deployConfig/ChargeStrategyPage';
 import { HomingStrategyPage } from '../../ui/pages/deployConfig/HomingStrategyPage';
 import { MapEditorPage } from '../../ui/pages/deployConfig/MapEditorPage';
-import { DeviceManagePage } from '../../ui/pages/deployConfig/DeviceManagePage';
+import { SceneDeviceManagePage } from '../../ui/pages/deployConfig/SceneDeviceManagePage';
 import { MapManagePage } from '../../ui/pages/deployConfig/MapManagePage';
 import { TaskTemplatePage } from '../../ui/pages/deployConfig/TaskTemplatePage';
 import { ActionTemplatePage } from '../../ui/pages/deployConfig/ActionTemplatePage';
@@ -147,6 +147,8 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/home/login" element={<LoginPage />} />
+        {/* Keycloak 回调：登录成功后跳转回此处，由 Keycloak 适配器处理 URL 中的 code/fragment 后重定向到首页 */}
+        <Route path="/home/loginCallback" element={<Navigate to="/" replace />} />
 
         <Route element={<TopLevelLayout />}>
           <Route index element={<HomeDashboardPage />} />
@@ -178,7 +180,7 @@ export function AppRouter() {
             <Route path={roleManagePath} element={<RoleManagePage />} />
             <Route path={settingPath} element={<SettingPage />} />
             <Route path={mapManagePath} element={<MapManagePage />} />
-            <Route path={deviceManagePath} element={<DeviceManagePage />} />
+            <Route path={deviceManagePath} element={<SceneDeviceManagePage />} />
             <Route path={mapEditorPath} element={<MapEditorPage />} />
             <Route path={taskTemplatePath} element={<TaskTemplatePage />} />
             <Route path={actionTemplatePath} element={<ActionTemplatePage />} />

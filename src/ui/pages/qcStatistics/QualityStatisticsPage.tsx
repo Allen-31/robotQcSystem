@@ -1,11 +1,30 @@
 import { DownloadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography, message } from 'antd';
+import { Button, Card, Col, DatePicker, Row, Select, Space, Spin, Statistic, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useMemo, useState } from 'react';
-import { ALL_VALUE, type AggregatedRow, type MetricKey, useQualityStatistics } from '../../../logic/qcStatistics/useQualityStatistics';
+import { useEffect, useMemo, useState } from 'react';
+import { qualityStatsMock, type QualityStatRecord } from '../../../data/qcStatistics/qualityStatsMock';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { ALL_VALUE, type AggregatedRow, type MetricKey, useQualityStatistics } from '../../../logic/qcStatistics/useQualityStatistics';
+import { getQualityStatisticsApi } from '../../../shared/api/qualityAnalyticsApi';
 import { SimpleBarChart, SimpleLineChart } from '../../components/charts/SimpleCharts';
+
+function mapApiCompareToRecords(compare: { dimensionValue: string; inspectionCount: number; defectCount: number; reinspectionCount: number; avgDurationMin: number }[], dimension: string): QualityStatRecord[] {
+  return compare.map((item) => ({
+    date: new Date().toISOString().slice(0, 10),
+    factory: '',
+    workshop: dimension === 'workshop' ? item.dimensionValue : '',
+    workstation: dimension === 'workstation' ? item.dimensionValue : '',
+    station: dimension === 'station' ? item.dimensionValue : '',
+    inspector: dimension === 'inspector' ? item.dimensionValue : '',
+    wireHarness: dimension === 'wireHarness' ? item.dimensionValue : '',
+    project: dimension === 'project' ? item.dimensionValue : undefined,
+    inspectionCount: item.inspectionCount,
+    defectCount: item.defectCount,
+    reinspectionCount: item.reinspectionCount,
+    avgDurationMin: item.avgDurationMin,
+  }));
+}
 
 function escapeCsv(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n')) {
@@ -17,6 +36,23 @@ function escapeCsv(value: string): string {
 export function QualityStatisticsPage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
+  const [apiRecords, setApiRecords] = useState<QualityStatRecord[] | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    setStatsLoading(true);
+    getQualityStatisticsApi({ period: 'month1', dimension: 'workshop' })
+      .then((res) => {
+        const compare = res.data?.compare ?? [];
+        if (compare.length > 0) {
+          setApiRecords(mapApiCompareToRecords(compare, 'workshop'));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setStatsLoading(false));
+  }, []);
+
+  const records = apiRecords ?? qualityStatsMock;
   const {
     period,
     customRange,
@@ -47,7 +83,7 @@ export function QualityStatisticsPage() {
     chartRows,
     chartIsLine,
     trendPoints,
-  } = useQualityStatistics();
+  } = useQualityStatistics(records);
   const [trendMetric, setTrendMetric] = useState<MetricKey>('inspectionCount');
 
   const label = useMemo(() => {
@@ -271,9 +307,10 @@ export function QualityStatisticsPage() {
   };
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      {contextHolder}
-      <Card>
+    <Spin spinning={statsLoading}>
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        {contextHolder}
+        <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('menu.qualityStatistics')}
@@ -487,7 +524,8 @@ export function QualityStatisticsPage() {
           />
         </Space>
       </Card>
-    </Space>
+      </Space>
+    </Spin>
   );
 }
 

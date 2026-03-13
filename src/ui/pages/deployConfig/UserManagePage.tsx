@@ -41,6 +41,7 @@ export function UserManagePage() {
     pageSize,
     setPageSize,
     roleOptions,
+    roleCodeToName,
     createRecord,
     updateRecord,
     removeRecord,
@@ -93,7 +94,8 @@ export function UserManagePage() {
   };
 
   const openRoleModal = (record: UserManageRecord) => {
-    roleForm.setFieldsValue({ roles: record.roles });
+    const rolesFromRoleManage = (record.roles ?? []).filter((code) => code !== 'default-roles-robot-qc');
+    roleForm.setFieldsValue({ roles: rolesFromRoleManage });
     setRoleRecord(record);
   };
 
@@ -119,7 +121,11 @@ export function UserManagePage() {
     try {
       const result = await changePassword(passwordRecord.code, values.oldPassword, values.newPassword);
       if (!result.success) {
-        messageApi.error(t('userManage.message.oldPasswordInvalid'));
+        const msg =
+          result.error === 'old_password_invalid'
+            ? t('userManage.message.oldPasswordInvalid')
+            : result.error ?? t('userManage.message.updateFailed');
+        messageApi.error(msg);
         return;
       }
       messageApi.success(t('userManage.message.passwordUpdated'));
@@ -168,8 +174,7 @@ export function UserManagePage() {
   };
 
   const columns: ColumnsType<UserManageRecord> = [
-    { title: t('userManage.table.code'), dataIndex: 'code', key: 'code', width: 160 },
-    { title: t('userManage.table.name'), dataIndex: 'name', key: 'name', width: 120 },
+    { title: t('userManage.table.username'), dataIndex: 'code', key: 'code', width: 160 },
     { title: t('userManage.table.phone'), dataIndex: 'phone', key: 'phone', width: 150 },
     { title: t('userManage.table.email'), dataIndex: 'email', key: 'email', width: 220 },
     {
@@ -189,7 +194,13 @@ export function UserManagePage() {
       dataIndex: 'roles',
       key: 'roles',
       width: 240,
-      render: (roles: string[]) => roles.join(' / ') || '-',
+      render: (roles: string[] | undefined) => {
+        const list = roles ?? [];
+        const displayNames = list
+          .filter((code) => code !== 'default-roles-robot-qc')
+          .map((code) => roleCodeToName[code] ?? code);
+        return displayNames.join(' / ') || '-';
+      },
     },
     {
       title: t('userManage.table.action'),

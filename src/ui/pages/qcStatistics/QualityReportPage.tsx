@@ -1,10 +1,11 @@
 import { DownloadOutlined, FileAddOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Row, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { qualityStatsMock, type QualityStatRecord } from '../../../data/qcStatistics/qualityStatsMock';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { getCurrentUser } from '../../../logic/auth/authStore';
+import { getQualityReportsApi } from '../../../shared/api/qualityAnalyticsApi';
 import { SimpleBarChart } from '../../components/charts/SimpleCharts';
 
 type ReportType = 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -150,7 +151,7 @@ export function QualityReportPage() {
   const [reportType, setReportType] = useState<ReportType>('weekly');
   const [dimension, setDimension] = useState<ReportDimension>('workshop');
   const [reportMetric, setReportMetric] = useState<ReportMetric>('inspectionCount');
-  const [reportHistory, setReportHistory] = useState<ReportRecord[]>([
+  const defaultReportHistory: ReportRecord[] = [
     {
       id: 'RPT-001',
       reportNo: 'QCR-20260304-001',
@@ -161,7 +162,32 @@ export function QualityReportPage() {
       createdAt: '2026-03-04 09:30:15',
       status: 'generated',
     },
-  ]);
+  ];
+  const [reportHistory, setReportHistory] = useState<ReportRecord[]>(defaultReportHistory);
+  const [reportsLoading, setReportsLoading] = useState(true);
+
+  useEffect(() => {
+    getQualityReportsApi({ pageNum: 1, pageSize: 100 })
+      .then((res) => {
+        const list = res.data?.list ?? [];
+        if (list.length > 0) {
+          setReportHistory(
+            list.map((item) => ({
+              id: item.id,
+              reportNo: item.reportNo,
+              reportType: item.reportType,
+              periodLabel: item.periodLabel,
+              dimension: item.dimension as ReportDimension,
+              creator: item.creator,
+              createdAt: item.createdAt,
+              status: item.status === 'generated' ? 'generated' : 'generated',
+            })),
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => setReportsLoading(false));
+  }, []);
 
   const label = useMemo(() => {
     if (locale === 'en-US') {
@@ -525,7 +551,7 @@ export function QualityReportPage() {
       </Card>
 
       <Card title={label.historyTitle}>
-        <Table rowKey="id" columns={historyColumns} dataSource={reportHistory} pagination={{ pageSize: 6, showSizeChanger: false }} scroll={{ x: 1100 }} />
+        <Table rowKey="id" loading={reportsLoading} columns={historyColumns} dataSource={reportHistory} pagination={{ pageSize: 6, showSizeChanger: false }} scroll={{ x: 1100 }} />
       </Card>
     </Space>
   );

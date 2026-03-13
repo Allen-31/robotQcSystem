@@ -6,11 +6,12 @@ import {
   SearchOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Col, Form, Grid, Input, Modal, Row, Space, Table, Tag, Typography, Upload, message } from 'antd';
+import { App, Button, Card, Col, Form, Grid, Input, Modal, Row, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MouseEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { LongIdText } from '../../components/LongIdText';
 import { useWireHarnessType } from '../../../logic/qcConfig/useWireHarnessType';
 import { loadQcWireHarnessAnnotations, saveQcWireHarnessAnnotations, type QcPoint } from '../../../shared/qcWireHarnessAnnotation';
 import type { WireHarnessTypeConfig } from '../../../shared/types/qcConfig';
@@ -20,9 +21,10 @@ type FormValues = WireHarnessTypeConfig;
 export function WireHarnessTypePage() {
   const [form] = Form.useForm<FormValues>();
   const { t } = useI18n();
+  const { modal: modalApi } = App.useApp();
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
-  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useWireHarnessType();
+  const { filteredList, loading, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useWireHarnessType();
   const [editingRecord, setEditingRecord] = useState<WireHarnessTypeConfig | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [annotationOpen, setAnnotationOpen] = useState(false);
@@ -76,17 +78,14 @@ export function WireHarnessTypePage() {
     });
 
     if (createOpen) {
-      createRecord(values);
-      messageApi.success(t('qcConfig.common.created'));
+      createRecord(values).then(() => { messageApi.success(t('qcConfig.common.created')); closeModal(); }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
     } else if (editingRecord) {
-      updateRecord(values);
-      messageApi.success(t('qcConfig.common.updated'));
+      updateRecord(values).then(() => { messageApi.success(t('qcConfig.common.updated')); closeModal(); }).catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
     }
-    closeModal();
   };
 
   const columns: ColumnsType<WireHarnessTypeConfig> = [
-    { title: t('qcConfig.wireHarness.table.id'), dataIndex: 'id', key: 'id', width: 140 },
+    { title: t('qcConfig.wireHarness.table.id'), dataIndex: 'id', key: 'id', width: 140, render: (val: number | string) => <LongIdText value={val} /> },
     { title: t('qcConfig.wireHarness.table.name'), dataIndex: 'name', key: 'name', width: 180 },
     { title: t('qcConfig.wireHarness.table.project'), dataIndex: 'project', key: 'project', width: 120 },
     { title: t('qcConfig.wireHarness.table.taskType'), dataIndex: 'taskType', key: 'taskType', width: 180 },
@@ -148,17 +147,26 @@ export function WireHarnessTypePage() {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() =>
-              Modal.confirm({
+            onClick(() => {
+              const instance = modalApi.confirm({
                 title: t('qcConfig.common.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
                 content: record.id,
                 okText: t('qcConfig.common.delete'),
                 okButtonProps: { danger: true },
                 cancelText: t('qcConfig.common.cancel'),
-                onOk: () => removeRecord(record.id),
-              })
-            }
+                onOk: () =>
+                  removeRecord(record.id)
+                    .then(() => {
+                      messageApi.success(t('qcConfig.common.deleted'));
+                      instance.destroy();
+                    })
+                    .catch(() => {
+                      messageApi.error(t('qcConfig.common.deleteFailed'));
+                      return Promise.reject();
+                    }),
+              });
+            }}
           >
             {t('qcConfig.common.delete')}
           </Button>
@@ -261,7 +269,7 @@ export function WireHarnessTypePage() {
       </Card>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 'max-content' }} />
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={filteredList} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 'max-content' }} />
       </Card>
 
       <Modal
