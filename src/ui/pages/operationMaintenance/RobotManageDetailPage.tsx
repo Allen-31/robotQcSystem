@@ -353,6 +353,9 @@ export function RobotManageDetailPage() {
                 </Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.location')}>{robot.location}</Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.battery')}>{robot.battery}%</Descriptions.Item>
+                <Descriptions.Item label={t('op.robotManage.table.mileage')}>
+                  {robot.mileageKm != null ? robot.mileageKm : '-'}
+                </Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.currentMap')}>{mapOptions[mapIndex]}</Descriptions.Item>
                 <Descriptions.Item label={t('op.robotManage.table.dispatchMode')}>
                   {dispatchMode === 'auto'
