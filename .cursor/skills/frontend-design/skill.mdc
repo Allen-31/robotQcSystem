@@ -1,0 +1,43 @@
+---
+name: frontend-design
+description: Guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Use when building components, pages, dashboards, landing pages, or React/HTML/CSS UI with strong visual identity and intentional design choices.
+---
+
+# Frontend Design
+
+This skill guides creation of distinctive, production-grade frontend interfaces. Implement real working code with exceptional attention to aesthetic details and creative choices.
+
+## Design Thinking (Before Coding)
+
+Understand context and commit to a **bold aesthetic direction**:
+
+- **Purpose**: What problem does this interface solve? Who uses it?
+- **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. Execute one direction with precision.
+- **Constraints**: Technical requirements (framework, performance, accessibility).
+- **Differentiation**: What makes this **unforgettable**? What will someone remember?
+
+**Critical**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work—the key is intentionality.
+
+Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
+
+- Production-grade and functional
+- Visually striking and memorable
+- Cohesive with a clear aesthetic point-of-view
+- Meticulously refined in every detail
+
+## Frontend Aesthetics Guidelines
+
+- **Typography**: Choose distinctive, characterful fonts. Avoid generic choices (Arial, Inter). Pair a distinctive display font with a refined body font.
+- **Color & Theme**: Cohesive aesthetic. Use CSS variables. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
+- **Motion**: Animations for effects and micro-interactions. CSS-only for HTML; Motion library for React when available. Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay). Scroll-triggering and hover states that surprise.
+- **Spatial Composition**: Unexpected layouts. Asymmetry, overlap, diagonal flow. Grid-breaking elements. Generous negative space or controlled density.
+- **Backgrounds & Visual Details**: Atmosphere and depth, not solid colors. Gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, grain overlays.
+
+## Avoid
+
+- Generic AI aesthetics: overused fonts (Inter, Roboto, Arial, system fonts)
+- Cliched color schemes (e.g. purple gradients on white)
+- Predictable layouts and cookie-cutter patterns
+- Converging on common choices (e.g. Space Grotesk) across generations
+
+Interpret creatively; make unexpected choices that feel designed for the context. Vary light/dark themes, fonts, and aesthetics. **Match implementation complexity to the vision**: maximalist designs need elaborate code and effects; minimalist designs need restraint, precision, spacing, and subtle details.

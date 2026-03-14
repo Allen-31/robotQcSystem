@@ -1,0 +1,55 @@
+---
+name: vercel-react-best-practices
+description: Apply Vercel's React and Next.js performance rules when refactoring, reviewing, or generating frontend code. Use when optimizing async flows, bundle size, re-renders, or when the user asks for React best practices or performance improvements.
+---
+
+# Vercel React Best Practices
+
+Summary of [Vercel Agent Skills – React Best Practices](https://github.com/vercel-labs/agent-skills/blob/main/skills/react-best-practices/AGENTS.md) (40+ rules). Prioritize by impact when refactoring or generating code.
+
+## Priority Overview
+
+| Impact     | Category                    | Focus |
+|-----------|-----------------------------|--------|
+| **CRITICAL** | 1. Eliminating Waterfalls   | Defer await, parallelize, Promise.all, Suspense |
+| **CRITICAL** | 2. Bundle Size              | No barrel imports, dynamic import, defer non-critical libs |
+| **HIGH**     | 3. Server-Side              | Auth in Server Actions, parallel fetch, React.cache, LRU |
+| **MEDIUM–HIGH** | 4. Client Data Fetching | Dedupe listeners, passive listeners, SWR, localStorage |
+| **MEDIUM**  | 5. Re-render Optimization   | Derived state in render, useMemo, extract components, transitions |
+| **MEDIUM**  | 6. Rendering Performance    | content-visibility, hoist static JSX, hydration, useTransition |
+| **LOW–MED** | 7. JavaScript Performance   | Index maps, cache in loops, Set/Map, early return |
+| **LOW**     | 8. Advanced Patterns        | Init once, refs for handlers, useEffectEvent |
+
+## 1. Eliminating Waterfalls (CRITICAL)
+
+- **Defer await**: Move `await` into the branch that actually uses the result; avoid blocking early-return paths.
+- **Parallelize**: Independent async work → `Promise.all([fetchA(), fetchB(), fetchC()])`. Never chain awaits when they don’t depend on each other.
+- **API routes / Server**: Start all independent requests immediately (e.g. `const p1 = fetchA(); const p2 = fetchB();` then `await Promise.all([p1, p2])`), don’t await one then the next.
+- **Suspense**: Use Suspense boundaries so layout/shell can render while async children load; share a single promise when multiple components need the same data.
+
+## 2. Bundle Size (CRITICAL)
+
+- **No barrel imports** for heavy libraries: import from concrete paths (e.g. `lucide-react/dist/esm/icons/check`, `@mui/material/Button`) instead of `lucide-react` or `@mui/material` barrel. Affects: lucide-react, @mui/*, react-icons, lodash, date-fns, etc.
+- **Dynamic import** for heavy components (editors, charts, modals): `const Heavy = dynamic(() => import('./Heavy'), { ssr: false })`.
+- **Defer non-critical libs**: Analytics, error tracking, etc. load after hydration (dynamic import with `ssr: false` or load in useEffect).
+- **Preload on intent**: Use `onMouseEnter` / `onFocus` to `import()` heavy modules before the user clicks.
+
+## 3. Re-render & State (MEDIUM)
+
+- Prefer **derived state during render** over storing in state when it can be computed from props/state.
+- **Don’t define components inside components**; extract to avoid re-creation and unnecessary re-renders.
+- Use **functional setState** when next state depends on previous: `setCount(c => c + 1)`.
+- Use **useTransition** for non-urgent UI updates; avoid manual loading booleans where a transition is enough.
+- **Narrow effect dependencies**; avoid broad dependency arrays that trigger effects too often.
+
+## 4. Rendering & Hydration (MEDIUM)
+
+- Use **content-visibility** (or virtualization) for long lists.
+- **Hoist static JSX** outside the component or into constants when it doesn’t depend on props/state.
+- Prefer **useTransition** over manual loading states for smoother transitions.
+
+## Project Notes
+
+- This project uses **Vite + React** (not Next.js). Rules about Server Actions and RSC don’t apply; rules about waterfalls, bundle size, re-renders, and client-side fetching do.
+- Ant Design is used; prefer direct imports from `antd` subpaths when tree-shaking matters (e.g. `antd/lib/button` if needed).
+- For the full 40+ rules with examples and impact notes, see: [vercel-labs/agent-skills – react-best-practices/AGENTS.md](https://github.com/vercel-labs/agent-skills/blob/main/skills/react-best-practices/AGENTS.md).

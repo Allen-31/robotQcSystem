@@ -147,8 +147,8 @@ export function WireHarnessTypePage() {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick(() => {
-              const instance = modalApi.confirm({
+            onClick={() => {
+              const opts = {
                 title: t('qcConfig.common.deleteConfirmTitle'),
                 icon: <ExclamationCircleFilled />,
                 content: record.id,
@@ -165,7 +165,8 @@ export function WireHarnessTypePage() {
                       messageApi.error(t('qcConfig.common.deleteFailed'));
                       return Promise.reject();
                     }),
-              });
+              };
+              const instance = modalApi.confirm(opts);
             }}
           >
             {t('qcConfig.common.delete')}
