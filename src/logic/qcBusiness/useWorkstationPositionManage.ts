@@ -28,10 +28,10 @@ const placeholderWorkOrder: WorkOrderInfo = {
 function mapPositionVoToItem(vo: StationPositionVO, index: number): WorkstationPositionItem {
   const stationCode = vo.stationCode ?? `ST-${index + 1}`;
   return {
-    id: vo.id,
+    id: String(vo.id),
     name: vo.name ?? `Station ${stationCode}`,
     stationCode,
-    enabled: vo.enabled,
+    enabled: vo.enabled ?? true,
     todayInspectionCount: vo.todayInspectionCount ?? 0,
     detectionRate: vo.detectionRate ?? 0,
     reviewRate: vo.reviewRate ?? 0,
@@ -108,8 +108,9 @@ export function useWorkstationPositionManage() {
         if (list.length > 0) {
           const mapped = list.map((vo, index) => mapPositionVoToItem(vo, index));
           setPositionList(mapped);
+          const firstId = mapped[0]?.id ?? '';
           if (!mapped.some((p) => p.id === selectedPositionId)) {
-            setSelectedPositionId(mapped[0]?.id ?? '');
+            setSelectedPositionId(firstId);
           }
         }
       })

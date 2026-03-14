@@ -1,5 +1,5 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, Modal, Space, Table, Typography, message } from 'antd';
+﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
+import { Button, Card, Form, Input, Modal, Select, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { getStoredRobotParts, setStoredRobotParts, type RobotPartRecord } from '../../../logic/deployConfig/robotPartStore';
@@ -18,11 +18,23 @@ export function RobotPartsPage() {
 
   const filteredList = useMemo(() => list, [list]);
 
+  const getNextPartNo = () => {
+    const maxIndex = list.reduce((max, item) => {
+      const match = item.partNo.match(/RP-(\d+)/i);
+      if (!match) {
+        return max;
+      }
+      const value = Number.parseInt(match[1], 10);
+      return Number.isFinite(value) ? Math.max(max, value) : max;
+    }, 0);
+    return `RP-${String(maxIndex + 1).padStart(3, '0')}`;
+  };
+
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
     form.setFieldsValue({
-      partNo: `RP-${String(list.length + 1).padStart(3, '0')}`,
+      partNo: getNextPartNo(),
       type: typeOptions[0],
     });
     setModalOpen(true);
@@ -177,7 +189,10 @@ export function RobotPartsPage() {
                 <Input placeholder="请输入零部件名称" />
               </Form.Item>
               <Form.Item label="类型" name="type" rules={[{ required: true, message: '请输入类型' }]}>
-                <Input placeholder="例如：电机" />
+                <Select
+                  placeholder="请选择类型"
+                  options={typeOptions.map((value) => ({ label: value, value }))}
+                />
               </Form.Item>
             </Form>
           </Card>

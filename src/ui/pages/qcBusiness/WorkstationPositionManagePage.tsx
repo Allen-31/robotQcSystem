@@ -1,4 +1,12 @@
-import { ExclamationCircleOutlined, PauseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  PauseCircleOutlined,
+  ReloadOutlined,
+  ShopOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons';
 import { Badge, Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -8,6 +16,7 @@ import type { RobotStatus, WorkOrderInfo, WorkOrderStatus } from '../../../data/
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useWorkstationPositionManage } from '../../../logic/qcBusiness/useWorkstationPositionManage';
 import { loadQcWireHarnessAnnotations } from '../../../shared/qcWireHarnessAnnotation';
+import './WorkstationManagePage.css';
 
 const robotStatusColorMap: Record<RobotStatus, string> = {
   idle: 'default',
@@ -386,99 +395,138 @@ export function WorkstationPositionManagePage() {
 
   return (
     <Spin spinning={positionListLoading}>
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <div className="workstation-manage-page">
         {contextHolder}
-        <Card>
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
-          <Typography.Text strong>{t('workstationPosition.currentStation')}</Typography.Text>
-          <Row gutter={[12, 12]}>
-            {positionList.map((pos) => {
-              const ngCount = mockNgCountByPositionId[pos.id] ?? 0;
-              const selected = selectedPositionId === pos.id;
-              return (
-                <Col key={pos.id} xs={24} sm={12} md={8} lg={6}>
-                  <Badge count={ngCount} size="small" offset={[8, 0]} title={ngCount ? t('workstation.ngBadge') : undefined}>
+        <Card className="workstation-manage-current-card">
+          <section className="workstation-manage-zones">
+            <div className="workstation-manage-zones-grid">
+              {positionList.map((pos) => {
+                const ngCount = mockNgCountByPositionId[pos.id] ?? 0;
+                const selected = selectedPositionId === pos.id;
+                return (
+                  <Badge key={pos.id} count={ngCount} size="small" offset={[-4, 4]} title={ngCount ? t('workstation.ngBadge') : undefined}>
                     <Card
                       size="small"
                       hoverable
                       onClick={() => setSelectedPositionId(pos.id)}
-                      style={{
-                        borderColor: selected ? '#1677ff' : undefined,
-                        borderWidth: selected ? 2 : 1,
-                        cursor: 'pointer',
-                      }}
+                      className={`workstation-manage-zone-card ${selected ? 'workstation-manage-zone-card--selected' : ''}`}
                     >
-                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                        <Typography.Text strong>{pos.name}</Typography.Text>
-                        <Typography.Text type="secondary">{pos.stationCode}</Typography.Text>
-                        {ngCount > 0 ? (
-                          <Button
-                            type="link"
-                            size="small"
-                            style={{ padding: 0, height: 'auto' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate('/qualityInspection/workOrderManage', { state: { openNgModal: true } });
-                            }}
-                          >
-                            {t('workstation.viewNgList')}
-                          </Button>
-                        ) : null}
-                      </Space>
+                      <span
+                        className={`workstation-manage-zone-status-dot ${pos.enabled ? 'workstation-manage-zone-status-dot--enabled' : 'workstation-manage-zone-status-dot--disabled'}`}
+                        title={pos.enabled ? t('workstationPosition.enabled') : t('workstationPosition.disabled')}
+                      />
+                      <div className="workstation-manage-zone-card-inner">
+                        <div className="workstation-manage-zone-icon-wrap">
+                          <ShopOutlined className="workstation-manage-zone-icon" />
+                        </div>
+                        <div className="workstation-manage-zone-body">
+                          <Typography.Text strong className="workstation-manage-zone-name">
+                            {pos.name}
+                          </Typography.Text>
+                          <span className="workstation-manage-zone-id">{pos.stationCode}</span>
+                          {ngCount > 0 && (
+                            <Button
+                              type="link"
+                              size="small"
+                              className="workstation-manage-zone-ng-link"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/qualityInspection/workOrderManage', { state: { openNgModal: true } });
+                              }}
+                            >
+                              {t('workstation.viewNgList')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </Card>
                   </Badge>
-                </Col>
-              );
-            })}
-          </Row>
-          <Row gutter={[16, 16]} align="middle" style={{ marginTop: 8 }}>
-            <Col xs={24} lg={8}>
-              <Space size={6}>
-                <Typography.Text type="secondary">{t('workstationPosition.rank')}:</Typography.Text>
-                <Typography.Text strong>{positionRank > 0 ? `#${positionRank}` : '-'}</Typography.Text>
+                );
+              })}
+            </div>
+            <div className="workstation-manage-meta">
+              <Space size={24} wrap align="center">
+                <Space size={8}>
+                  <Typography.Text type="secondary">{t('workstationPosition.rank')}</Typography.Text>
+                  <Typography.Text strong className="workstation-manage-meta-value">{positionRank > 0 ? `#${positionRank}` : '–'}</Typography.Text>
+                </Space>
+                <Space size={8} align="center">
+                  <Typography.Text type="secondary">{t('workstationPosition.enabledStatus')}</Typography.Text>
+                  {selectedPosition?.enabled ? (
+                    <span className="workstation-manage-status-pill workstation-manage-status-pill--enabled">
+                      <CheckCircleOutlined /> {t('workstationPosition.enabled')}
+                    </span>
+                  ) : (
+                    <span className="workstation-manage-status-pill workstation-manage-status-pill--disabled">
+                      <CloseCircleOutlined /> {t('workstationPosition.disabled')}
+                    </span>
+                  )}
+                </Space>
               </Space>
-            </Col>
-            <Col xs={24} lg={8}>
-              <Space size={6} align="center">
-                <Typography.Text type="secondary">{t('workstationPosition.enabledStatus')}:</Typography.Text>
-                {selectedPosition?.enabled ? <Tag color="success">{t('workstationPosition.enabled')}</Tag> : <Tag>{t('workstationPosition.disabled')}</Tag>}
-              </Space>
-            </Col>
-          </Row>
-        </Space>
-      </Card>
+            </div>
+          </section>
+        </Card>
 
-      <Card>
-        <Row justify="end" style={{ marginBottom: 12 }}>
-          <Segmented
-            value={summaryPeriod}
-            onChange={(value) => setSummaryPeriod(value as 'day' | 'week')}
-            options={[
-              { label: t('workstationPosition.summary.periodDay'), value: 'day' },
-              { label: t('workstationPosition.summary.periodWeek'), value: 'week' },
-            ]}
-          />
-        </Row>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <Statistic title={t('workstationPosition.summary.rank')} value={positionRank > 0 ? positionRank : '-'} prefix="#" />
-          </Col>
-          <Col xs={24} md={6}>
-            <Statistic
-              title={summaryPeriod === 'day' ? t('workstationPosition.summary.todayInspection') : t('workstationPosition.summary.weekInspection')}
-              value={summaryMetrics.inspectionCount}
+        <Card className="workstation-manage-stats-card">
+          <div className="workstation-manage-stats-toolbar">
+            <Segmented
+              block
+              value={summaryPeriod}
+              onChange={(value) => setSummaryPeriod(value as 'day' | 'week')}
+              options={[
+                { label: t('workstationPosition.summary.periodDay'), value: 'day' },
+                { label: t('workstationPosition.summary.periodWeek'), value: 'week' },
+              ]}
+              className="workstation-manage-segmented"
             />
-          </Col>
-          <Col xs={24} md={6}>
-            <Statistic title={t('workstationPosition.summary.detectionRate')} value={summaryMetrics.detectionRate} suffix="%" precision={1} />
-          </Col>
-          <Col xs={24} md={6}>
-            <Statistic title={t('workstationPosition.summary.reviewRate')} value={summaryMetrics.reviewRate} suffix="%" precision={1} />
-          </Col>
-        </Row>
-      </Card>
+          </div>
+          <Row gutter={[16, 16]} className="workstation-manage-stats-row">
+            <Col xs={24} sm={12} lg={6}>
+              <div className="workstation-manage-stat-card">
+                <span className="workstation-manage-stat-title">
+                  <UnorderedListOutlined className="workstation-manage-stat-icon" />
+                  {t('workstationPosition.summary.rank')}
+                </span>
+                <span className="workstation-manage-stat-value">{positionRank > 0 ? `#${positionRank}` : '–'}</span>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <div className="workstation-manage-stat-card">
+                <span className="workstation-manage-stat-title">
+                  <UnorderedListOutlined className="workstation-manage-stat-icon" />
+                  {summaryPeriod === 'day' ? t('workstationPosition.summary.todayInspection') : t('workstationPosition.summary.weekInspection')}
+                </span>
+                <span className="workstation-manage-stat-value">{summaryMetrics.inspectionCount}</span>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <div className="workstation-manage-stat-card">
+                <span className="workstation-manage-stat-title">
+                  <CheckCircleOutlined className="workstation-manage-stat-icon" />
+                  {t('workstationPosition.summary.detectionRate')}
+                </span>
+                <span className="workstation-manage-stat-value">
+                  {summaryMetrics.detectionRate}
+                  <span className="workstation-manage-stat-unit">%</span>
+                </span>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <div className="workstation-manage-stat-card">
+                <span className="workstation-manage-stat-title">
+                  <CheckCircleOutlined className="workstation-manage-stat-icon" />
+                  {t('workstationPosition.summary.reviewRate')}
+                </span>
+                <span className="workstation-manage-stat-value">
+                  {summaryMetrics.reviewRate}
+                  <span className="workstation-manage-stat-unit">%</span>
+                </span>
+              </div>
+            </Col>
+          </Row>
+        </Card>
 
-      <Card title={t('workstationPosition.robot.title')}>
+      <Card title={t('workstationPosition.robot.title')} className="workstation-manage-table-card">
         <Row gutter={[16, 16]}>
           {(selectedPosition?.robots ?? []).map((robot) => (
             <Col xs={24} md={12} key={robot.robotCode}>
@@ -535,7 +583,7 @@ export function WorkstationPositionManagePage() {
         </Row>
       </Card>
 
-      <Card title={t('workstationPosition.currentOrder.title')}>
+      <Card title={t('workstationPosition.currentOrder.title')} className="workstation-manage-table-card">
         <Descriptions size="small" bordered column={3}>
           <Descriptions.Item label={t('workstationPosition.currentOrder.workOrderNo')}>{selectedPosition?.currentWorkOrder.workOrderNo ?? '-'}</Descriptions.Item>
           <Descriptions.Item label={t('workstationPosition.currentOrder.movingDuration')}>
@@ -546,10 +594,16 @@ export function WorkstationPositionManagePage() {
           </Descriptions.Item>
           <Descriptions.Item label={t('workstationPosition.currentOrder.stationCode')}>{selectedPosition?.currentWorkOrder.stationCode ?? '-'}</Descriptions.Item>
           <Descriptions.Item label={t('workstationPosition.currentOrder.status')}>
-            {selectedPosition ? (
-              <Tag color={workOrderStatusColorMap[selectedPosition.currentWorkOrder.status]}>
-                {t(`workstationPosition.workOrder.status.${selectedPosition.currentWorkOrder.status}`)}
-              </Tag>
+            {selectedPosition?.currentWorkOrder ? (
+              (() => {
+                const s = selectedPosition.currentWorkOrder.status ?? 'pending';
+                const safe = s in workOrderStatusColorMap ? s : 'pending';
+                return (
+                  <Tag color={workOrderStatusColorMap[safe]}>
+                    {t(`workstationPosition.workOrder.status.${safe}`)}
+                  </Tag>
+                );
+              })()
             ) : (
               '-'
             )}
@@ -738,13 +792,14 @@ export function WorkstationPositionManagePage() {
         </Form>
       </Modal>
 
-      <Card title={t('workstationPosition.history.title')}>
+      <Card title={t('workstationPosition.history.title')} className="workstation-manage-table-card">
         <Table
           rowKey="workOrderNo"
           columns={historyColumns}
           dataSource={historyWorkOrders}
           pagination={{ pageSize: 5, showSizeChanger: false }}
           scroll={{ x: 1450 }}
+          className="workstation-manage-table"
         />
       </Card>
 
@@ -868,7 +923,7 @@ export function WorkstationPositionManagePage() {
           </Space>
         ) : null}
       </Modal>
-      </Space>
+      </div>
     </Spin>
   );
 }

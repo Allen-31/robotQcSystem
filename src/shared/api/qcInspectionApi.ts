@@ -17,7 +17,7 @@ export interface QcWorkstationVO {
   status?: WorkstationStatus;
 }
 
-/** 2.2 工位列表 VO（QcStationPositionVO），id 为主键（number） */
+/** 2.2 工位列表 VO（QcStationPositionVO），id 为主键（number）。当前接口不含当前工单/任务状态，前端用占位展示；若后端后续返回 currentWorkOrder/taskStatus 可在此扩展并接入。 */
 export interface StationPositionVO {
   id: number;
   workstationId: string;
