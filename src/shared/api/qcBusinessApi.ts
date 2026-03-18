@@ -50,6 +50,28 @@ export function getWorkOrderDetailApi(id: number) {
   return get<WorkOrderVO>(`qc/work-orders/${id}`);
 }
 
+export interface WorkOrderCreateBody {
+  workOrderNo: string;
+  harnessCode: string;
+  harnessType: string;
+  stationCode: string;
+  status: WorkOrderStatus;
+  qualityResult: QualityResult;
+  taskIds: string[];
+  movingDuration: number;
+  detectionDuration: number;
+  startedAt?: string;
+  endedAt?: string;
+  defectType?: string;
+  defectDescription?: string;
+}
+
+/** POST /api/qc/work-orders Create work order */
+export function createWorkOrderApi(body: WorkOrderCreateBody) {
+  return post<WorkOrderVO | { id: number } | null>('qc/work-orders', body);
+}
+
+
 export interface WorkOrderUpdateBody {
   harnessCode?: string;
   harnessType?: string;

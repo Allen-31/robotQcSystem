@@ -1,14 +1,28 @@
 import { Layout, Spin } from 'antd';
 import { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { TopNavigation } from '../../components/navigation/TopNavigation';
-import { getToken } from '../../shared/api/client';
+import { getToken, setOnUnauthorized } from '../../shared/api/client';
 import { refreshCurrentUser } from '../../logic/auth/authStore';
 import { useAuthUser } from '../../logic/auth/useAuthUser';
 
+const DEFAULT_UNAUTHORIZED = () => {
+  window.location.href = '/home/login';
+};
+
 export function TopLevelLayout() {
+  const navigate = useNavigate();
   const user = useAuthUser();
   const [userLoaded, setUserLoaded] = useState(false);
+
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      navigate('/home/login', { replace: true, state: { sessionExpired: true } });
+    });
+    return () => {
+      setOnUnauthorized(DEFAULT_UNAUTHORIZED);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     const token = getToken();

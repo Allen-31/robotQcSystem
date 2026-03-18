@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   cancelWorkOrderApi,
+  createWorkOrderApi,
   deleteWorkOrderApi,
   getWorkOrderDetailApi,
   getWorkOrderListApi,
@@ -49,6 +50,22 @@ export interface WorkOrderEditPayload {
 
 export interface WorkOrderReviewPayload {
   qualityResult: QualityResult;
+  defectType?: string;
+  defectDescription?: string;
+}
+
+export interface WorkOrderCreatePayload {
+  workOrderNo: string;
+  harnessCode: string;
+  harnessType: string;
+  stationCode: string;
+  status: WorkOrderStatus;
+  qualityResult: QualityResult;
+  taskIdsRaw: string;
+  movingDuration: number;
+  detectionDuration: number;
+  startedAt?: string;
+  endedAt?: string;
   defectType?: string;
   defectDescription?: string;
 }
@@ -199,6 +216,67 @@ export function useWorkOrderManage() {
     [fetchList, refreshDetail],
   );
 
+  const createWorkOrder = useCallback(
+    async (payload: WorkOrderCreatePayload) => {
+      const taskIds = payload.taskIdsRaw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      await createWorkOrderApi({
+        workOrderNo: payload.workOrderNo,
+        harnessCode: payload.harnessCode,
+        harnessType: payload.harnessType,
+        stationCode: payload.stationCode,
+        status: payload.status,
+        qualityResult: payload.qualityResult,
+        taskIds,
+        movingDuration: payload.movingDuration,
+        detectionDuration: payload.detectionDuration,
+        startedAt: payload.startedAt?.trim() || undefined,
+        endedAt: payload.endedAt?.trim() || undefined,
+        defectType: payload.defectType?.trim() || undefined,
+        defectDescription: payload.defectDescription?.trim() || undefined,
+      });
+      await fetchList();
+    },
+    [fetchList],
+  );
+
+  const importWorkOrders = useCallback(
+    async (rows: Omit<WorkOrderItem, 'id'>[]) => {
+      if (rows.length === 0) return 0;
+      let imported = 0;
+      for (const [index, row] of rows.entries()) {
+        try {
+          await createWorkOrderApi({
+            workOrderNo: row.workOrderNo,
+            harnessCode: row.harnessCode,
+            harnessType: normalizeHarnessType(row.harnessType, index),
+            stationCode: normalizeStationCode(row.stationCode, index),
+            status: row.status,
+            qualityResult: row.qualityResult,
+            taskIds: row.taskIds,
+            movingDuration: row.movingDuration,
+            detectionDuration: row.detectionDuration,
+            startedAt: row.startedAt && row.startedAt !== '-' ? row.startedAt : undefined,
+            endedAt: row.endedAt && row.endedAt !== '-' ? row.endedAt : undefined,
+            defectType: row.defectType && row.defectType !== '-' ? row.defectType : undefined,
+            defectDescription: row.defectDescription && row.defectDescription !== '-' ? row.defectDescription : undefined,
+          });
+          imported += 1;
+        } catch {
+          // ignore failed rows; continue importing others
+        }
+      }
+      if (imported > 0) {
+        await fetchList();
+      }
+      return imported;
+    },
+    [fetchList],
+  );
+
   return {
     workOrders: operationWorkOrders,
     operationWorkOrders,
@@ -227,5 +305,7 @@ export function useWorkOrderManage() {
     cancelWorkOrder,
     removeWorkOrder,
     saveEdit,
+    createWorkOrder,
+    importWorkOrders,
   };
 }

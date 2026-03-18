@@ -1,4 +1,4 @@
-import { DeleteOutlined, ExclamationCircleFilled, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, SearchOutlined, StopOutlined } from '@ant-design/icons';
+import { DeleteOutlined, ExclamationCircleFilled, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -19,7 +19,8 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
 import type { QualityResult, WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
 import { useI18n } from '../../../i18n/I18nProvider';
@@ -43,6 +44,12 @@ const qualityColorMap: Record<QualityResult, string> = {
 
 const statusOptions: WorkOrderStatus[] = ['pending', 'running', 'paused', 'finished', 'ng', 'cancelled'];
 const qualityOptions: QualityResult[] = ['ok', 'ng', 'pending'];
+
+const normalizeStatus = (value?: string): WorkOrderStatus =>
+  value && statusOptions.includes(value as WorkOrderStatus) ? (value as WorkOrderStatus) : 'pending';
+
+const normalizeQualityResult = (value?: string): QualityResult =>
+  value && qualityOptions.includes(value as QualityResult) ? (value as QualityResult) : 'pending';
 
 function escapeCsv(value: string | number): string {
   const text = String(value ?? '');
@@ -151,8 +158,8 @@ function parseImportedCsv(content: string): Omit<WorkOrderItem, 'id'>[] {
       harnessCode: cols[1],
       harnessType: cols[2],
       stationCode: cols[3],
-      status: (cols[4] as WorkOrderStatus) || 'pending',
-      qualityResult: (cols[5] as QualityResult) || 'pending',
+      status: normalizeStatus(cols[4]),
+      qualityResult: normalizeQualityResult(cols[5]),
       taskIds: cols[6]
         .split('/')
         .map((item) => item.trim())
@@ -164,7 +171,8 @@ function parseImportedCsv(content: string): Omit<WorkOrderItem, 'id'>[] {
       endedAt: cols[11] || '-',
       defectType: cols[12] || '-',
       defectDescription: cols[13] || '-',
-    }));
+    }))
+    .filter((item) => item.workOrderNo && item.harnessCode && item.harnessType && item.stationCode);
 }
 
 type InspectionPointStatus = 'ok' | 'ng';
@@ -325,9 +333,12 @@ export function WorkOrderManagePage() {
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
   const [form] = Form.useForm();
+  const [createForm] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [previewPoint, setPreviewPoint] = useState<InspectionPointItem | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const {
     operationWorkOrders,
     rawWorkOrders,
@@ -355,6 +366,8 @@ export function WorkOrderManagePage() {
     cancelWorkOrder,
     removeWorkOrder,
     saveEdit,
+    createWorkOrder,
+    importWorkOrders,
   } = useWorkOrderManage();
 
   useEffect(() => {
@@ -384,6 +397,30 @@ export function WorkOrderManagePage() {
     return rawWorkOrders.filter((item) => keySet.has(String(item.id)));
   }, [rawWorkOrders, selectedRowKeys]);
 
+  const harnessCodeOptionsByType = useMemo(() => {
+    const grouped = new Map<string, string[]>();
+    rawWorkOrders.forEach((item) => {
+      const type = item.harnessType?.trim();
+      const code = item.harnessCode?.trim();
+      if (!type || !code) return;
+      const list = grouped.get(type) ?? [];
+      if (!list.includes(code)) list.push(code);
+      grouped.set(type, list);
+    });
+    return grouped;
+  }, [rawWorkOrders]);
+
+  const createHarnessType = Form.useWatch('harnessType', createForm) as string | undefined;
+  const buildAutoHarnessCode = (harnessType?: string) => {
+    if (!harnessType) return '';
+    const matched = harnessCodeOptionsByType.get(harnessType)?.[0];
+    if (matched) return matched;
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const seq = String(rawWorkOrders.length + 1).padStart(3, '0');
+    return `HB-${datePart}-${seq}`;
+  };
+  const createAutoHarnessCode = useMemo(() => buildAutoHarnessCode(createHarnessType), [createHarnessType, harnessCodeOptionsByType, rawWorkOrders.length]);
+
   const exportSelected = () => {
     if (selectedWorkOrders.length === 0) {
       messageApi.warning(t('workOrder.exportSelectRequired'));
@@ -392,6 +429,63 @@ export function WorkOrderManagePage() {
     const csv = buildCsv(selectedWorkOrders);
     downloadCsv(csv, `work-orders-${new Date().toISOString().slice(0, 10)}.csv`);
     messageApi.success(t('workOrder.exportDone', { count: selectedWorkOrders.length }));
+  };
+
+  const parseImportedExcel = (buffer: ArrayBuffer): Omit<WorkOrderItem, 'id'>[] => {
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[firstSheetName];
+    if (!sheet) return [];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false });
+    if (rows.length <= 1) return [];
+    return rows
+      .slice(1)
+      .filter((cols) => Array.isArray(cols) && cols.length >= 12)
+      .map((cols) => ({
+        workOrderNo: String(cols[0] ?? '').trim(),
+        harnessCode: String(cols[1] ?? '').trim(),
+        harnessType: String(cols[2] ?? '').trim(),
+        stationCode: String(cols[3] ?? '').trim(),
+        status: normalizeStatus(String(cols[4] ?? '').trim()),
+        qualityResult: normalizeQualityResult(String(cols[5] ?? '').trim()),
+        taskIds: String(cols[6] ?? '')
+          .split('/')
+          .map((item) => item.trim())
+          .filter(Boolean),
+        detectionDuration: Number(cols[7]) || 0,
+        movingDuration: Number(cols[8]) || 0,
+        createdAt: String(cols[9] ?? '-').trim() || '-',
+        startedAt: String(cols[10] ?? '-').trim() || '-',
+        endedAt: String(cols[11] ?? '-').trim() || '-',
+        defectType: String(cols[12] ?? '-').trim() || '-',
+        defectDescription: String(cols[13] ?? '-').trim() || '-',
+      }))
+      .filter((item) => item.workOrderNo && item.harnessCode && item.harnessType && item.stationCode);
+  };
+
+  const handleImport = async (file?: File) => {
+    if (!file) return;
+    try {
+      const lowerName = file.name.toLowerCase();
+      let rows: Omit<WorkOrderItem, 'id'>[] = [];
+      if (lowerName.endsWith('.csv')) {
+        rows = parseImportedCsv(await file.text());
+      } else if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+        rows = parseImportedExcel(await file.arrayBuffer());
+      } else {
+        messageApi.warning(t('workOrder.importTip'));
+        return;
+      }
+      if (rows.length === 0) {
+        messageApi.warning(t('workOrder.importEmpty'));
+        return;
+      }
+      const count = await importWorkOrders(rows);
+      messageApi.success(t('workOrder.importDone', { count }));
+      setSelectedRowKeys([]);
+    } catch {
+      messageApi.error(t('workOrder.importFailed'));
+    }
   };
 
   const inspectionPoints = useMemo(() => {
@@ -579,10 +673,42 @@ export function WorkOrderManagePage() {
               </Col>
               <Col xs={24} lg={14}>
                 <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      createForm.resetFields();
+                      createForm.setFieldsValue({
+                        status: 'pending',
+                        qualityResult: 'pending',
+                        harnessCode: '',
+                      });
+                      setCreateOpen(true);
+                    }}
+                  >
+                    {t('workOrder.toolbar.create')}
+                  </Button>
+                  <Button
+                    icon={<UploadOutlined />}
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    {t('workOrder.toolbar.import')}
+                  </Button>
                   <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
                 </Space>
               </Col>
             </Row>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                await handleImport(file);
+                event.currentTarget.value = '';
+              }}
+            />
             <Table
               rowKey="id"
               loading={loading}
@@ -753,6 +879,88 @@ export function WorkOrderManagePage() {
             )}
           </Space>
         ) : null}
+      </Modal>
+
+      <Modal
+        title={t('workOrder.createTitle')}
+        open={createOpen}
+        onCancel={() => setCreateOpen(false)}
+        onOk={() => createForm.submit()}
+        okText={t('workOrder.modal.save')}
+        cancelText={t('workOrder.modal.cancel')}
+      >
+        <Form
+          form={createForm}
+          layout="vertical"
+          onFinish={(values) =>
+            createWorkOrder({
+              workOrderNo: values.workOrderNo,
+              harnessCode: values.harnessCode || buildAutoHarnessCode(values.harnessType),
+              harnessType: values.harnessType,
+              stationCode: values.stationCode,
+              status: values.status,
+              qualityResult: values.qualityResult,
+              taskIdsRaw: values.taskIdsRaw,
+              movingDuration: Number(values.movingDuration),
+              detectionDuration: Number(values.detectionDuration),
+              startedAt: values.startedAt,
+              endedAt: values.endedAt,
+              defectType: values.defectType,
+              defectDescription: values.defectDescription,
+            })
+              .then(() => {
+                messageApi.success(t('workOrder.createDone'));
+                setCreateOpen(false);
+              })
+              .catch(() => messageApi.error(t('workOrder.actionFailed')))
+          }
+        >
+          <Form.Item label={t('workOrder.table.workOrderNo')} name="workOrderNo" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.harnessType')} name="harnessType" rules={[{ required: true }]}>
+            <Select
+              options={harnessTypeOptions.map((item) => ({ label: item, value: item }))}
+              onChange={(value) => createForm.setFieldValue('harnessCode', buildAutoHarnessCode(value))}
+            />
+          </Form.Item>
+          <Form.Item name="harnessCode" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.harnessCode')}>
+            <Typography.Text>{createAutoHarnessCode || '-'}</Typography.Text>
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.stationCode')} name="stationCode" rules={[{ required: true }]}>
+            <Select options={stationCodeOptions.map((item) => ({ label: item, value: item }))} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.status')} name="status" rules={[{ required: true }]}>
+            <Select options={statusOptions.map((item) => ({ label: t(`workOrder.status.${item}`), value: item }))} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.qualityResult')} name="qualityResult" rules={[{ required: true }]}>
+            <Select options={qualityOptions.map((item) => ({ label: t(`workOrder.qualityResult.${item}`), value: item }))} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.taskIds')} name="taskIdsRaw" rules={[{ required: true }]}>
+            <Input placeholder="TASK-001, TASK-002" />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.movingDuration')} name="movingDuration" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.detectionDuration')} name="detectionDuration" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.startedAt')} name="startedAt">
+            <Input />
+          </Form.Item>
+          <Form.Item label={t('workOrder.table.endedAt')} name="endedAt">
+            <Input />
+          </Form.Item>
+          <Form.Item label={t('workOrder.detail.defectType')} name="defectType">
+            <Select allowClear options={defectTypeOptions.map((item) => ({ label: item, value: item }))} />
+          </Form.Item>
+          <Form.Item label={t('workOrder.detail.defectDescription')} name="defectDescription">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
       </Modal>
 
       <Modal

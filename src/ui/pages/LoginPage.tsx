@@ -1,6 +1,7 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { App, Button, Card, Checkbox, Form, Input, Space, Typography } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
 import { login } from '../../logic/auth/authStore';
 import './LoginPage.css';
@@ -13,8 +14,16 @@ interface LoginFormValues {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useI18n();
   const { message: messageApi } = App.useApp();
+
+  useEffect(() => {
+    if ((location.state as { sessionExpired?: boolean })?.sessionExpired) {
+      messageApi.warning(t('login.sessionExpired'));
+      navigate('/home/login', { replace: true, state: {} });
+    }
+  }, [location.state, messageApi, navigate, t]);
 
   const onFinish = async (values: LoginFormValues) => {
     const result = await login(values.username, values.password, values.remember);
