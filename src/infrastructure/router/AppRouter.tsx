@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import type { ReactElement } from 'react';
 import { menuList } from '../../data/menuList';
-import { getCurrentRole } from '../../logic/deployConfig/permissionStore';
+import { useCurrentRole } from '../../logic/deployConfig/useCurrentRole';
 import { filterMenuTreeByRole } from '../../logic/menu/menuPermission';
 import { collectRoutes, findFirstLeafPathByCode } from '../../logic/menu/menuRoute';
 import { SubsystemLayout } from '../../ui/layouts/SubsystemLayout';
@@ -11,7 +12,6 @@ import { NotFoundPage } from '../../ui/pages/NotFoundPage';
 import { OperationMonitoringPage } from '../../ui/pages/OperationMonitoringPage';
 import { PlaceholderPage } from '../../ui/pages/PlaceholderPage';
 import { ConfigTemplatePage } from '../../ui/pages/deployConfig/ConfigTemplatePage';
-import { RobotConfigPage } from '../../ui/pages/deployConfig/RobotConfigPage';
 import { RobotGroupPage } from '../../ui/pages/deployConfig/RobotGroupPage';
 import { RobotPartsPage } from '../../ui/pages/deployConfig/RobotPartsPage';
 import { RobotTypeEditorPage } from '../../ui/pages/deployConfig/RobotTypeEditorPage';
@@ -54,8 +54,6 @@ import { ExceptionStatisticsPage } from '../../ui/pages/dataStatistics/Exception
 import { QualityReportPage } from '../../ui/pages/qcStatistics/QualityReportPage';
 import { QualityStatisticsPage } from '../../ui/pages/qcStatistics/QualityStatisticsPage';
 
-const allRoutes = collectRoutes(menuList);
-const subsystemRoutes = allRoutes.filter((route) => !route.path.startsWith('/home/'));
 const workstationManagePath = '/qualityInspection/workstationManage';
 const workstationPositionManagePath = '/qualityInspection/workstationPositionManage';
 const workOrderManagePath = '/qualityInspection/workOrderManage';
@@ -87,136 +85,165 @@ const qualityStatisticsPath = '/qualityInspection/qualityStatistics';
 const qualityReportPath = '/qualityInspection/qualityReport';
 const deviceStatisticsPath = '/dataStatistics/deviceStatistics';
 const exceptionStatisticsPath = '/dataStatistics/exceptionStatistics';
+const operationMonitoringPath = '/operationMonitoring';
+
 const qualityConfigPaths = [
   '/qualityInspection/workstationConfig',
   '/qualityInspection/workstationPositionConfig',
   '/qualityInspection/wireHarnessType',
   '/qualityInspection/terminalConfig',
   '/qualityInspection/workshopConfig',
-];
+] as const;
+
 const deployRobotPaths = [
   '/deployConfig/robot/robotList',
   '/deployConfig/robot/robotType',
   '/deployConfig/robot/robotParts',
   '/deployConfig/robot/robotGroup',
-];
-const placeholderRoutes = subsystemRoutes.filter(
-  (route) =>
-    route.path !== workstationManagePath &&
-    route.path !== workstationPositionManagePath &&
-    route.path !== workOrderManagePath &&
-    route.path !== qualityRecordPath &&
-    route.path !== reinspectionRecordPath &&
-    route.path !== userManagePath &&
-    route.path !== roleManagePath &&
-    route.path !== settingPath &&
-    route.path !== mapManagePath &&
-    route.path !== deviceManagePath &&
-    route.path !== taskTemplatePath &&
-    route.path !== actionTemplatePath &&
-    route.path !== chargeStrategyPath &&
-    route.path !== homingStrategyPath &&
-    route.path !== fileManagePath &&
-    
-    route.path !== serviceManagePath &&
-    route.path !== packageManagePath &&
-    route.path !== publishManagePath &&
-    route.path !== taskManagePath &&
-    route.path !== robotManagePath &&
-    route.path !== exceptionNotificationPath &&
-    route.path !== loginLogPath &&
-    route.path !== operationLogPath &&
-    route.path !== apiLogPath &&
-    route.path !== qualityStatisticsPath &&
-    route.path !== qualityReportPath &&
-    route.path !== deviceStatisticsPath &&
-    route.path !== exceptionStatisticsPath &&
-    !qualityConfigPaths.includes(route.path) &&
-    !deployRobotPaths.includes(route.path),
-);
+] as const;
+
+const explicitImplementedPaths = new Set<string>([
+  workstationManagePath,
+  workstationPositionManagePath,
+  workOrderManagePath,
+  qualityRecordPath,
+  reinspectionRecordPath,
+  userManagePath,
+  roleManagePath,
+  settingPath,
+  mapManagePath,
+  deviceManagePath,
+  taskTemplatePath,
+  actionTemplatePath,
+  chargeStrategyPath,
+  homingStrategyPath,
+  fileManagePath,
+  serviceManagePath,
+  packageManagePath,
+  publishManagePath,
+  taskManagePath,
+  robotManagePath,
+  exceptionNotificationPath,
+  loginLogPath,
+  operationLogPath,
+  apiLogPath,
+  qualityStatisticsPath,
+  qualityReportPath,
+  deviceStatisticsPath,
+  exceptionStatisticsPath,
+  operationMonitoringPath,
+  ...qualityConfigPaths,
+  ...deployRobotPaths,
+]);
+
+function firstExisting(paths: string[]): string {
+  return paths.find((path) => path && path !== '/') ?? '/';
+}
 
 export function AppRouter() {
-  const role = getCurrentRole();
-  const visibleMenuTree = filterMenuTreeByRole(menuList, role);
+  const { currentRole, permissionVersion } = useCurrentRole();
+  const visibleMenuTree = filterMenuTreeByRole(menuList, currentRole);
+
+  const visibleRoutePaths = new Set(
+    collectRoutes(visibleMenuTree)
+      .filter((route) => Boolean(route.path))
+      .map((route) => route.path),
+  );
+
+  const canAccessPath = (path: string): boolean => visibleRoutePaths.has(path);
+
   const qualityInspectionFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'qualityInspection');
   const deployConfigFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'deployConfig');
   const operationMaintenanceFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'operationMaintenance');
   const dataStatisticsFirstPath = findFirstLeafPathByCode(visibleMenuTree, 'dataStatistics');
 
+  const fallbackPath = firstExisting([
+    qualityInspectionFirstPath,
+    deployConfigFirstPath,
+    operationMaintenanceFirstPath,
+    dataStatisticsFirstPath,
+    canAccessPath(operationMonitoringPath) ? operationMonitoringPath : '',
+  ]);
+
+  const guard = (requiredPath: string, element: ReactElement) => {
+    if (canAccessPath(requiredPath)) {
+      return element;
+    }
+    return <Navigate to={fallbackPath} replace />;
+  };
+
+  const subsystemRoutes = collectRoutes(visibleMenuTree).filter((route) => !route.path.startsWith('/home/'));
+  const placeholderRoutes = subsystemRoutes.filter((route) => !explicitImplementedPaths.has(route.path));
+
+  const qualityInspectionEntry = canAccessPath(qualityInspectionFirstPath) ? qualityInspectionFirstPath : fallbackPath;
+  const deployConfigEntry = canAccessPath(deployConfigFirstPath) ? deployConfigFirstPath : fallbackPath;
+  const operationMaintenanceEntry = canAccessPath(operationMaintenanceFirstPath) ? operationMaintenanceFirstPath : fallbackPath;
+  const dataStatisticsEntry = canAccessPath(dataStatisticsFirstPath) ? dataStatisticsFirstPath : fallbackPath;
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/home/login" element={<LoginPage />} />
-        {/* Keycloak 回调：登录成功后跳转回此处，由 Keycloak 适配器处理 URL 中的 code/fragment 后重定向到首页 */}
         <Route path="/home/loginCallback" element={<Navigate to="/" replace />} />
 
         <Route element={<TopLevelLayout />}>
           <Route index element={<HomeDashboardPage />} />
 
           <Route element={<SubsystemLayout />}>
-            <Route
-              path="/qualityInspection"
-              element={<Navigate to={qualityInspectionFirstPath === '/' ? '/qualityInspection' : qualityInspectionFirstPath} replace />}
-            />
-            <Route
-              path="/deployConfig"
-              element={<Navigate to={deployConfigFirstPath === '/' ? '/deployConfig' : deployConfigFirstPath} replace />}
-            />
-            <Route
-              path="/operationMaintenance"
-              element={<Navigate to={operationMaintenanceFirstPath === '/' ? '/operationMaintenance' : operationMaintenanceFirstPath} replace />}
-            />
-            <Route
-              path="/dataStatistics"
-              element={<Navigate to={dataStatisticsFirstPath === '/' ? '/dataStatistics' : dataStatisticsFirstPath} replace />}
-            />
-            <Route path="/operationMonitoring" element={<OperationMonitoringPage />} />
-            <Route path={workstationManagePath} element={<WorkstationManagePage />} />
-            <Route path={workstationPositionManagePath} element={<WorkstationPositionManagePage />} />
-            <Route path={workOrderManagePath} element={<WorkOrderManagePage />} />
-            <Route path={qualityRecordPath} element={<QualityRecordPage />} />
-            <Route path={reinspectionRecordPath} element={<ReinspectionRecordPage />} />
-            <Route path={userManagePath} element={<UserManagePage />} />
-            <Route path={roleManagePath} element={<RoleManagePage />} />
-            <Route path={settingPath} element={<SettingPage />} />
-            <Route path={mapManagePath} element={<MapManagePage />} />
-            <Route path={deviceManagePath} element={<SceneDeviceManagePage />} />
-            <Route path={mapEditorPath} element={<MapEditorPage />} />
-            <Route path={taskTemplatePath} element={<TaskTemplatePage />} />
-            <Route path={actionTemplatePath} element={<ActionTemplatePage />} />
-            <Route path="/deployConfig/task/taskDesign/:step" element={<TaskDesignPage />} />
-            <Route path={chargeStrategyPath} element={<ChargeStrategyPage />} />
-            <Route path={homingStrategyPath} element={<HomingStrategyPage />} />
-            <Route path={fileManagePath} element={<FileManagePage />} />
-            <Route path={serviceManagePath} element={<ServiceManagePage />} />
-            <Route path={packageManagePath} element={<PackageManagePage />} />
-            <Route path={publishManagePath} element={<PublishManagePage />} />
-            <Route path={taskManagePath} element={<TaskManagePage />} />
-            <Route path={taskManageDetailPath} element={<TaskManageDetailPage />} />
-            <Route path={robotManagePath} element={<RobotManagePage />} />
-            <Route path={robotManageDetailPath} element={<RobotManageDetailPage />} />
-            <Route path={exceptionNotificationPath} element={<ExceptionNotificationPage />} />
-            <Route path={loginLogPath} element={<LoginLogPage />} />
-            <Route path={operationLogPath} element={<OperationLogPage />} />
-            <Route path={apiLogPath} element={<ApiLogPage />} />
-            <Route path={qualityStatisticsPath} element={<QualityStatisticsPage />} />
-            <Route path={qualityReportPath} element={<QualityReportPage />} />
-            <Route path={deviceStatisticsPath} element={<DeviceStatisticsPage />} />
-            <Route path={exceptionStatisticsPath} element={<ExceptionStatisticsPage />} />
-            <Route path="/qualityInspection/workstationConfig" element={<WorkstationConfigPage />} />
-            <Route path="/qualityInspection/workstationPositionConfig" element={<StationConfigPage />} />
-            <Route path="/qualityInspection/wireHarnessType" element={<WireHarnessTypePage />} />
-            <Route path="/qualityInspection/terminalConfig" element={<TerminalConfigPage />} />
-            <Route path="/qualityInspection/workshopConfig" element={<WorkshopConfigPage />} />
-            <Route path="/deployConfig/robot/robotList" element={<ConfigTemplatePage />} />
-            <Route path="/deployConfig/robot/robotType" element={<RobotTypePage />} />
-            <Route path="/deployConfig/robot/robotType/new" element={<RobotTypeEditorPage />} />
-            <Route path="/deployConfig/robot/robotType/:typeId/edit" element={<RobotTypeEditorPage />} />
-            <Route path="/deployConfig/robot/robotParts" element={<RobotPartsPage />} />
-            <Route path="/deployConfig/robot/robotGroup" element={<RobotGroupPage />} />
+            <Route path="/qualityInspection" element={<Navigate to={qualityInspectionEntry} replace />} />
+            <Route path="/deployConfig" element={<Navigate to={deployConfigEntry} replace />} />
+            <Route path="/operationMaintenance" element={<Navigate to={operationMaintenanceEntry} replace />} />
+            <Route path="/dataStatistics" element={<Navigate to={dataStatisticsEntry} replace />} />
+
+            <Route path={operationMonitoringPath} element={guard(operationMonitoringPath, <OperationMonitoringPage />)} />
+            <Route path={workstationManagePath} element={guard(workstationManagePath, <WorkstationManagePage />)} />
+            <Route path={workstationPositionManagePath} element={guard(workstationPositionManagePath, <WorkstationPositionManagePage />)} />
+            <Route path={workOrderManagePath} element={guard(workOrderManagePath, <WorkOrderManagePage />)} />
+            <Route path={qualityRecordPath} element={guard(qualityRecordPath, <QualityRecordPage />)} />
+            <Route path={reinspectionRecordPath} element={guard(reinspectionRecordPath, <ReinspectionRecordPage />)} />
+            <Route path={userManagePath} element={guard(userManagePath, <UserManagePage />)} />
+            <Route path={roleManagePath} element={guard(roleManagePath, <RoleManagePage />)} />
+            <Route path={settingPath} element={guard(settingPath, <SettingPage />)} />
+            <Route path={mapManagePath} element={guard(mapManagePath, <MapManagePage />)} />
+            <Route path={deviceManagePath} element={guard(deviceManagePath, <SceneDeviceManagePage />)} />
+            <Route path={mapEditorPath} element={guard(mapManagePath, <MapEditorPage />)} />
+            <Route path={taskTemplatePath} element={guard(taskTemplatePath, <TaskTemplatePage />)} />
+            <Route path={actionTemplatePath} element={guard(actionTemplatePath, <ActionTemplatePage />)} />
+            <Route path="/deployConfig/task/taskDesign/:step" element={guard(taskTemplatePath, <TaskDesignPage />)} />
+            <Route path={chargeStrategyPath} element={guard(chargeStrategyPath, <ChargeStrategyPage />)} />
+            <Route path={homingStrategyPath} element={guard(homingStrategyPath, <HomingStrategyPage />)} />
+            <Route path={fileManagePath} element={guard(fileManagePath, <FileManagePage />)} />
+            <Route path={serviceManagePath} element={guard(serviceManagePath, <ServiceManagePage />)} />
+            <Route path={packageManagePath} element={guard(packageManagePath, <PackageManagePage />)} />
+            <Route path={publishManagePath} element={guard(publishManagePath, <PublishManagePage />)} />
+            <Route path={taskManagePath} element={guard(taskManagePath, <TaskManagePage />)} />
+            <Route path={taskManageDetailPath} element={guard(taskManagePath, <TaskManageDetailPage />)} />
+            <Route path={robotManagePath} element={guard(robotManagePath, <RobotManagePage />)} />
+            <Route path={robotManageDetailPath} element={guard(robotManagePath, <RobotManageDetailPage />)} />
+            <Route path={exceptionNotificationPath} element={guard(exceptionNotificationPath, <ExceptionNotificationPage />)} />
+            <Route path={loginLogPath} element={guard(loginLogPath, <LoginLogPage />)} />
+            <Route path={operationLogPath} element={guard(operationLogPath, <OperationLogPage />)} />
+            <Route path={apiLogPath} element={guard(apiLogPath, <ApiLogPage />)} />
+            <Route path={qualityStatisticsPath} element={guard(qualityStatisticsPath, <QualityStatisticsPage />)} />
+            <Route path={qualityReportPath} element={guard(qualityReportPath, <QualityReportPage />)} />
+            <Route path={deviceStatisticsPath} element={guard(deviceStatisticsPath, <DeviceStatisticsPage />)} />
+            <Route path={exceptionStatisticsPath} element={guard(exceptionStatisticsPath, <ExceptionStatisticsPage />)} />
+
+            <Route path="/qualityInspection/workstationConfig" element={guard('/qualityInspection/workstationConfig', <WorkstationConfigPage />)} />
+            <Route path="/qualityInspection/workstationPositionConfig" element={guard('/qualityInspection/workstationPositionConfig', <StationConfigPage />)} />
+            <Route path="/qualityInspection/wireHarnessType" element={guard('/qualityInspection/wireHarnessType', <WireHarnessTypePage />)} />
+            <Route path="/qualityInspection/terminalConfig" element={guard('/qualityInspection/terminalConfig', <TerminalConfigPage />)} />
+            <Route path="/qualityInspection/workshopConfig" element={guard('/qualityInspection/workshopConfig', <WorkshopConfigPage />)} />
+
+            <Route path="/deployConfig/robot/robotList" element={guard('/deployConfig/robot/robotList', <ConfigTemplatePage />)} />
+            <Route path="/deployConfig/robot/robotType" element={guard('/deployConfig/robot/robotType', <RobotTypePage />)} />
+            <Route path="/deployConfig/robot/robotType/new" element={guard('/deployConfig/robot/robotType', <RobotTypeEditorPage />)} />
+            <Route path="/deployConfig/robot/robotType/:typeId/edit" element={guard('/deployConfig/robot/robotType', <RobotTypeEditorPage />)} />
+            <Route path="/deployConfig/robot/robotParts" element={guard('/deployConfig/robot/robotParts', <RobotPartsPage />)} />
+            <Route path="/deployConfig/robot/robotGroup" element={guard('/deployConfig/robot/robotGroup', <RobotGroupPage />)} />
 
             {placeholderRoutes.map((route) => (
-              <Route key={route.path} path={route.path} element={<PlaceholderPage route={route} />} />
+              <Route key={`${route.path}-${currentRole}-${permissionVersion}`} path={route.path} element={<PlaceholderPage route={route} />} />
             ))}
           </Route>
         </Route>
@@ -226,3 +253,4 @@ export function AppRouter() {
     </BrowserRouter>
   );
 }
+

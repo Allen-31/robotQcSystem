@@ -1,4 +1,4 @@
-import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
+﻿import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -31,7 +31,7 @@ export function LoginLogPage() {
       return loginLogList;
     }
     return loginLogList.filter((item) => `${item.user} ${item.type} ${item.ip} ${item.time}`.toLowerCase().includes(k));
-  }, [keyword]);
+  }, [keyword, loginLogList]);
 
   const columns: ColumnsType<LoginLogRecord> = [
     { title: t('op.login.table.user'), dataIndex: 'user', key: 'user', width: 180 },
@@ -68,3 +68,4 @@ export function LoginLogPage() {
     </Space>
   );
 }
+

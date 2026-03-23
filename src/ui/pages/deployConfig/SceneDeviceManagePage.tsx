@@ -118,7 +118,7 @@ export function SceneDeviceManagePage() {
         else await fetchList();
       }
       closeModal();
-    } catch (e) {
+    } catch {
       messageApi.error(editing ? '更新失败' : '创建失败');
     } finally {
       setSaving(false);

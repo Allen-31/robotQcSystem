@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cancelWorkOrderApi,
   createWorkOrderApi,
@@ -12,6 +13,7 @@ import {
   updateWorkOrderApi,
 } from '../../shared/api/qcBusinessApi';
 import { getHarnessTypeOptions, getStationCodeOptions, normalizeHarnessType, normalizeStationCode } from '../../data/qcBusiness/qcConfigReference';
+import { qcBusinessQueryKeys } from '../../shared/api/queryKeys';
 import type { QualityResult, WorkOrderStatus } from '../../data/qcBusiness/workOrderList';
 
 export interface WorkOrderItem {
@@ -71,50 +73,77 @@ export interface WorkOrderCreatePayload {
 }
 
 export function useWorkOrderManage() {
+  const queryClient = useQueryClient();
   const harnessTypeOptions = useMemo(() => getHarnessTypeOptions(), []);
   const stationCodeOptions = useMemo(() => getStationCodeOptions(), []);
   const defectTypeOptions = useMemo(() => ['接线错误', '外观异常', '工艺偏差', '尺寸偏差', '压接不良'], []);
 
-  const [list, setList] = useState<WorkOrderItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [viewingWorkOrder, setViewingWorkOrder] = useState<WorkOrderItem | null>(null);
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrderItem | null>(null);
 
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    try {
+  const listQuery = useQuery({
+    queryKey: qcBusinessQueryKeys.workOrders({ keyword: keyword.trim(), page, pageSize }),
+    queryFn: async () => {
       const res = await getWorkOrderListApi({
         keyword: keyword.trim() || undefined,
         pageNum: page,
         pageSize,
       });
-      const data = res.data;
-      const items = (data?.list ?? []).map((vo) => mapWorkOrderVoToItem(vo));
-      setList(items);
-      setTotal(data?.total ?? 0);
-    } catch {
-      setList([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [keyword, page, pageSize]);
+      return res.data;
+    },
+  });
 
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
+  const createMutation = useMutation({
+    mutationFn: createWorkOrderApi,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcBusinessQueryKeys.all }),
+  });
 
-  /** 工单管理-仅显示未执行、执行中、已暂停的工单（不含已完成/已取消等） */
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: Parameters<typeof updateWorkOrderApi>[1] }) => updateWorkOrderApi(id, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcBusinessQueryKeys.all }),
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: WorkOrderReviewPayload }) => reviewWorkOrderApi(id, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcBusinessQueryKeys.all }),
+  });
+
+  const pauseMutation = useMutation({
+    mutationFn: (id: number) => pauseWorkOrderApi(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcBusinessQueryKeys.all }),
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: (id: number) => resumeWorkOrderApi(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcBusinessQueryKeys.all }),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: number) => cancelWorkOrderApi(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcBusinessQueryKeys.all }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteWorkOrderApi(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcBusinessQueryKeys.all }),
+  });
+
+  const list = useMemo(() => (listQuery.data?.list ?? []).map((vo) => mapWorkOrderVoToItem(vo)), [listQuery.data?.list]);
+  const total = listQuery.data?.total ?? 0;
+
   const operationWorkOrders = useMemo(
     () => list.filter((item) => ['pending', 'running', 'paused'].includes(item.status)),
     [list],
   );
 
   const rawWorkOrders = list;
+
+  const fetchList = useCallback(async () => {
+    await listQuery.refetch();
+  }, [listQuery]);
 
   const openDetail = useCallback((record: WorkOrderItem) => {
     setViewingWorkOrder(record);
@@ -132,61 +161,64 @@ export function useWorkOrderManage() {
     setEditingWorkOrder(null);
   }, []);
 
-  const refreshDetail = useCallback(async (id: number) => {
-    try {
-      const res = await getWorkOrderDetailApi(id);
-      const item = mapWorkOrderVoToItem(res.data);
-      setViewingWorkOrder((prev) => (prev?.id === id ? item : prev));
-      setList((prev) => prev.map((x) => (x.id === id ? item : x)));
-    } catch {
-      // ignore
-    }
-  }, []);
+  const refreshDetail = useCallback(
+    async (id: number) => {
+      try {
+        const res = await getWorkOrderDetailApi(id);
+        const item = mapWorkOrderVoToItem(res.data);
+        setViewingWorkOrder((prev) => (prev?.id === id ? item : prev));
+        setEditingWorkOrder((prev) => (prev?.id === id ? item : prev));
+      } catch {
+        // ignore
+      }
+    },
+    [],
+  );
 
   const reviewWorkOrder = useCallback(
     async (id: number, payload: WorkOrderReviewPayload) => {
-      await reviewWorkOrderApi(id, payload);
+      await reviewMutation.mutateAsync({ id, payload });
       await refreshDetail(id);
       await fetchList();
     },
-    [fetchList, refreshDetail],
+    [fetchList, refreshDetail, reviewMutation],
   );
 
   const pauseWorkOrder = useCallback(
     async (id: number) => {
-      await pauseWorkOrderApi(id);
+      await pauseMutation.mutateAsync(id);
       await refreshDetail(id);
       await fetchList();
     },
-    [fetchList, refreshDetail],
+    [fetchList, pauseMutation, refreshDetail],
   );
 
   const resumeWorkOrder = useCallback(
     async (id: number) => {
-      await resumeWorkOrderApi(id);
+      await resumeMutation.mutateAsync(id);
       await refreshDetail(id);
       await fetchList();
     },
-    [fetchList, refreshDetail],
+    [fetchList, refreshDetail, resumeMutation],
   );
 
   const cancelWorkOrder = useCallback(
     async (id: number) => {
-      await cancelWorkOrderApi(id);
+      await cancelMutation.mutateAsync(id);
       await refreshDetail(id);
       await fetchList();
     },
-    [fetchList, refreshDetail],
+    [cancelMutation, fetchList, refreshDetail],
   );
 
   const removeWorkOrder = useCallback(
     async (id: number) => {
-      await deleteWorkOrderApi(id);
+      await deleteMutation.mutateAsync(id);
       setViewingWorkOrder((prev) => (prev?.id === id ? null : prev));
       setEditingWorkOrder((prev) => (prev?.id === id ? null : prev));
       await fetchList();
     },
-    [fetchList],
+    [deleteMutation, fetchList],
   );
 
   const saveEdit = useCallback(
@@ -195,25 +227,30 @@ export function useWorkOrderManage() {
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
-      await updateWorkOrderApi(payload.id, {
-        harnessCode: payload.harnessCode,
-        harnessType: payload.harnessType,
-        stationCode: payload.stationCode,
-        status: payload.status,
-        qualityResult: payload.qualityResult,
-        taskIds,
-        movingDuration: payload.movingDuration,
-        detectionDuration: payload.detectionDuration,
-        startedAt: payload.startedAt || undefined,
-        endedAt: payload.endedAt || undefined,
-        defectType: payload.defectType || undefined,
-        defectDescription: payload.defectDescription || undefined,
+
+      await updateMutation.mutateAsync({
+        id: payload.id,
+        body: {
+          harnessCode: payload.harnessCode,
+          harnessType: payload.harnessType,
+          stationCode: payload.stationCode,
+          status: payload.status,
+          qualityResult: payload.qualityResult,
+          taskIds,
+          movingDuration: payload.movingDuration,
+          detectionDuration: payload.detectionDuration,
+          startedAt: payload.startedAt || undefined,
+          endedAt: payload.endedAt || undefined,
+          defectType: payload.defectType || undefined,
+          defectDescription: payload.defectDescription || undefined,
+        },
       });
+
       setEditingWorkOrder(null);
       await refreshDetail(payload.id);
       await fetchList();
     },
-    [fetchList, refreshDetail],
+    [fetchList, refreshDetail, updateMutation],
   );
 
   const createWorkOrder = useCallback(
@@ -223,7 +260,7 @@ export function useWorkOrderManage() {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      await createWorkOrderApi({
+      await createMutation.mutateAsync({
         workOrderNo: payload.workOrderNo,
         harnessCode: payload.harnessCode,
         harnessType: payload.harnessType,
@@ -238,18 +275,20 @@ export function useWorkOrderManage() {
         defectType: payload.defectType?.trim() || undefined,
         defectDescription: payload.defectDescription?.trim() || undefined,
       });
+
       await fetchList();
     },
-    [fetchList],
+    [createMutation, fetchList],
   );
 
   const importWorkOrders = useCallback(
     async (rows: Omit<WorkOrderItem, 'id'>[]) => {
       if (rows.length === 0) return 0;
+
       let imported = 0;
       for (const [index, row] of rows.entries()) {
         try {
-          await createWorkOrderApi({
+          await createMutation.mutateAsync({
             workOrderNo: row.workOrderNo,
             harnessCode: row.harnessCode,
             harnessType: normalizeHarnessType(row.harnessType, index),
@@ -269,12 +308,13 @@ export function useWorkOrderManage() {
           // ignore failed rows; continue importing others
         }
       }
+
       if (imported > 0) {
         await fetchList();
       }
       return imported;
     },
-    [fetchList],
+    [createMutation, fetchList],
   );
 
   return {
@@ -282,7 +322,7 @@ export function useWorkOrderManage() {
     operationWorkOrders,
     rawWorkOrders,
     total,
-    loading,
+    loading: listQuery.isLoading || listQuery.isFetching,
     page,
     setPage,
     pageSize,

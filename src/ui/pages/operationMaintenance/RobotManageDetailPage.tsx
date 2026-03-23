@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined } from '@ant-design/icons';
+﻿import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Descriptions, Divider, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -60,6 +60,20 @@ export function RobotManageDetailPage() {
     }
     return t('op.robotManage.mode.teach');
   };
+  useEffect(() => {
+    if (imageScale === 1) {
+      setImageOffset({ x: 0, y: 0 });
+      return;
+    }
+    const viewportWidth = imageViewportRef.current?.clientWidth ?? 0;
+    const viewportHeight = imageViewportRef.current?.clientHeight ?? 0;
+    const maxX = Math.max(0, ((viewportWidth - 24) * (imageScale - 1)) / 2);
+    const maxY = Math.max(0, ((viewportHeight - 24) * (imageScale - 1)) / 2);
+    setImageOffset((prev) => ({
+      x: Math.max(-maxX, Math.min(maxX, prev.x)),
+      y: Math.max(-maxY, Math.min(maxY, prev.y)),
+    }));
+  }, [imageScale]);
 
   if (!robot) {
     return (
@@ -77,7 +91,7 @@ export function RobotManageDetailPage() {
     );
   }
 
-  const robotExceptionLogs = useMemo(() => exceptionNotificationList.filter((item) => item.robot === robot.code), [exceptionNotificationList, robot.code]);
+  const robotExceptionLogs = robot ? exceptionNotificationList.filter((item) => item.robot === robot.code) : [];
 
   const exceptionColumns: ColumnsType<ExceptionNotificationRecord> = [
     { title: t('op.exception.table.id'), dataIndex: 'id', key: 'id', width: 170 },
@@ -136,7 +150,7 @@ export function RobotManageDetailPage() {
     },
   ];
 
-  const selectorRows = useMemo(() => {
+  const selectorRows = (() => {
     if (selectorKind === 'dispatch') {
       return [
         { key: 'auto', label: t('op.robotManage.dispatch.auto') },
@@ -157,7 +171,7 @@ export function RobotManageDetailPage() {
       { key: 'teach', label: t('op.robotManage.mode.teach') },
       { key: 'auto', label: t('op.robotManage.mode.auto') },
     ];
-  }, [mapOptions, modeTarget, selectorKind, t]);
+  })();
 
   const openSelector = (kind: SelectorKind, target: ModeTarget = 'chassis') => {
     setSelectorKind(kind);
@@ -233,20 +247,6 @@ export function RobotManageDetailPage() {
     setPanStart(null);
   };
 
-  useEffect(() => {
-    if (imageScale === 1) {
-      setImageOffset({ x: 0, y: 0 });
-      return;
-    }
-    const viewportWidth = imageViewportRef.current?.clientWidth ?? 0;
-    const viewportHeight = imageViewportRef.current?.clientHeight ?? 0;
-    const maxX = Math.max(0, ((viewportWidth - 24) * (imageScale - 1)) / 2);
-    const maxY = Math.max(0, ((viewportHeight - 24) * (imageScale - 1)) / 2);
-    setImageOffset((prev) => ({
-      x: Math.max(-maxX, Math.min(maxX, prev.x)),
-      y: Math.max(-maxY, Math.min(maxY, prev.y)),
-    }));
-  }, [imageScale]);
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -548,3 +548,4 @@ export function RobotManageDetailPage() {
     </Space>
   );
 }
+

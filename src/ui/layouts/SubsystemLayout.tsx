@@ -1,4 +1,4 @@
-import { MenuOutlined } from '@ant-design/icons';
+﻿import { MenuOutlined } from '@ant-design/icons';
 import { Button, Drawer, Grid, Layout } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -12,14 +12,14 @@ const { Sider, Content } = Layout;
 
 export function SubsystemLayout() {
   const { pathname } = useLocation();
-  const { currentRole, permissionVersion } = useCurrentRole();
+  const { currentRole } = useCurrentRole();
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
   const isPad = !screens.lg;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole, permissionVersion]);
+  const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole]);
   const topNode = getTopMenuNodeByPath(visibleMenuTree, pathname);
   const menuNodes = topNode?.children ?? [];
   const isOperationMonitoring = pathname === '/operationMonitoring';
@@ -64,7 +64,7 @@ export function SubsystemLayout() {
           }}
         >
           <div style={{ marginBottom: 8, flexShrink: 0 }}>
-            <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} style={{ fontSize: 20, color: '#0B1F52' }} aria-label="打开菜单" />
+            <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} style={{ fontSize: 20, color: '#0B1F52' }} aria-label="鎵撳紑鑿滃崟" />
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
             <Outlet />
@@ -108,4 +108,5 @@ export function SubsystemLayout() {
     </Layout>
   );
 }
+
 

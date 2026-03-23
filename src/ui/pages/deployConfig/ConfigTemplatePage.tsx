@@ -1,6 +1,7 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Grid, Input, Modal, Row, Select, Space, Table, Tree, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { DataNode } from 'antd/es/tree';
 import type { UploadProps } from 'antd/es/upload';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -270,6 +271,8 @@ export function ConfigTemplatePage() {
     setConfigureDraftParams(buildDetailedParams(record.params));
   };
 
+  void openConfigure;
+
   const updateConfigureParamValue = (id: string, value: string) => {
     setConfigureDraftParams((prev) => prev.map((item) => (item.id === id ? { ...item, value } : item)));
   };
@@ -463,14 +466,17 @@ export function ConfigTemplatePage() {
   }, [compareRows]);
 
   const compareTreeData = useMemo(() => {
-    const withDiffStyle = (nodes: any[]): any[] =>
-      nodes.map((node) => ({
-        ...node,
-        title: <span style={compareDiffCategoryKeys.has(String(node.key)) ? { color: '#ff4d4f' } : undefined}>{node.title}</span>,
-        children: node.children ? withDiffStyle(node.children as any[]) : undefined,
-      }));
+    const withDiffStyle = (nodes: DataNode[]): DataNode[] =>
+      nodes.map((node) => {
+        const nodeTitle = typeof node.title === 'function' ? node.title(node) : node.title;
+        return {
+          ...node,
+          title: <span style={compareDiffCategoryKeys.has(String(node.key)) ? { color: '#ff4d4f' } : undefined}>{nodeTitle}</span>,
+          children: node.children ? withDiffStyle(node.children as DataNode[]) : undefined,
+        };
+      });
 
-    return withDiffStyle(categoryTree as any[]);
+    return withDiffStyle(categoryTree as DataNode[]);
   }, [compareDiffCategoryKeys]);
 
   const filteredCompareRows = useMemo(() => {
@@ -619,7 +625,7 @@ const columns: ColumnsType<RobotConfigRecord> = [
             <Col xs={24} md={isLaptop ? 8 : 6}>
               <Card size="small" title="参数分类" styles={{ body: { maxHeight: 460, overflowY: 'auto' } }}>
                 <Tree
-                  treeData={categoryTree as any[]}
+                  treeData={categoryTree as DataNode[]}
                   defaultExpandAll
                   selectedKeys={[configureSelectedCategory]}
                   onSelect={(keys) => setConfigureSelectedCategory(String(keys[0] ?? '算法/SLAM'))}

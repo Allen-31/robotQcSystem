@@ -1,7 +1,7 @@
-import { ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCurrentUser } from '../../../logic/auth/authStore';
 import { getPackageManageList } from '../../../data/operationMaintenance/packageManageList';
 import {
@@ -220,7 +220,7 @@ export function PublishManagePage() {
 
   const robotCandidates = useMemo(
     () => upgradeDeviceCatalog.filter((item) => item.robotType !== 'SERVER' && item.robot !== '-'),
-    [],
+    [upgradeDeviceCatalog],
   );
 
   const robotTypeOptions = useMemo(
@@ -243,7 +243,7 @@ export function PublishManagePage() {
     [packageList, watchedPackageName],
   );
 
-  const strategyText = (value: UpgradeStrategy) => {
+  const strategyText = useCallback((value: UpgradeStrategy) => {
     if (value === 'immediate') {
       return label.strategyImmediate;
     }
@@ -251,7 +251,7 @@ export function PublishManagePage() {
       return label.strategyIdle;
     }
     return label.strategyHoming;
-  };
+  }, [label.strategyHoming, label.strategyIdle, label.strategyImmediate]);
 
   const filteredTableData = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -262,7 +262,7 @@ export function PublishManagePage() {
       const text = `${item.name} ${item.packageName} ${item.targetRobots.join(' ')} ${item.targetRobotGroups.join(' ')} ${item.targetRobotTypes.join(' ')} ${strategyText(item.strategy)} ${item.creator} ${item.status}`.toLowerCase();
       return text.includes(normalized);
     });
-  }, [keyword, tableData]);
+  }, [keyword, strategyText, tableData]);
 
   const statusText = (value: PublishStatus | DeviceUpgradeStatus) => {
     if (value === 'pending') {

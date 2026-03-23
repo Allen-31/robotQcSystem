@@ -1,4 +1,4 @@
-import { DownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+﻿import { DownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Checkbox, Col, Descriptions, Input, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -6,6 +6,9 @@ import type { QualityResult, WorkOrderStatus } from '../../../data/qcBusiness/wo
 import { useI18n } from '../../../i18n/I18nProvider';
 import type { WorkOrderItem } from '../../../logic/qcBusiness/useWorkOrderManage';
 import { useQualityRecordList } from '../../../logic/qcBusiness/useQualityRecordList';
+import { Permission } from '../../../components/auth/Permission';
+
+const QUALITY_RECORD_MENU_KEY = '/qualityInspection/qualityRecord';
 
 const statusColorMap: Record<WorkOrderStatus, string> = {
   pending: 'default',
@@ -93,7 +96,7 @@ export function QualityRecordPage() {
 
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));
-    return dataSource.filter((item) => keySet.has(item.id));
+    return dataSource.filter((item) => keySet.has(String(item.id)));
   }, [dataSource, selectedRowKeys]);
 
   const exportCsv = () => {
@@ -142,9 +145,11 @@ export function QualityRecordPage() {
       width: 90,
       fixed: 'right',
       render: (_, record) => (
-        <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => setViewingRecord(record)}>
-          {t('qualityRecord.action.detail')}
-        </Button>
+        <Permission menuKey={QUALITY_RECORD_MENU_KEY} action="detail">
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => setViewingRecord(record)}>
+            {t('qualityRecord.action.detail')}
+          </Button>
+        </Permission>
       ),
     },
   ];
@@ -178,9 +183,11 @@ export function QualityRecordPage() {
                 <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchList()}>
                   {t('qualityRecord.toolbar.query')}
                 </Button>
-                <Button icon={<DownloadOutlined />} onClick={exportCsv}>
-                  {t('qualityRecord.toolbar.export')}
-                </Button>
+                <Permission menuKey={QUALITY_RECORD_MENU_KEY} action="export">
+                  <Button icon={<DownloadOutlined />} onClick={exportCsv}>
+                    {t('qualityRecord.toolbar.export')}
+                  </Button>
+                </Permission>
               </Space>
             </Col>
           </Row>

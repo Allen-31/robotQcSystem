@@ -1,4 +1,4 @@
-import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
+﻿import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -34,7 +34,7 @@ export function ExceptionNotificationPage() {
     return exceptionNotificationList.filter((item) =>
       `${item.id} ${item.type} ${item.sourceSystem} ${item.issue} ${item.robot}`.toLowerCase().includes(k),
     );
-  }, [keyword]);
+  }, [exceptionNotificationList, keyword]);
 
   const columns: ColumnsType<ExceptionNotificationRecord> = [
     { title: t('op.exception.table.id'), dataIndex: 'id', key: 'id', width: 170 },
@@ -82,3 +82,4 @@ export function ExceptionNotificationPage() {
     </Space>
   );
 }
+

@@ -79,7 +79,7 @@ export function WorkstationConfigPage() {
   };
 
   const columns: ColumnsType<WorkstationConfig> = [
-    { title: t('qcConfig.workstation.table.id'), dataIndex: 'id', key: 'id', width: 140, render: (val: number) => <LongIdText value={val} /> },
+    { title: t('qcConfig.workstation.table.id'), dataIndex: 'id', key: 'id', width: 140, render: (val: number | string) => <LongIdText value={val} /> },
     { title: t('qcConfig.workstation.table.name'), dataIndex: 'name', key: 'name', width: 220 },
     { title: t('qcConfig.workstation.table.workshopCode'), dataIndex: 'workshopCode', key: 'workshopCode', width: 160 },
     { title: t('qcConfig.workstation.table.robotGroup'), dataIndex: 'robotGroup', key: 'robotGroup', width: 160 },

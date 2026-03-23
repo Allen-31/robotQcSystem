@@ -2,8 +2,11 @@ import { DownloadOutlined, FileImageOutlined, SearchOutlined, VideoCameraOutline
 import { Button, Card, Col, Image, Input, Modal, Row, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { Permission } from '../../../components/auth/Permission';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useReinspectionList, type ReinspectionRecordItem, type ReinspectionResult } from '../../../logic/qcBusiness/useReinspectionList';
+
+const REINSPECTION_RECORD_MENU_KEY = '/qualityInspection/reinspectionRecord';
 
 const resultColorMap: Record<ReinspectionResult, string> = {
   ok: 'success',
@@ -65,7 +68,7 @@ export function ReinspectionRecordPage() {
 
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));
-    return dataSource.filter((item) => keySet.has(item.id));
+    return dataSource.filter((item) => keySet.has(String(item.id)));
   }, [dataSource, selectedRowKeys]);
 
   const exportCsv = () => {
@@ -108,12 +111,16 @@ export function ReinspectionRecordPage() {
       fixed: 'right',
       render: (_, record) => (
         <Space size={4}>
-          <Button type="link" icon={<VideoCameraOutlined />} onClick={() => setVideoRecord(record)}>
-            {t('reinspection.action.video')}
-          </Button>
-          <Button type="link" icon={<FileImageOutlined />} onClick={() => setImageRecord(record)}>
-            {t('reinspection.action.image')}
-          </Button>
+          <Permission menuKey={REINSPECTION_RECORD_MENU_KEY} action="viewVideo">
+            <Button type="link" icon={<VideoCameraOutlined />} onClick={() => setVideoRecord(record)}>
+              {t('reinspection.action.video')}
+            </Button>
+          </Permission>
+          <Permission menuKey={REINSPECTION_RECORD_MENU_KEY} action="viewImage">
+            <Button type="link" icon={<FileImageOutlined />} onClick={() => setImageRecord(record)}>
+              {t('reinspection.action.image')}
+            </Button>
+          </Permission>
         </Space>
       ),
     },
@@ -142,9 +149,11 @@ export function ReinspectionRecordPage() {
                 <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchList()}>
                   {t('reinspection.query')}
                 </Button>
-                <Button icon={<DownloadOutlined />} onClick={exportCsv}>
-                  {t('reinspection.export')}
-                </Button>
+                <Permission menuKey={REINSPECTION_RECORD_MENU_KEY} action="export">
+                  <Button icon={<DownloadOutlined />} onClick={exportCsv}>
+                    {t('reinspection.export')}
+                  </Button>
+                </Permission>
               </Space>
             </Col>
           </Row>

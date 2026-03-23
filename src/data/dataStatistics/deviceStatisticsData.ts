@@ -1,4 +1,4 @@
-export type PeriodKey = 'day1' | 'day7' | 'month1';
+﻿export type PeriodKey = 'day1' | 'day7' | 'month1';
 export type ExceptionLevel = 'none' | 'low' | 'medium' | 'high';
 
 export interface DeviceRecord {
@@ -18,11 +18,11 @@ export interface DeviceRecord {
   exceptionCount: number;
 }
 
-export const workshops = ['总装一车间', '总装二车间', '总装三车间'];
-export const workstations = ['质检区A', '质检区B', '质检区C', '质检区D'];
+export const workshops = ['\u603B\u88C5\u4E00\u8F66\u95F4', '\u603B\u88C5\u4E8C\u8F66\u95F4', '\u603B\u88C5\u4E09\u8F66\u95F4'];
+export const workstations = ['\u8D28\u68C0\u533AA', '\u8D28\u68C0\u533AB', '\u8D28\u68C0\u533AC', '\u8D28\u68C0\u533AD'];
 export const stations = ['ST-A01', 'ST-A02', 'ST-B01', 'ST-B02', 'ST-C01', 'ST-D01'];
-export const robotTypes = ['AMR', 'AGV', '机械臂'];
-export const robotGroups = ['RG-装配', 'RG-搬运', 'RG-复检'];
+export const robotTypes = ['AMR', 'AGV', '\u673A\u68B0\u81C2'];
+export const robotGroups = ['RG-\u88C5\u914D', 'RG-\u642C\u8FD0', 'RG-\u590D\u68C0'];
 
 export const deviceData: DeviceRecord[] = Array.from({ length: 36 }, (_, index) => {
   const online = index % 7 !== 0;
@@ -56,13 +56,15 @@ export function formatLastUpdated(date: Date): string {
 }
 
 export function getMockRecentExceptions(_deviceId: string): { id: string; level: string; type: string; time: string }[] {
+  void _deviceId;
   return [
-    { id: 'EX-001', level: 'P2', type: '路径规划异常', time: '2026-03-05 14:32' },
-    { id: 'EX-002', level: 'P3', type: '电量低告警', time: '2026-03-05 11:20' },
+    { id: 'EX-001', level: 'P2', type: '\u8DEF\u5F84\u89C4\u5212\u5F02\u5E38', time: '2026-03-05 14:32' },
+    { id: 'EX-002', level: 'P3', type: '\u7535\u91CF\u4F4E\u544A\u8B66', time: '2026-03-05 11:20' },
   ];
 }
 
 export function getMockRecentTasks(_deviceId: string): { id: string; status: string; createdAt: string }[] {
+  void _deviceId;
   return [
     { id: 'TK-20260301', status: 'finished', createdAt: '2026-03-05 15:10' },
     { id: 'TK-20260302', status: 'running', createdAt: '2026-03-05 14:55' },

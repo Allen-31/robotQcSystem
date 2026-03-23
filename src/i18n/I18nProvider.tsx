@@ -1,4 +1,5 @@
-﻿import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+﻿/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { locales, messages, type Locale } from './messages';
 
 const STORAGE_KEY = 'robot-qc-locale';
@@ -63,3 +64,5 @@ export function useI18n() {
     locales,
   };
 }
+
+

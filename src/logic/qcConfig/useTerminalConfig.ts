@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createTerminalConfigApi,
   deleteTerminalConfigApi,
@@ -7,8 +8,8 @@ import {
   getWorkstationConfigListApi,
   updateTerminalConfigApi,
 } from '../../shared/api/qcConfigApi';
-import type { TerminalConfig } from '../../shared/types/qcConfig';
-import type { WorkstationConfig } from '../../shared/types/qcConfig';
+import { qcConfigQueryKeys } from '../../shared/api/queryKeys';
+import type { TerminalConfig, WorkstationConfig } from '../../shared/types/qcConfig';
 
 export type TerminalConfigPayload = TerminalConfig;
 
@@ -19,46 +20,54 @@ function normalizeList<T>(data: unknown): T[] {
 }
 
 export function useTerminalConfig() {
-  const [records, setRecords] = useState<TerminalConfig[]>([]);
+  const queryClient = useQueryClient();
   const [keyword, setKeyword] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [workstationOptions, setWorkstationOptions] = useState<{ label: string; value: string }[]>([]);
-  const [stationOptions, setStationOptions] = useState<{ label: string; value: string }[]>([]);
 
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    try {
+  const listQuery = useQuery({
+    queryKey: qcConfigQueryKeys.terminalConfigs,
+    queryFn: async () => {
       const res = await getTerminalConfigListApi({ pageNum: 1, pageSize: 500 });
-      const list = normalizeList<TerminalConfig>(res.data);
-      setRecords(list);
-    } catch {
-      setRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return normalizeList<TerminalConfig>(res.data);
+    },
+  });
 
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
+  const workstationOptionsQuery = useQuery({
+    queryKey: qcConfigQueryKeys.workstationOptions,
+    queryFn: async () => {
+      const res = await getWorkstationConfigListApi({ pageNum: 1, pageSize: 500 });
+      const list = normalizeList<WorkstationConfig>(res.data);
+      return list.map((item) => ({ label: `${item.name} (${item.id})`, value: String(item.id) }));
+    },
+  });
 
-  useEffect(() => {
-    getWorkstationConfigListApi({ pageNum: 1, pageSize: 500 })
-      .then((res) => {
-        const list = normalizeList<WorkstationConfig>(res.data);
-        setWorkstationOptions(list.map((item) => ({ label: `${item.name} (${item.id})`, value: String(item.id) })));
-      })
-      .catch(() => setWorkstationOptions([]));
-  }, []);
+  const stationOptionsQuery = useQuery({
+    queryKey: qcConfigQueryKeys.stationOptions,
+    queryFn: async () => {
+      const res = await getStationConfigListApi({ pageNum: 1, pageSize: 500 });
+      const list = normalizeList<{ workstationId: string; stationId: string }>(res.data);
+      return list.map((item) => ({
+        label: `${item.stationId} (${item.workstationId})`,
+        value: item.stationId,
+      }));
+    },
+  });
 
-  useEffect(() => {
-    getStationConfigListApi({ pageNum: 1, pageSize: 500 })
-      .then((res) => {
-        const list = normalizeList<{ workstationId: string; stationId: string }>(res.data);
-        setStationOptions(list.map((item) => ({ label: `${item.stationId} (${item.workstationId})`, value: item.stationId })));
-      })
-      .catch(() => setStationOptions([]));
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: createTerminalConfigApi,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcConfigQueryKeys.all }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: Partial<TerminalConfig> }) => updateTerminalConfigApi(id, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcConfigQueryKeys.all }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number | string) => deleteTerminalConfigApi(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcConfigQueryKeys.all }),
+  });
+
+  const records = useMemo(() => listQuery.data ?? [], [listQuery.data]);
 
   const filteredList = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -70,35 +79,46 @@ export function useTerminalConfig() {
     );
   }, [keyword, records]);
 
-  const createRecord = useCallback(async (payload: TerminalConfigPayload) => {
-    await createTerminalConfigApi(payload);
-    await fetchList();
-  }, [fetchList]);
+  const fetchList = useCallback(async () => {
+    await listQuery.refetch();
+  }, [listQuery]);
 
-  const updateRecord = useCallback(async (payload: TerminalConfigPayload) => {
-    await updateTerminalConfigApi(payload.id, payload);
-    setRecords((prev) => prev.map((item) => (String(item.id) === String(payload.id) ? payload : item)));
-  }, []);
+  const createRecord = useCallback(
+    async (payload: TerminalConfigPayload) => {
+      await createMutation.mutateAsync(payload);
+      await fetchList();
+    },
+    [createMutation, fetchList],
+  );
+
+  const updateRecord = useCallback(
+    async (payload: TerminalConfigPayload) => {
+      await updateMutation.mutateAsync({ id: payload.id, body: payload });
+      await fetchList();
+    },
+    [fetchList, updateMutation],
+  );
 
   const removeRecord = useCallback(
     async (id: number | string) => {
-      await deleteTerminalConfigApi(id);
+      await deleteMutation.mutateAsync(id);
       await fetchList();
     },
-    [fetchList],
+    [deleteMutation, fetchList],
   );
 
   return {
     records,
     filteredList,
-    loading,
+    loading: listQuery.isLoading || listQuery.isFetching,
     keyword,
     setKeyword,
     fetchList,
     createRecord,
     updateRecord,
     removeRecord,
-    workstationOptions,
-    stationOptions,
+    workstationOptions: workstationOptionsQuery.data ?? [],
+    stationOptions: stationOptionsQuery.data ?? [],
   };
 }
+

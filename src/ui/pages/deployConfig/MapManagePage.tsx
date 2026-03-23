@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
@@ -13,7 +13,7 @@ export function MapManagePage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<MapManageFormValues>();
-  const { records, filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useMapManage(locale);
+  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useMapManage(locale);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MapManageRecord | null>(null);
 
@@ -246,4 +246,5 @@ export function MapManagePage() {
     </Space>
   );
 }
+
 

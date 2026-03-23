@@ -1,59 +1,21 @@
 import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { App, Button, Card, Col, Form, Input, Modal, Row, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
-import {
-  createWorkshopConfigApi,
-  deleteWorkshopConfigApi,
-  getWorkshopConfigListApi,
-  updateWorkshopConfigApi,
-  type QcWorkshopVO,
-} from '../../../shared/api/qcConfigApi';
-
-function normalizeList(data: unknown): QcWorkshopVO[] {
-  let list: QcWorkshopVO[] = [];
-  if (Array.isArray(data)) list = data as QcWorkshopVO[];
-  else if (data && typeof data === 'object' && 'list' in data) list = ((data as { list: QcWorkshopVO[] }).list) ?? [];
-  return list.map((item) => ({
-    code: item.code ?? '',
-    name: item.name ?? '',
-    location: item.location != null && item.location !== '' ? item.location : undefined,
-  }));
-}
+import { useWorkshopConfig } from '../../../logic/qcConfig/useWorkshopConfig';
+import type { QcWorkshopVO } from '../../../shared/api/qcConfigApi';
 
 export function WorkshopConfigPage() {
   const [form] = Form.useForm<QcWorkshopVO>();
   const { t } = useI18n();
   const { modal: modalApi } = App.useApp();
   const [messageApi, contextHolder] = message.useMessage();
-  const [keyword, setKeyword] = useState('');
-  const [records, setRecords] = useState<QcWorkshopVO[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const { filteredList, loading, keyword, setKeyword, createRecord, updateRecord, removeRecord } = useWorkshopConfig();
+
   const [editingRecord, setEditingRecord] = useState<QcWorkshopVO | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getWorkshopConfigListApi();
-      setRecords(normalizeList(res.data));
-    } catch {
-      setRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
-
-  const dataSource = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    if (!normalized) return records;
-    return records.filter((item) => `${item.code} ${item.name} ${item.location ?? ''}`.toLowerCase().includes(normalized));
-  }, [keyword, records]);
 
   const openCreate = () => {
     form.resetFields();
@@ -71,23 +33,19 @@ export function WorkshopConfigPage() {
     form.resetFields();
   };
 
-  const submit = (values: QcWorkshopVO) => {
-    if (createOpen) {
-      createWorkshopConfigApi(values)
-        .then(() => { messageApi.success(t('qcConfig.common.created')); closeModal(); fetchList(); })
-        .catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
-      return;
+  const submit = async (values: QcWorkshopVO) => {
+    try {
+      if (createOpen) {
+        await createRecord(values);
+        messageApi.success(t('qcConfig.common.created'));
+      } else if (editingRecord) {
+        await updateRecord(editingRecord.code, values);
+        messageApi.success(t('qcConfig.common.updated'));
+      }
+      closeModal();
+    } catch {
+      messageApi.error(t('qcConfig.common.saveFailed'));
     }
-    if (!editingRecord) return;
-    updateWorkshopConfigApi(editingRecord.code, values)
-      .then(() => { messageApi.success(t('qcConfig.common.updated')); closeModal(); setRecords((prev) => prev.map((item) => (item.code === editingRecord.code ? { ...item, ...values } : item))); })
-      .catch(() => messageApi.error(t('qcConfig.common.saveFailed')));
-  };
-
-  const removeRecord = (code: string) => {
-    deleteWorkshopConfigApi(code)
-      .then(() => { setRecords((prev) => prev.filter((item) => item.code !== code)); messageApi.success(t('qcConfig.common.deleted')); })
-      .catch(() => messageApi.error(t('qcConfig.common.deleteFailed')));
   };
 
   const columns: ColumnsType<QcWorkshopVO> = [
@@ -122,9 +80,8 @@ export function WorkshopConfigPage() {
                 cancelText: t('qcConfig.common.cancel'),
                 okButtonProps: { danger: true },
                 onOk: () =>
-                  deleteWorkshopConfigApi(record.code)
+                  removeRecord(record.code)
                     .then(() => {
-                      setRecords((prev) => prev.filter((item) => item.code !== record.code));
                       messageApi.success(t('qcConfig.common.deleted'));
                       instance.destroy();
                     })
@@ -172,7 +129,14 @@ export function WorkshopConfigPage() {
       </Card>
 
       <Card>
-        <Table rowKey="code" loading={loading} columns={columns} dataSource={dataSource} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1100 }} />
+        <Table
+          rowKey="code"
+          loading={loading}
+          columns={columns}
+          dataSource={filteredList}
+          pagination={{ pageSize: 8, showSizeChanger: false }}
+          scroll={{ x: 1100 }}
+        />
       </Card>
 
       <Modal
@@ -185,10 +149,18 @@ export function WorkshopConfigPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={submit}>
-          <Form.Item label={t('qcConfig.workshop.form.code')} name="code" rules={[{ required: true, message: t('qcConfig.workshop.form.codeRequired') }]}>
+          <Form.Item
+            label={t('qcConfig.workshop.form.code')}
+            name="code"
+            rules={[{ required: true, message: t('qcConfig.workshop.form.codeRequired') }]}
+          >
             <Input disabled={Boolean(editingRecord)} />
           </Form.Item>
-          <Form.Item label={t('qcConfig.workshop.form.name')} name="name" rules={[{ required: true, message: t('qcConfig.workshop.form.nameRequired') }]}>
+          <Form.Item
+            label={t('qcConfig.workshop.form.name')}
+            name="name"
+            rules={[{ required: true, message: t('qcConfig.workshop.form.nameRequired') }]}
+          >
             <Input />
           </Form.Item>
           <Form.Item
@@ -203,4 +175,3 @@ export function WorkshopConfigPage() {
     </Space>
   );
 }
-

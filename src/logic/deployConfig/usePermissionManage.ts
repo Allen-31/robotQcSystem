@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DataNode } from 'antd/es/tree';
 import { menuList } from '../../data/menuList';
 import { topMenus } from '../../data/topMenus';
@@ -162,8 +162,8 @@ export function usePermissionManage(options: UsePermissionManageOptions = {}) {
       const res = await getRoleListApi();
       const list = Array.isArray(res.data) ? res.data : [];
       setRoleList(list);
-      if (list.length > 0 && !selectedRole) {
-        setSelectedRole(fixedRole ?? list[0].code);
+      if (list.length > 0) {
+        setSelectedRole((prev) => prev || fixedRole || list[0].code);
       }
       if (fixedRole && list.some((r) => r.code === fixedRole)) {
         setSelectedRole(fixedRole);
@@ -373,3 +373,4 @@ export function usePermissionManage(options: UsePermissionManageOptions = {}) {
     toTreeData,
   };
 }
+

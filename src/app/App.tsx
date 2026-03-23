@@ -1,16 +1,18 @@
-import { App as AntdApp, ConfigProvider } from 'antd';
+﻿import { App as AntdApp, ConfigProvider } from 'antd';
 import { theme as antdTheme } from 'antd';
 import enUS from 'antd/locale/en_US';
 import zhCN from 'antd/locale/zh_CN';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { AppRouter } from '../infrastructure/router/AppRouter';
 import { useI18n } from '../i18n/I18nProvider';
 import { useTheme } from '../logic/theme/useTheme';
+import { useAppStore } from '../store/appStore';
 
 export default function App() {
   const { locale } = useI18n();
   const { actualTheme } = useTheme();
-  const [isLaptop, setIsLaptop] = useState(() => window.matchMedia('(max-width: 1440px)').matches);
+  const isLaptop = useAppStore((state) => state.isLaptop);
+  const setIsLaptop = useAppStore((state) => state.setIsLaptop);
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 1440px)');
@@ -18,7 +20,7 @@ export default function App() {
     setIsLaptop(media.matches);
     media.addEventListener('change', onChange);
     return () => media.removeEventListener('change', onChange);
-  }, []);
+  }, [setIsLaptop]);
 
   useEffect(() => {
     document.body.classList.toggle('app-laptop', isLaptop);
@@ -37,3 +39,4 @@ export default function App() {
     </ConfigProvider>
   );
 }
+

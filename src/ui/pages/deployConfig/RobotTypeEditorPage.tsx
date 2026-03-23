@@ -1,7 +1,7 @@
 import { ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Input, Modal, Row, Select, Space, Table, Typography, Upload, message } from 'antd';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ROBOT_PART_STORAGE_KEY,
@@ -186,7 +186,7 @@ export function RobotTypeEditorPage() {
     };
   }, []);
 
-  const getPointPercentFromClient = (clientX: number, clientY: number, container: HTMLDivElement) => {
+  const getPointPercentFromClient = useCallback((clientX: number, clientY: number, container: HTMLDivElement) => {
     const rect = container.getBoundingClientRect();
     const contentX = clientX - rect.left - container.clientLeft;
     const contentY = clientY - rect.top - container.clientTop;
@@ -208,7 +208,7 @@ export function RobotTypeEditorPage() {
       return null;
     }
     return { x, y };
-  };
+  }, [canvasOffset.x, canvasOffset.y, canvasScale, imageSize?.height, imageSize?.width]);
 
   const addAnnotationFromCanvas = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (!image2dPreview) {
@@ -239,7 +239,7 @@ export function RobotTypeEditorPage() {
     setAnnotationModalOpen(true);
   };
 
-  const moveAnnotationPoint = (pointId: string, clientX: number, clientY: number) => {
+  const moveAnnotationPoint = useCallback((pointId: string, clientX: number, clientY: number) => {
     const container = canvasRef.current;
     if (!container) {
       return;
@@ -249,7 +249,7 @@ export function RobotTypeEditorPage() {
       return;
     }
     setDraftPoints((prev) => prev.map((item) => (item.id === pointId ? { ...item, x: next.x, y: next.y } : item)));
-  };
+  }, [getPointPercentFromClient]);
 
   const handlePointMouseDown = (event: ReactMouseEvent<HTMLDivElement>, pointId: string) => {
     event.stopPropagation();
@@ -311,7 +311,7 @@ export function RobotTypeEditorPage() {
       window.removeEventListener('mousemove', handleWindowMouseMove);
       window.removeEventListener('mouseup', handleWindowMouseUp);
     };
-  }, [canvasOffset.x, canvasOffset.y, canvasScale, imageSize]);
+  }, [moveAnnotationPoint]);
 
   const zoomTo = (nextScale: number) => {
     setCanvasScale((prevScale) => {

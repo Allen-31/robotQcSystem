@@ -1,7 +1,7 @@
 import { ClockCircleOutlined, EyeOutlined, PauseCircleOutlined, SearchOutlined, ThunderboltOutlined, UnorderedListOutlined, WalletOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n/I18nProvider';
 
@@ -268,10 +268,10 @@ export function OperationMonitoringPage() {
   }, [activeFilter, baseFiltered]);
 
   const selectedRobot = useMemo(() => robots.find((item) => item.id === selectedRobotId) ?? null, [selectedRobotId]);
-  const mapPointToScreen = (x: number, y: number) => ({
+  const mapPointToScreen = useCallback((x: number, y: number) => ({
     x: x * mapScale + mapOffset.x,
     y: y * mapScale + mapOffset.y,
-  });
+  }), [mapOffset.x, mapOffset.y, mapScale]);
 
   const selectedRobotPopupPosition = useMemo(() => {
     if (!selectedRobot) {
@@ -300,7 +300,7 @@ export function OperationMonitoringPage() {
     }
 
     return { left, top };
-  }, [mapOffset.x, mapOffset.y, mapScale, selectedRobot]);
+  }, [mapPointToScreen, selectedRobot]);
 
   const summary = useMemo(() => {
     return {

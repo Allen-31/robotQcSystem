@@ -7,7 +7,7 @@ import {
   ShopOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
-import { Badge, Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Badge, Button, Card, Col, Descriptions, Form, Image, Input, Modal, Popconfirm, Row, Segmented, Select, Space, Spin, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -123,40 +123,40 @@ function buildInspectionPoints(workOrder: WorkOrderInfo): InspectionPointItem[] 
 
 function resolveWireHarnessId(harnessType: string): string | null {
   const normalized = harnessType.trim();
+  const typedList = wireHarnessTypeList.map((item) => ({
+    id: String(item.id),
+    name: item.name,
+  }));
+
   const explicitId = normalized.match(/WH-\d{3}/i)?.[0]?.toUpperCase();
-  if (explicitId && wireHarnessTypeList.some((item) => item.id.toUpperCase() === explicitId)) {
+  if (explicitId && typedList.some((item) => item.id.toUpperCase() === explicitId)) {
     return explicitId;
   }
-  const suffix = normalized.match(/[-－]([ABC])$/i)?.[1]?.toUpperCase();
+
+  const suffix = normalized.match(/-([ABC])$/i)?.[1]?.toUpperCase();
   if (suffix === 'A') {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
+    return typedList.find((item) => item.id === 'WH-001')?.id ?? null;
   }
   if (suffix === 'B') {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
+    return typedList.find((item) => item.id === 'WH-002')?.id ?? null;
   }
   if (suffix === 'C') {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
+    return typedList.find((item) => item.id === 'WH-003')?.id ?? null;
   }
-  const exact = wireHarnessTypeList.find((item) => item.id === harnessType || item.name === harnessType);
+
+  const exact = typedList.find((item) => item.id === normalized || item.name === normalized);
   if (exact) {
     return exact.id;
   }
-  if (harnessType.includes('主驱') || harnessType.includes('-A')) {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-001')?.id ?? null;
-  }
-  if (harnessType.includes('控制') || harnessType.includes('-B')) {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-002')?.id ?? null;
-  }
-  if (harnessType.includes('高压') || harnessType.includes('-C')) {
-    return wireHarnessTypeList.find((item) => item.id === 'WH-003')?.id ?? null;
-  }
-  const levelMatch = /L(\d+)/i.exec(harnessType);
+
+  const levelMatch = /L(\d+)/i.exec(normalized);
   if (levelMatch) {
     const level = Number(levelMatch[1]);
-    if (level > 0 && level <= wireHarnessTypeList.length) {
-      return wireHarnessTypeList[level - 1]?.id ?? null;
+    if (level > 0 && level <= typedList.length) {
+      return typedList[level - 1]?.id ?? null;
     }
   }
+
   return null;
 }
 
@@ -184,15 +184,6 @@ export function WorkstationPositionManagePage() {
     resetRobot,
     reviewCurrentWorkOrder,
   } = useWorkstationPositionManage();
-
-  const positionOptions = useMemo(
-    () =>
-      positionList.map((item) => ({
-        label: `${item.name} (${item.stationCode})`,
-        value: item.id,
-      })),
-    [positionList],
-  );
 
   const historyColumns: ColumnsType<WorkOrderInfo> = [
     { title: t('workstationPosition.history.workOrderNo'), dataIndex: 'workOrderNo', key: 'workOrderNo', width: 170 },
@@ -448,7 +439,7 @@ export function WorkstationPositionManagePage() {
               <Space size={24} wrap align="center">
                 <Space size={8}>
                   <Typography.Text type="secondary">{t('workstationPosition.rank')}</Typography.Text>
-                  <Typography.Text strong className="workstation-manage-meta-value">{positionRank > 0 ? `#${positionRank}` : '–'}</Typography.Text>
+                  <Typography.Text strong className="workstation-manage-meta-value">{positionRank > 0 ? `#${positionRank}` : '-'}</Typography.Text>
                 </Space>
                 <Space size={8} align="center">
                   <Typography.Text type="secondary">{t('workstationPosition.enabledStatus')}</Typography.Text>
@@ -487,7 +478,7 @@ export function WorkstationPositionManagePage() {
                   <UnorderedListOutlined className="workstation-manage-stat-icon" />
                   {t('workstationPosition.summary.rank')}
                 </span>
-                <span className="workstation-manage-stat-value">{positionRank > 0 ? `#${positionRank}` : '–'}</span>
+                <span className="workstation-manage-stat-value">{positionRank > 0 ? `#${positionRank}` : '-'}</span>
               </div>
             </Col>
             <Col xs={24} sm={12} lg={6}>
@@ -694,7 +685,7 @@ export function WorkstationPositionManagePage() {
                 background: '#f8fafc',
               }}
             >
-              2D 图片未配置
+              2D harness image is not configured yet
             </div>
           )}
         </Card>
@@ -871,7 +862,7 @@ export function WorkstationPositionManagePage() {
                     background: '#f8fafc',
                   }}
                 >
-                  2D 图片未配置
+                  2D harness image is not configured yet
                 </div>
               )}
             </Card>

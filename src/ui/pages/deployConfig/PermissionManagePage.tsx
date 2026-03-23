@@ -1,6 +1,6 @@
-import { Button, Card, Checkbox, Col, Input, Modal, Row, Select, Space, Tag, Tree, Typography, message } from 'antd';
+﻿import { Button, Card, Checkbox, Col, Input, Modal, Row, Select, Space, Tag, Tree, Typography, message } from 'antd';
 import type { DataNode } from 'antd/es/tree';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { usePermissionManage } from '../../../logic/deployConfig/usePermissionManage';
 import type { PermissionAction } from '../../../shared/types/deployConfig';
@@ -203,7 +203,7 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
     [t],
   );
 
-  const highlight = (text: string): ReactNode => {
+  const highlight = useCallback((text: string): ReactNode => {
     const normalized = keyword.trim();
     if (!normalized) {
       return text;
@@ -219,9 +219,9 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
         {text.slice(index + normalized.length)}
       </>
     );
-  };
+  }, [keyword]);
 
-  const setNodePermissionsWithRules = (nodeKey: string, permissions: PermissionAction[]) => {
+  const setNodePermissionsWithRules = useCallback((nodeKey: string, permissions: PermissionAction[]) => {
     if (!checkedKeys.includes(nodeKey)) {
       return;
     }
@@ -229,9 +229,9 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
       ...permissionMapForSelectedRole,
       [nodeKey]: permissions,
     });
-  };
+  }, [checkedKeys, permissionMapForSelectedRole, setPermissionMapForSelectedRole]);
 
-  const toggleNodeAction = (nodeKey: string, action: PermissionAction, checked: boolean) => {
+  const toggleNodeAction = useCallback((nodeKey: string, action: PermissionAction, checked: boolean) => {
     const current = new Set(getNodePermissions(nodeKey));
     if (checked) {
       current.add(action);
@@ -239,7 +239,7 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
       current.delete(action);
     }
     setNodePermissionsWithRules(nodeKey, Array.from(current));
-  };
+  }, [getNodePermissions, setNodePermissionsWithRules]);
 
   const syncCheckAndPermissions = (nextCheckedKeys: string[]) => {
     const prevChecked = new Set(checkedKeys);
@@ -389,7 +389,7 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
     });
   };
 
-  const renderNodeTitle = (nodeKey: string, nodeLabel: string): ReactNode => {
+  const renderNodeTitle = useCallback((nodeKey: string, nodeLabel: string): ReactNode => {
     const checked = checkedKeys.includes(nodeKey);
     const actions = getActionsByNode(nodeKey, nodeLabel);
     const selectedActions = new Set(getNodePermissions(nodeKey));
@@ -423,7 +423,7 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
         </div>
       </div>
     );
-  };
+  }, [actionLabelMap, checkedKeys, getNodePermissions, highlight, setSelectedKey, t, toggleNodeAction]);
 
   const treeData = useMemo(() => {
     const build = (nodes: DataNode[]): DataNode[] =>
@@ -433,7 +433,7 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
         children: node.children ? build(node.children) : undefined,
       }));
     return build(rawTreeData);
-  }, [rawTreeData, checkedKeys, permissionMapForSelectedRole, keyword, selectedKey]);
+  }, [rawTreeData, renderNodeTitle]);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -537,3 +537,4 @@ export function PermissionManagePageInner({ fixedRole, fixedRoleName, hideHeader
     </Space>
   );
 }
+

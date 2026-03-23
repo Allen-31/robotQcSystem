@@ -5,6 +5,7 @@ import { TopNavigation } from '../../components/navigation/TopNavigation';
 import { getToken, setOnUnauthorized } from '../../shared/api/client';
 import { refreshCurrentUser } from '../../logic/auth/authStore';
 import { useAuthUser } from '../../logic/auth/useAuthUser';
+import { useRealtimeConnection } from '../../logic/realtime/useRealtimeConnection';
 
 const DEFAULT_UNAUTHORIZED = () => {
   window.location.href = '/home/login';
@@ -14,6 +15,8 @@ export function TopLevelLayout() {
   const navigate = useNavigate();
   const user = useAuthUser();
   const [userLoaded, setUserLoaded] = useState(false);
+
+  useRealtimeConnection(Boolean(userLoaded && user && getToken()));
 
   useEffect(() => {
     setOnUnauthorized(() => {

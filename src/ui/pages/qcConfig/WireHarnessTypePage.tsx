@@ -315,7 +315,7 @@ export function WireHarnessTypePage() {
                 return false;
               }
 
-              const targetId = (form.getFieldValue('id') as string | undefined) || editingRecord?.id || '__draft__';
+              const targetId = String((form.getFieldValue('id') as string | number | undefined) ?? editingRecord?.id ?? '__draft__');
               form.setFieldValue('planarStructureFile', file.name);
               loadImageAsDataUrl(file as File, (dataUrl) => {
                 setAnnotationTargetId(targetId);

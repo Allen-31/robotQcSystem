@@ -70,9 +70,10 @@ export function buildWorkstationListFromConfig(): Workstation[] {
   }
 
   return workstationConfigList.map((item, index) => {
-    const stationList = stationMap.get(item.id) ?? [];
+    const workstationId = String(item.id);
+    const stationList = stationMap.get(workstationId) ?? [];
     return {
-      id: item.id,
+      id: workstationId,
       name: item.name || `QC Workstation ${index + 1}`,
       factory: `Plant ${index + 1}`,
       inspectionStationCount: stationList.length,

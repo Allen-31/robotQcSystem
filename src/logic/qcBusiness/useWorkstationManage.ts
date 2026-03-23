@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   getStationPositionsApi,
   getWorkstationsApi,
   type QcWorkstationVO,
   type StationPositionVO,
 } from '../../shared/api/qcInspectionApi';
+import { qcBusinessQueryKeys } from '../../shared/api/queryKeys';
 import type { Workstation, WorkstationStatus } from '../../shared/types/workstation';
 
 export interface StationRecord {
@@ -30,7 +32,7 @@ function mapWorkstationVoToWorkstation(vo: QcWorkstationVO): Workstation {
     inspectionStationCount: vo.inspectionStationCount ?? stationList.length,
     location: vo.location ?? '',
     stationList: stationList.length > 0 ? stationList : [`ST-${vo.id}`],
-    status: vo.status,
+    status: vo.status ?? 'idle',
   };
 }
 
@@ -44,144 +46,160 @@ function mapPositionToStationRecord(vo: StationPositionVO): StationRecord {
   };
 }
 
+function buildFallbackStations(workstation: Workstation | undefined): StationRecord[] {
+  if (!workstation?.stationList?.length) {
+    return [];
+  }
+
+  return workstation.stationList.map((code, index) => ({
+    id: `${workstation.id}-${code}`,
+    code,
+    enabled: true,
+    rank: index + 1,
+    inspectionCount: 0,
+  }));
+}
+
 function toEnabledStatus(status: WorkstationStatus): boolean {
   return status === 'running';
 }
 
 export function useWorkstationManage() {
-  const [workstations, setWorkstations] = useState<Workstation[]>([]);
-  const [stationMap, setStationMap] = useState<Record<string, StationRecord[]>>({});
-  const [loading, setLoading] = useState(true);
   const [selectedWorkstationId, setSelectedWorkstationId] = useState<string>('');
-  const [positionsLoading, setPositionsLoading] = useState(false);
+  const [stationCacheMap, setStationCacheMap] = useState<Record<string, StationRecord[]>>({});
+  const [stationOverrideMap, setStationOverrideMap] = useState<Record<string, StationRecord[]>>({});
+
+  const workstationsQuery = useQuery({
+    queryKey: qcBusinessQueryKeys.workstations(1, 200, ''),
+    queryFn: async () => {
+      const res = await getWorkstationsApi({ pageNum: 1, pageSize: 200 });
+      const list = res.data?.list ?? [];
+      return list.map(mapWorkstationVoToWorkstation);
+    },
+  });
+
+  const workstations = useMemo(() => workstationsQuery.data ?? [], [workstationsQuery.data]);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    getWorkstationsApi({ pageNum: 1, pageSize: 200 })
-      .then((res) => {
-        if (cancelled) return;
-        const list = res.data?.list ?? [];
-        const mapped = list.map(mapWorkstationVoToWorkstation);
-        setWorkstations(mapped);
-        if (mapped.length > 0 && !mapped.some((w) => w.id === selectedWorkstationId)) {
-          setSelectedWorkstationId(mapped[0]?.id ?? '');
-        } else if (mapped.length > 0 && !selectedWorkstationId) {
-          setSelectedWorkstationId(mapped[0].id);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setWorkstations([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (workstations.length === 0) {
+      return;
+    }
+
+    if (!selectedWorkstationId || !workstations.some((item) => item.id === selectedWorkstationId)) {
+      setSelectedWorkstationId(workstations[0].id);
+    }
+  }, [selectedWorkstationId, workstations]);
 
   const selectedWorkstation = useMemo(
     () => workstations.find((item) => item.id === selectedWorkstationId) ?? workstations[0],
     [selectedWorkstationId, workstations],
   );
 
+  const stationPositionsQuery = useQuery({
+    queryKey: qcBusinessQueryKeys.stationPositions(selectedWorkstationId, 1, 100),
+    enabled: Boolean(selectedWorkstationId),
+    queryFn: async () => {
+      const res = await getStationPositionsApi({ workstationId: selectedWorkstationId, pageNum: 1, pageSize: 100 });
+      return (res.data?.list ?? []).map(mapPositionToStationRecord);
+    },
+  });
+
+  const queriedStationList = useMemo(() => {
+    const list = stationPositionsQuery.data ?? [];
+    if (list.length > 0) {
+      return list;
+    }
+    return buildFallbackStations(selectedWorkstation);
+  }, [selectedWorkstation, stationPositionsQuery.data]);
+
   useEffect(() => {
-    if (!selectedWorkstationId) return;
-    let cancelled = false;
-    setPositionsLoading(true);
-    getStationPositionsApi({ workstationId: selectedWorkstationId, pageNum: 1, pageSize: 100 })
-      .then((res) => {
-        if (cancelled) return;
-        const list = res.data?.list ?? [];
-        if (list.length > 0) {
-          const records = list.map(mapPositionToStationRecord);
-          setStationMap((prev) => ({ ...prev, [selectedWorkstationId]: records }));
-        } else {
-          const ws = workstations.find((w) => w.id === selectedWorkstationId);
-          if (ws?.stationList?.length) {
-            const fallback = ws.stationList.map((code, index) => ({
-              id: `${ws.id}-${code}`,
-              code,
-              enabled: true,
-              rank: index + 1,
-              inspectionCount: 0,
-            }));
-            setStationMap((prev) => ({ ...prev, [selectedWorkstationId]: fallback }));
-          }
-        }
-      })
-      .catch(() => {
-        if (!cancelled && selectedWorkstation) {
-          const fallback = (selectedWorkstation.stationList ?? []).map((code, index) => ({
-            id: `${selectedWorkstation.id}-${code}`,
-            code,
-            enabled: true,
-            rank: index + 1,
-            inspectionCount: 0,
-          }));
-          setStationMap((prev) => ({ ...prev, [selectedWorkstationId]: fallback }));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setPositionsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedWorkstationId, workstations, selectedWorkstation]);
+    if (!selectedWorkstationId) {
+      return;
+    }
+
+    setStationCacheMap((prev) => ({
+      ...prev,
+      [selectedWorkstationId]: queriedStationList,
+    }));
+  }, [queriedStationList, selectedWorkstationId]);
+
+  const stationList = useMemo(() => {
+    if (!selectedWorkstationId) {
+      return [];
+    }
+
+    return stationOverrideMap[selectedWorkstationId] ?? stationCacheMap[selectedWorkstationId] ?? queriedStationList;
+  }, [queriedStationList, selectedWorkstationId, stationCacheMap, stationOverrideMap]);
+
+  const getStationsByWorkstationId = useCallback(
+    (workstationId: string): StationRecord[] => {
+      const workstation = workstations.find((item) => item.id === workstationId);
+      return (
+        stationOverrideMap[workstationId] ??
+        stationCacheMap[workstationId] ??
+        (workstation ? buildFallbackStations(workstation) : [])
+      );
+    },
+    [stationCacheMap, stationOverrideMap, workstations],
+  );
 
   const workstationSummary = useMemo<WorkstationSummary>(() => {
     if (!selectedWorkstation) {
       return { inspectionTotal: 0, avgInspectionDuration: 0, stationCount: 0 };
     }
-    const stations = stationMap[selectedWorkstation.id] ?? [];
+
+    const stations = getStationsByWorkstationId(selectedWorkstation.id);
     const inspectionTotal = stations.reduce((total, item) => total + item.inspectionCount, 0);
-    const durationBase = selectedWorkstation.status === 'running' ? 7.2 : selectedWorkstation.status === 'maintenance' ? 9.1 : 8.4;
+    const durationBase =
+      selectedWorkstation.status === 'running'
+        ? 7.2
+        : selectedWorkstation.status === 'maintenance'
+          ? 9.1
+          : 8.4;
+
     return {
       inspectionTotal,
       avgInspectionDuration: Number((durationBase + (selectedWorkstation.inspectionStationCount || 0) * 0.35).toFixed(1)),
       stationCount: stations.length,
     };
-  }, [selectedWorkstation, stationMap]);
+  }, [getStationsByWorkstationId, selectedWorkstation]);
 
   const workstationRank = useMemo(() => {
     if (!selectedWorkstation) return 0;
+
     const ordered = [...workstations].sort((a, b) => {
-      const totalA = (stationMap[a.id] ?? []).reduce((t, item) => t + item.inspectionCount, 0);
-      const totalB = (stationMap[b.id] ?? []).reduce((t, item) => t + item.inspectionCount, 0);
+      const totalA = getStationsByWorkstationId(a.id).reduce((t, item) => t + item.inspectionCount, 0);
+      const totalB = getStationsByWorkstationId(b.id).reduce((t, item) => t + item.inspectionCount, 0);
       return totalB - totalA;
     });
+
     const idx = ordered.findIndex((item) => item.id === selectedWorkstation.id);
     return idx >= 0 ? idx + 1 : 0;
-  }, [selectedWorkstation, stationMap, workstations]);
-
-  const stationList = useMemo(
-    () => (selectedWorkstation ? stationMap[selectedWorkstation.id] ?? [] : []),
-    [selectedWorkstation, stationMap],
-  );
+  }, [getStationsByWorkstationId, selectedWorkstation, workstations]);
 
   const toggleStationEnabled = useCallback(
     (stationId: string) => {
-      if (!selectedWorkstation) return;
-      const current = stationMap[selectedWorkstation.id] ?? [];
-      const record = current.find((r) => r.id === stationId);
-      const nextEnabled = record ? !record.enabled : true;
-      setStationMap((prev) => ({
+      if (!selectedWorkstationId) return;
+
+      const currentStations = getStationsByWorkstationId(selectedWorkstationId);
+      const target = currentStations.find((item) => item.id === stationId);
+      const nextEnabled = target ? !target.enabled : true;
+
+      setStationOverrideMap((prev) => ({
         ...prev,
-        [selectedWorkstation.id]: current.map((item) =>
+        [selectedWorkstationId]: currentStations.map((item) =>
           item.id === stationId ? { ...item, enabled: nextEnabled } : item,
         ),
       }));
-      // 后端无 station-positions 的 PUT 接口，仅本地状态切换
+      // Backend currently has no station-positions toggle endpoint; keep local switch for now.
     },
-    [selectedWorkstation, stationMap],
+    [getStationsByWorkstationId, selectedWorkstationId],
   );
 
   return {
     workstations,
-    loading,
-    positionsLoading,
+    loading: workstationsQuery.isLoading || workstationsQuery.isFetching,
+    positionsLoading: stationPositionsQuery.isLoading || stationPositionsQuery.isFetching,
     selectedWorkstation,
     selectedWorkstationId,
     setSelectedWorkstationId,
@@ -192,3 +210,6 @@ export function useWorkstationManage() {
     toggleStationEnabled,
   };
 }
+
+
+

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   changePasswordApi,
   createUserApi,
@@ -8,6 +9,7 @@ import {
   updateUserRolesApi,
 } from '../../shared/api/userApi';
 import { getRoleListApi } from '../../shared/api/roleApi';
+import { roleQueryKeys, userQueryKeys } from '../../shared/api/queryKeys';
 import type { UserManageRecord, UserStatus } from '../../shared/types/deployConfig';
 
 export interface UserManageFormValues {
@@ -42,36 +44,32 @@ function mapListItemToRecord(item: {
 }
 
 export function useUserManage() {
-  const [list, setList] = useState<UserManageRecord[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
 
-  const [roleOptions, setRoleOptions] = useState<{ label: string; value: string }[]>([]);
-
-  /** 角色 code -> 角色名称（用于用户列表「所属角色」列显示角色管理里的名称，并过滤 Keycloak 默认 realm 角色） */
-  const roleCodeToName = useMemo(
-    () => Object.fromEntries(roleOptions.map((o) => [o.value, o.label])),
-    [roleOptions],
-  );
-
-  const fetchRoles = useCallback(async () => {
-    try {
+  const rolesQuery = useQuery({
+    queryKey: roleQueryKeys.list(''),
+    queryFn: async () => {
       const res = await getRoleListApi();
       const roles = res.data ?? [];
-      setRoleOptions(roles.map((r) => ({ label: r.name, value: r.code })));
-    } catch {
-      setRoleOptions([]);
-    }
-  }, []);
+      return roles.map((r) => ({ label: r.name, value: r.code }));
+    },
+  });
 
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    try {
+  const usersQuery = useQuery({
+    queryKey: userQueryKeys.list({
+      page,
+      pageSize,
+      keyword: keyword.trim(),
+      role: roleFilter,
+      status: statusFilter,
+    }),
+    queryFn: async () => {
       const res = await getUserListApi({
         pageNum: page,
         pageSize,
@@ -79,36 +77,16 @@ export function useUserManage() {
         role: roleFilter,
         status: statusFilter,
       });
-      const data = res.data;
-      if (data) {
-        setList((data.list ?? []).map(mapListItemToRecord));
-        setTotal(data.total ?? 0);
-      } else {
-        setList([]);
-        setTotal(0);
-      }
-    } catch {
-      setList([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize, keyword, roleFilter, statusFilter]);
+      return res.data;
+    },
+  });
 
-  useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
-
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
-
-  const createRecord = useCallback(
-    async (payload: UserManageFormValues) => {
+  const createMutation = useMutation({
+    mutationFn: async (payload: UserManageFormValues) => {
       if (!payload.password) {
         throw new Error('新建用户需填写密码');
       }
-      await createUserApi({
+      return createUserApi({
         code: payload.code,
         name: payload.name,
         phone: payload.phone || undefined,
@@ -117,59 +95,74 @@ export function useUserManage() {
         roles: payload.roles,
         password: payload.password,
       });
-      await fetchList();
-      await fetchRoles();
     },
-    [fetchList, fetchRoles],
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: roleQueryKeys.all });
+    },
+  });
 
-  const updateRecord = useCallback(
-    async (payload: UserManageFormValues) => {
-      await updateUserApi(payload.code, {
+  const updateMutation = useMutation({
+    mutationFn: (payload: UserManageFormValues) =>
+      updateUserApi(payload.code, {
         name: payload.name,
         phone: payload.phone || undefined,
         email: payload.email || undefined,
         status: payload.status,
         roles: payload.roles,
-      });
-      await fetchList();
-    },
-    [fetchList],
-  );
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: userQueryKeys.all }),
+  });
 
-  const removeRecord = useCallback(
-    async (code: string) => {
-      await deleteUserApi(code);
-      await fetchList();
-    },
-    [fetchList],
-  );
+  const removeMutation = useMutation({
+    mutationFn: (code: string) => deleteUserApi(code),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: userQueryKeys.all }),
+  });
 
-  const updateRoles = useCallback(
-    async (code: string, roles: string[]) => {
-      await updateUserRolesApi(code, roles);
-      await fetchList();
-    },
-    [fetchList],
-  );
+  const updateRolesMutation = useMutation({
+    mutationFn: ({ code, roles }: { code: string; roles: string[] }) => updateUserRolesApi(code, roles),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: userQueryKeys.all }),
+  });
 
-  const changePassword = useCallback(async (code: string, oldPassword: string, newPassword: string) => {
+  const createRecord = async (payload: UserManageFormValues) => {
+    await createMutation.mutateAsync(payload);
+  };
+
+  const updateRecord = async (payload: UserManageFormValues) => {
+    await updateMutation.mutateAsync(payload);
+  };
+
+  const removeRecord = async (code: string) => {
+    await removeMutation.mutateAsync(code);
+  };
+
+  const updateRoles = async (code: string, roles: string[]) => {
+    await updateRolesMutation.mutateAsync({ code, roles });
+  };
+
+  const changePassword = async (code: string, oldPassword: string, newPassword: string) => {
     const res = await changePasswordApi(code, oldPassword, newPassword);
     const data = res.data;
     if (data?.success === false) {
       return { success: false as const, error: (data?.error ?? 'unknown') as string };
     }
     return { success: true as const };
-  }, []);
+  };
 
-  const filteredList = list;
-  const records = list;
+  const records = (usersQuery.data?.list ?? []).map(mapListItemToRecord);
+  const total = usersQuery.data?.total ?? 0;
+  const roleOptions = useMemo(() => rolesQuery.data ?? [], [rolesQuery.data]);
+
+  const roleCodeToName = useMemo(
+    () => Object.fromEntries(roleOptions.map((o) => [o.value, o.label])),
+    [roleOptions],
+  );
 
   return {
     records,
-    filteredList,
+    filteredList: records,
     total,
-    loading,
+    loading: usersQuery.isLoading || usersQuery.isFetching,
     keyword,
     setKeyword,
     page,
@@ -187,6 +180,6 @@ export function useUserManage() {
     removeRecord,
     updateRoles,
     changePassword,
-    refreshList: fetchList,
+    refreshList: usersQuery.refetch,
   };
 }

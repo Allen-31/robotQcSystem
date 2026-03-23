@@ -1,4 +1,4 @@
-import { BellOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+﻿import { BellOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { Badge, Button, Dropdown, Grid, Menu, Select, Space, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -11,22 +11,46 @@ import { getNotifications, seedMockNotifications, subscribeNotifications, type N
 import { useCurrentRole } from '../../logic/deployConfig/useCurrentRole';
 import { filterMenuTreeByRole, filterTopMenusByRole } from '../../logic/menu/menuPermission';
 import { findFirstLeafPathByCode } from '../../logic/menu/menuRoute';
+import { useRealtimeStore } from '../../store/realtimeStore';
 
 export function TopNavigation() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { t, locale, setLocale } = useI18n();
   const currentUser = useAuthUser();
-  const { currentRole, permissionVersion } = useCurrentRole();
+  const { currentRole } = useCurrentRole();
   const screens = Grid.useBreakpoint();
   const isLaptop = !screens.xxl;
   const isTight = !screens.xl;
-  const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole, permissionVersion]);
-  const visibleTopMenus = useMemo(() => filterTopMenusByRole(topMenus, currentRole), [currentRole, permissionVersion]);
+  const visibleMenuTree = useMemo(() => filterMenuTreeByRole(menuList, currentRole), [currentRole]);
+  const visibleTopMenus = useMemo(() => filterTopMenusByRole(topMenus, currentRole), [currentRole]);
 
   const selectedKey = visibleTopMenus.find((item) => pathname === item.basePath || pathname.startsWith(`${item.basePath}/`))?.key;
 
   const [notifications, setNotificationsState] = useState<NotificationItem[]>(getNotifications);
+  const realtimeStatus = useRealtimeStore((state) => state.status);
+  const realtimeRetryCount = useRealtimeStore((state) => state.retryCount);
+
+  const realtimeStatusColor =
+    realtimeStatus === 'connected'
+      ? '#52c41a'
+      : realtimeStatus === 'reconnecting'
+        ? '#faad14'
+        : realtimeStatus === 'connecting'
+          ? '#1677ff'
+          : '#ff4d4f';
+
+  const realtimeStatusText =
+    realtimeStatus === 'connected'
+      ? 'Connected'
+      : realtimeStatus === 'reconnecting'
+        ? 'Reconnecting'
+        : realtimeStatus === 'connecting'
+          ? 'Connecting'
+          : realtimeStatus === 'idle'
+            ? 'Idle'
+            : 'Disconnected';
+
   useEffect(() => {
     seedMockNotifications();
     setNotificationsState(getNotifications());
@@ -37,7 +61,7 @@ export function TopNavigation() {
   const notificationMenuItems = useMemo(
     () =>
       notifications.length === 0
-        ? [{ key: 'empty', label: locale === 'en-US' ? 'No notifications' : '暂无提醒', disabled: true }]
+        ? [{ key: 'empty', label: locale === 'en-US' ? 'No notifications' : '鏆傛棤鎻愰啋', disabled: true }]
         : notifications.map((item) => ({
             key: item.id,
             label: (
@@ -107,6 +131,12 @@ export function TopNavigation() {
       </div>
 
       <Space size={isLaptop ? 8 : 12} style={{ color: '#fff', marginLeft: 8, minWidth: isTight ? 240 : 420, justifyContent: 'flex-end' }}>
+        <Space size={6} style={{ display: isTight ? 'none' : 'inline-flex', alignItems: 'center' }}>
+          <Badge color={realtimeStatusColor} />
+          <Typography.Text style={{ color: '#fff' }}>
+            {`RT ${realtimeStatusText}${realtimeStatus === 'reconnecting' ? ` (${realtimeRetryCount})` : ''}`}
+          </Typography.Text>
+        </Space>
         <Dropdown menu={{ items: notificationMenuItems }} trigger={['click']} placement="bottomRight">
           <Badge count={notifications.length} size="small" offset={[-2, 2]}>
             <Button type="text" size="middle" icon={<BellOutlined style={{ color: '#fff', fontSize: 18 }} />} />
@@ -126,7 +156,7 @@ export function TopNavigation() {
           />
         </Space>
         <Space size={6} style={{ display: isTight ? 'none' : 'inline-flex' }}>
-          <Typography.Text style={{ color: '#fff' }}>{t('app.role')}：{currentRole}</Typography.Text>
+          <Typography.Text style={{ color: '#fff' }}>{t('app.role')}: {currentRole}</Typography.Text>
         </Space>
         <Space size={6}>
           <UserOutlined />
@@ -146,3 +176,4 @@ export function TopNavigation() {
     </div>
   );
 }
+

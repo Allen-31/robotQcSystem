@@ -1,6 +1,7 @@
 /**
- * 质检业务 - 严格按后端接口清单 /api/qc
- * 工单、质检记录、复检记录
+ * QC Business APIs
+ * Backend prefix: /api/qc
+ * Covers work orders, quality records and reinspection records.
  */
 import { del, get, post, put } from './client';
 import type { PageData } from './client';
@@ -9,7 +10,7 @@ export type WorkOrderStatus = 'pending' | 'running' | 'paused' | 'finished' | 'n
 export type QualityResult = 'ok' | 'ng' | 'pending';
 
 export interface WorkOrderVO {
-  /** 主键（Snowflake Long），路径操作用 */
+  /** Primary key (Snowflake Long), used in path operations */
   id: number;
   workOrderNo: string;
   harnessCode: string;
@@ -40,12 +41,12 @@ export interface WorkOrderListParams {
   pageSize?: number;
 }
 
-/** GET /api/qc/work-orders 工单列表 */
+/** GET /api/qc/work-orders */
 export function getWorkOrderListApi(params?: WorkOrderListParams) {
   return get<PageData<WorkOrderVO>>('qc/work-orders', params as Record<string, string | number | undefined>);
 }
 
-/** GET /api/qc/work-orders/{id} 工单详情，id 为主键（number） */
+/** GET /api/qc/work-orders/{id} */
 export function getWorkOrderDetailApi(id: number) {
   return get<WorkOrderVO>(`qc/work-orders/${id}`);
 }
@@ -66,11 +67,10 @@ export interface WorkOrderCreateBody {
   defectDescription?: string;
 }
 
-/** POST /api/qc/work-orders Create work order */
+/** POST /api/qc/work-orders */
 export function createWorkOrderApi(body: WorkOrderCreateBody) {
   return post<WorkOrderVO | { id: number } | null>('qc/work-orders', body);
 }
-
 
 export interface WorkOrderUpdateBody {
   harnessCode?: string;
@@ -87,7 +87,7 @@ export interface WorkOrderUpdateBody {
   defectDescription?: string;
 }
 
-/** PUT /api/qc/work-orders/{id} 更新工单，id 为主键（number） */
+/** PUT /api/qc/work-orders/{id} */
 export function updateWorkOrderApi(id: number, body: WorkOrderUpdateBody) {
   return put<null>(`qc/work-orders/${id}`, body);
 }
@@ -98,34 +98,34 @@ export interface WorkOrderReviewBody {
   defectDescription?: string;
 }
 
-/** POST /api/qc/work-orders/{id}/review 工单复检，id 为主键（number） */
+/** POST /api/qc/work-orders/{id}/review */
 export function reviewWorkOrderApi(id: number, body: WorkOrderReviewBody) {
   return post<null>(`qc/work-orders/${id}/review`, body);
 }
 
-/** POST /api/qc/work-orders/{id}/pause 暂停工单 */
+/** POST /api/qc/work-orders/{id}/pause */
 export function pauseWorkOrderApi(id: number) {
   return post<null>(`qc/work-orders/${id}/pause`);
 }
 
-/** POST /api/qc/work-orders/{id}/resume 恢复工单 */
+/** POST /api/qc/work-orders/{id}/resume */
 export function resumeWorkOrderApi(id: number) {
   return post<null>(`qc/work-orders/${id}/resume`);
 }
 
-/** POST /api/qc/work-orders/{id}/cancel 取消工单 */
+/** POST /api/qc/work-orders/{id}/cancel */
 export function cancelWorkOrderApi(id: number) {
   return post<null>(`qc/work-orders/${id}/cancel`);
 }
 
-/** DELETE /api/qc/work-orders/{id} 删除工单 */
+/** DELETE /api/qc/work-orders/{id} */
 export function deleteWorkOrderApi(id: number) {
   return del<null>(`qc/work-orders/${id}`);
 }
 
-// ---------- 2.4 质检记录 /api/qc/quality-records ----------
+// ---------- quality-records /api/qc/quality-records ----------
 
-export interface QualityRecordVO extends WorkOrderVO {}
+export type QualityRecordVO = WorkOrderVO;
 
 export interface QualityRecordListParams {
   keyword?: string;
@@ -134,17 +134,20 @@ export interface QualityRecordListParams {
   pageSize?: number;
 }
 
-/** GET /api/qc/quality-records 质检记录列表 */
+/** GET /api/qc/quality-records */
 export function getQualityRecordListApi(params?: QualityRecordListParams) {
   return get<PageData<QualityRecordVO>>('qc/quality-records', params as Record<string, string | number | undefined>);
 }
 
-/** GET /api/qc/quality-records/{id} 详情，id 为主键（number） */
+/** GET /api/qc/quality-records/{id} */
 export function getQualityRecordDetailApi(id: number) {
   return get<QualityRecordVO>(`qc/quality-records/${id}`);
 }
 
-/** 将工单/质检记录 VO 转为前端展示用（含默认 '-'），id 保持 number 供路径操作使用 */
+/**
+ * Map work-order/quality-record VO to page item with safe fallbacks.
+ * Keep numeric id unchanged for route operations.
+ */
 export function mapWorkOrderVoToItem(vo: WorkOrderVO): {
   id: number;
   workOrderNo: string;
@@ -181,12 +184,12 @@ export function mapWorkOrderVoToItem(vo: WorkOrderVO): {
   };
 }
 
-// ---------- 2.5 复检记录 /api/qc/reinspection-records ----------
+// ---------- reinspection-records /api/qc/reinspection-records ----------
 
 export type ReinspectionResult = 'ok' | 'ng' | 'pending';
 
 export interface ReinspectionRecordVO {
-  /** 主键（Snowflake Long） */
+  /** Primary key (Snowflake Long) */
   id: number;
   reinspectionNo: string;
   workOrderNo: string;
@@ -212,7 +215,7 @@ export interface ReinspectionListParams {
   pageSize?: number;
 }
 
-/** GET /api/qc/reinspection-records 复检记录列表 */
+/** GET /api/qc/reinspection-records */
 export function getReinspectionListApi(params?: ReinspectionListParams) {
   return get<PageData<ReinspectionRecordVO>>('qc/reinspection-records', params as Record<string, string | number | undefined>);
 }

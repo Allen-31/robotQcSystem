@@ -1,15 +1,13 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Input, Modal, Row, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { useActionTemplateManage, type ActionTemplateFormValues, type ActionTemplateRecord } from '../../../logic/deployConfig/useActionTemplateManage';
 
 export function ActionTemplatePage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<ActionTemplateFormValues>();
   const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleEnabled } = useActionTemplateManage();
@@ -212,3 +210,4 @@ export function ActionTemplatePage() {
     </Space>
   );
 }
+

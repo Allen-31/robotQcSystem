@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createRoleApi,
   deleteRoleApi,
   getRoleListApi,
   updateRoleApi,
 } from '../../shared/api/roleApi';
+import { roleQueryKeys } from '../../shared/api/queryKeys';
 import type { RoleManageRecord } from '../../shared/types/deployConfig';
 
 export interface RoleManageFormValues {
@@ -31,90 +33,86 @@ function mapToRecord(item: {
 }
 
 export function useRoleManage() {
-  const [list, setList] = useState<RoleManageRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const queryClient = useQueryClient();
 
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    try {
+  const listQuery = useQuery({
+    queryKey: roleQueryKeys.list(keyword.trim()),
+    queryFn: async () => {
       const res = await getRoleListApi(keyword.trim() || undefined);
       const data = res.data;
-      setList(Array.isArray(data) ? data.map(mapToRecord) : []);
-    } catch {
-      setList([]);
-    } finally {
-      setLoading(false);
+      return Array.isArray(data) ? data.map(mapToRecord) : [];
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: RoleManageFormValues) =>
+      createRoleApi({
+        code: payload.code,
+        name: payload.name,
+        description: payload.description,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: roleQueryKeys.all }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: RoleManageFormValues) =>
+      updateRoleApi(payload.code, {
+        name: payload.name,
+        description: payload.description,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: roleQueryKeys.all }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (code: string) => deleteRoleApi(code),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: roleQueryKeys.all }),
+  });
+
+  const createRole = async (payload: RoleManageFormValues) => {
+    try {
+      await createMutation.mutateAsync(payload);
+      return { success: true as const };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      return { success: false as const, error: 'duplicate' as const, message: msg };
     }
-  }, [keyword]);
+  };
 
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
+  const updateRole = async (payload: RoleManageFormValues) => {
+    try {
+      await updateMutation.mutateAsync(payload);
+      return { success: true as const };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      return { success: false as const, error: 'duplicate' as const, message: msg };
+    }
+  };
 
-  const filteredList = useMemo(() => list, [list]);
-
-  const createRole = useCallback(
-    async (payload: RoleManageFormValues) => {
-      try {
-        await createRoleApi({
-          code: payload.code,
-          name: payload.name,
-          description: payload.description,
-        });
-        await fetchList();
-        return { success: true as const };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        return { success: false as const, error: 'duplicate' as const, message: msg };
+  const removeRole = async (code: string) => {
+    try {
+      await removeMutation.mutateAsync(code);
+      return { success: true as const };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      if (msg.includes('至少') || msg.includes('last') || msg.includes('保留')) {
+        return { success: false as const, error: 'last_role' as const, message: msg };
       }
-    },
-    [fetchList],
-  );
+      return { success: false as const, error: 'not_found' as const, message: msg };
+    }
+  };
 
-  const updateRole = useCallback(
-    async (payload: RoleManageFormValues) => {
-      try {
-        await updateRoleApi(payload.code, {
-          name: payload.name,
-          description: payload.description,
-        });
-        await fetchList();
-        return { success: true as const };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        return { success: false as const, error: 'duplicate' as const, message: msg };
-      }
-    },
-    [fetchList],
-  );
-
-  const removeRole = useCallback(
-    async (code: string) => {
-      try {
-        await deleteRoleApi(code);
-        await fetchList();
-        return { success: true as const };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        if (msg.includes('至少') || msg.includes('last') || msg.includes('保留')) {
-          return { success: false as const, error: 'last_role' as const, message: msg };
-        }
-        return { success: false as const, error: 'not_found' as const, message: msg };
-      }
-    },
-    [fetchList],
-  );
+  const records = listQuery.data ?? [];
 
   return {
-    records: list,
-    filteredList,
-    loading,
+    records,
+    filteredList: records,
+    loading: listQuery.isLoading || listQuery.isFetching,
     keyword,
     setKeyword,
     createRole,
     updateRole,
     removeRole,
-    refreshList: fetchList,
+    refreshList: listQuery.refetch,
   };
 }

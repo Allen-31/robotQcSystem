@@ -1,4 +1,4 @@
-import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
+﻿import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -31,7 +31,7 @@ export function ApiLogPage() {
       return apiLogList;
     }
     return apiLogList.filter((item) => `${item.apiName} ${item.callResult} ${item.requestInfo} ${item.responseInfo}`.toLowerCase().includes(k));
-  }, [keyword]);
+  }, [apiLogList, keyword]);
 
   const columns: ColumnsType<ApiLogRecord> = [
     { title: t('op.api.table.apiName'), dataIndex: 'apiName', key: 'apiName', width: 240 },
@@ -77,3 +77,4 @@ export function ApiLogPage() {
     </Space>
   );
 }
+

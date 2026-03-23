@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createWireHarnessTypeConfigApi,
   deleteWireHarnessTypeConfigApi,
   getWireHarnessTypeConfigListApi,
   updateWireHarnessTypeConfigApi,
 } from '../../shared/api/qcConfigApi';
+import { qcConfigQueryKeys } from '../../shared/api/queryKeys';
 import type { WireHarnessTypeConfig } from '../../shared/types/qcConfig';
 
 export type WireHarnessTypePayload = WireHarnessTypeConfig;
@@ -16,54 +18,77 @@ function normalizeList<T>(data: unknown): T[] {
 }
 
 export function useWireHarnessType() {
-  const [records, setRecords] = useState<WireHarnessTypeConfig[]>([]);
+  const queryClient = useQueryClient();
   const [keyword, setKeyword] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    try {
+  const listQuery = useQuery({
+    queryKey: qcConfigQueryKeys.wireHarnessTypes,
+    queryFn: async () => {
       const res = await getWireHarnessTypeConfigListApi();
-      const list = normalizeList<WireHarnessTypeConfig>(res.data);
-      setRecords(list);
-    } catch {
-      setRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return normalizeList<WireHarnessTypeConfig>(res.data);
+    },
+  });
 
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
+  const createMutation = useMutation({
+    mutationFn: createWireHarnessTypeConfigApi,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcConfigQueryKeys.all }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: Partial<WireHarnessTypeConfig> }) =>
+      updateWireHarnessTypeConfigApi(id, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcConfigQueryKeys.all }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number | string) => deleteWireHarnessTypeConfigApi(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qcConfigQueryKeys.all }),
+  });
+
+  const records = useMemo(() => listQuery.data ?? [], [listQuery.data]);
 
   const filteredList = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
     if (!normalized) return records;
     return records.filter((item) =>
-      `${item.id} ${item.name} ${item.project ?? ''} ${item.taskType} ${item.planarStructureFile} ${item.threeDStructureFile}`.toLowerCase().includes(normalized),
+      `${item.id} ${item.name} ${item.project ?? ''} ${item.taskType} ${item.planarStructureFile} ${item.threeDStructureFile}`
+        .toLowerCase()
+        .includes(normalized),
     );
   }, [keyword, records]);
 
-  const createRecord = useCallback(async (payload: WireHarnessTypePayload) => {
-    await createWireHarnessTypeConfigApi(payload);
-    await fetchList();
-  }, [fetchList]);
+  const fetchList = useCallback(async () => {
+    await listQuery.refetch();
+  }, [listQuery]);
 
-  const updateRecord = useCallback(async (payload: WireHarnessTypePayload) => {
-    await updateWireHarnessTypeConfigApi(payload.id, payload);
-    setRecords((prev) => prev.map((item) => (String(item.id) === String(payload.id) ? payload : item)));
-  }, []);
+  const createRecord = useCallback(
+    async (payload: WireHarnessTypePayload) => {
+      await createMutation.mutateAsync(payload);
+      await fetchList();
+    },
+    [createMutation, fetchList],
+  );
 
-  const removeRecord = useCallback(async (id: number | string) => {
-    await deleteWireHarnessTypeConfigApi(id);
-    setRecords((prev) => prev.filter((item) => String(item.id) !== String(id)));
-  }, []);
+  const updateRecord = useCallback(
+    async (payload: WireHarnessTypePayload) => {
+      await updateMutation.mutateAsync({ id: payload.id, body: payload });
+      await fetchList();
+    },
+    [fetchList, updateMutation],
+  );
+
+  const removeRecord = useCallback(
+    async (id: number | string) => {
+      await deleteMutation.mutateAsync(id);
+      await fetchList();
+    },
+    [deleteMutation, fetchList],
+  );
 
   return {
     records,
     filteredList,
-    loading,
+    loading: listQuery.isLoading || listQuery.isFetching,
     keyword,
     setKeyword,
     fetchList,
@@ -72,3 +97,4 @@ export function useWireHarnessType() {
     removeRecord,
   };
 }
+

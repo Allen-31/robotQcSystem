@@ -1,4 +1,4 @@
-import {
+﻿import {
   DeleteOutlined,
   EditOutlined,
   ExclamationCircleFilled,
@@ -23,7 +23,7 @@ interface PasswordFormValues {
 }
 
 export function UserManagePage() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const { modal } = App.useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<UserManageFormValues>();
@@ -421,4 +421,5 @@ export function UserManagePage() {
     </Space>
   );
 }
+
 

@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+﻿import { DeleteOutlined, EditOutlined, ExclamationCircleFilled, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd/es/upload';
@@ -15,7 +15,7 @@ export function ChargeStrategyPage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<ChargeStrategyFormValues>();
-  const { records, filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useChargeStrategyManage(locale);
+  const { filteredList, keyword, setKeyword, createRecord, updateRecord, removeRecord, toggleStatus } = useChargeStrategyManage(locale);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ChargeStrategyRecord | null>(null);
   const robotTypeOptions = useMemo(
@@ -284,3 +284,4 @@ export function ChargeStrategyPage() {
     </Space>
   );
 }
+

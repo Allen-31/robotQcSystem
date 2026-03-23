@@ -2,7 +2,7 @@ import { DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, SearchOu
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { getCurrentUser } from '../../../logic/auth/authStore';
 import {
   packageManageList,
@@ -218,7 +218,7 @@ export function PackageManagePage() {
     };
   }, [locale]);
 
-  const typeText = (type: PackageType) => (type === 'cloud' ? label.typeCloud : label.typeRobot);
+  const typeText = useCallback((type: PackageType) => (type === 'cloud' ? label.typeCloud : label.typeRobot), [label.typeCloud, label.typeRobot]);
 
   const runExtract = async (file: File | null, type: PackageType | null) => {
     if (!file || !type) {
@@ -394,7 +394,7 @@ export function PackageManagePage() {
       const text = `${item.name} ${typeText(item.type)} ${partsText} ${item.description} ${item.md5} ${item.uploader} ${item.uploadedAt}`.toLowerCase();
       return text.includes(normalized);
     });
-  }, [keyword, tableData]);
+  }, [keyword, tableData, typeText]);
 
   const selectedRows = useMemo(() => {
     const keySet = new Set(selectedRowKeys.map(String));

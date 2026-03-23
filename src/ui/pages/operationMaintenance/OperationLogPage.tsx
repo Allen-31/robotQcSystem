@@ -1,4 +1,4 @@
-import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
+﻿import { ExportOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -33,7 +33,7 @@ export function OperationLogPage() {
     return operationLogList.filter((item) =>
       `${item.user} ${item.operationType} ${item.result} ${item.ip} ${item.requestInfo} ${item.responseInfo}`.toLowerCase().includes(k),
     );
-  }, [keyword]);
+  }, [keyword, operationLogList]);
 
   const columns: ColumnsType<OperationLogRecord> = [
     { title: t('op.operation.table.user'), dataIndex: 'user', key: 'user', width: 120 },
@@ -81,3 +81,4 @@ export function OperationLogPage() {
     </Space>
   );
 }
+

@@ -1,6 +1,6 @@
 export interface WorkstationConfig {
-  /** 主键（Snowflake Long），更新/删除时用 */
-  id: number;
+  /** Primary key (Snowflake Long), used by update/delete APIs */
+  id: number | string;
   name: string;
   workshopCode: string;
   wireHarnessType: string;
@@ -19,7 +19,7 @@ export interface StationConfig {
 }
 
 export interface WireHarnessTypeConfig {
-  /** 主键（Snowflake Long），更新/删除时用；本地 mock 可为 string */
+  /** Primary key (Snowflake Long), local mock can use string */
   id: number | string;
   name: string;
   project?: string;
@@ -29,11 +29,11 @@ export interface WireHarnessTypeConfig {
 }
 
 export interface TerminalConfig {
-  /** 主键（Snowflake Long），后端自动生成；建议后端以 string 返回避免 JS 大数精度丢失，更新/删除时用 */
+  /** Primary key (Snowflake Long), backend should return string to avoid JS precision loss */
   id: number | string;
-  /** 编码，对应数据库 code，用户填写 */
+  /** Business code */
   code: string;
-  /** SN 号 */
+  /** Device SN */
   sn: string;
   terminalType: string;
   terminalIp: string;

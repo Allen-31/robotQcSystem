@@ -1,7 +1,7 @@
 import { FileTextOutlined, PauseCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getServiceManageList,
   type ServiceLogRecord,
@@ -103,7 +103,7 @@ export function ServiceManagePage() {
     };
   }, [locale]);
 
-  const getStatusText = (status: ServiceStatus) => {
+  const getStatusText = useCallback((status: ServiceStatus) => {
     if (status === 'running') {
       return label.statusRunning;
     }
@@ -111,7 +111,7 @@ export function ServiceManagePage() {
       return label.statusStopped;
     }
     return label.statusDegraded;
-  };
+  }, [label.statusDegraded, label.statusRunning, label.statusStopped]);
 
   const getStatusColor = (status: ServiceStatus) => {
     if (status === 'running') {
@@ -214,7 +214,7 @@ export function ServiceManagePage() {
       const text = `${item.name} ${item.type} ${item.version} ${item.ip} ${getStatusText(item.status)} ${item.status}`.toLowerCase();
       return text.includes(normalized);
     });
-  }, [keyword, serviceList]);
+  }, [getStatusText, keyword, serviceList]);
 
   const historyColumns: ColumnsType<ServiceLogRecord> = [
     { title: label.logName, dataIndex: 'logName', key: 'logName', width: 240 },

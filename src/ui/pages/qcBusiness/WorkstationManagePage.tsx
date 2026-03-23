@@ -3,7 +3,6 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   EyeOutlined,
-  PauseCircleOutlined,
   PlayCircleOutlined,
   ShopOutlined,
   StopOutlined,

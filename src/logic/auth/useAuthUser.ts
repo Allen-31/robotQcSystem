@@ -1,24 +1,21 @@
-import { useEffect, useState } from 'react';
-import { AUTH_CHANGED_EVENT, getCurrentUser } from './authStore';
+import { useEffect } from 'react';
+import { useUserStore } from '../../store/userStore';
 
 export function useAuthUser() {
-  const [user, setUser] = useState(getCurrentUser);
+  const user = useUserStore((state) => state.user);
+  const hydrateFromStorage = useUserStore((state) => state.hydrateFromStorage);
 
   useEffect(() => {
-    const refresh = () => setUser(getCurrentUser());
     const onStorage = (event: StorageEvent) => {
       if (event.key?.includes('robot-qc-auth-user')) {
-        refresh();
+        hydrateFromStorage();
       }
     };
-    window.addEventListener(AUTH_CHANGED_EVENT, refresh);
     window.addEventListener('storage', onStorage);
     return () => {
-      window.removeEventListener(AUTH_CHANGED_EVENT, refresh);
       window.removeEventListener('storage', onStorage);
     };
-  }, []);
+  }, [hydrateFromStorage]);
 
   return user;
 }
-

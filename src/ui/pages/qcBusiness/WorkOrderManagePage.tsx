@@ -1,4 +1,4 @@
-import { DeleteOutlined, ExclamationCircleFilled, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
+﻿import { DeleteOutlined, ExclamationCircleFilled, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import { wireHarnessTypeList } from '../../../data/qcConfig/wireHarnessTypeList';
 import type { QualityResult, WorkOrderStatus } from '../../../data/qcBusiness/workOrderList';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { Permission } from '../../../components/auth/Permission';
 import { useWorkOrderManage, type WorkOrderItem } from '../../../logic/qcBusiness/useWorkOrderManage';
 import { loadQcWireHarnessAnnotations, type QcPoint } from '../../../shared/qcWireHarnessAnnotation';
 
@@ -44,6 +45,7 @@ const qualityColorMap: Record<QualityResult, string> = {
 
 const statusOptions: WorkOrderStatus[] = ['pending', 'running', 'paused', 'finished', 'ng', 'cancelled'];
 const qualityOptions: QualityResult[] = ['ok', 'ng', 'pending'];
+const WORK_ORDER_MENU_KEY = '/qualityInspection/workOrderManage';
 
 const normalizeStatus = (value?: string): WorkOrderStatus =>
   value && statusOptions.includes(value as WorkOrderStatus) ? (value as WorkOrderStatus) : 'pending';
@@ -261,7 +263,7 @@ function resolveWireHarnessId(harnessType: string): string | null {
   if (explicitId && wireHarnessTypeList.some((item) => String(item.id).toUpperCase() === explicitId)) {
     return explicitId;
   }
-  const suffix = normalized.match(/[-－]([ABC])$/i)?.[1]?.toUpperCase();
+  const suffix = normalized.match(/[-\uFF0D]([ABC])$/i)?.[1]?.toUpperCase();
   if (suffix === 'A') {
     const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-001');
     return found != null ? String(found.id) : null;
@@ -278,15 +280,15 @@ function resolveWireHarnessId(harnessType: string): string | null {
   if (exact) {
     return String(exact.id);
   }
-  if (harnessType.includes('主驱') || harnessType.includes('-A')) {
+  if (harnessType.includes('\u4E3B\u9A71') || harnessType.includes('-A')) {
     const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-001');
     return found != null ? String(found.id) : null;
   }
-  if (harnessType.includes('控制') || harnessType.includes('-B')) {
+  if (harnessType.includes('\u63A7\u5236') || harnessType.includes('-B')) {
     const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-002');
     return found != null ? String(found.id) : null;
   }
-  if (harnessType.includes('高压') || harnessType.includes('-C')) {
+  if (harnessType.includes('\u9AD8\u538B') || harnessType.includes('-C')) {
     const found = wireHarnessTypeList.find((item) => String(item.id) === 'WH-003');
     return found != null ? String(found.id) : null;
   }
@@ -348,7 +350,6 @@ export function WorkOrderManagePage() {
     setPage,
     pageSize,
     setPageSize,
-    fetchList,
     harnessTypeOptions,
     stationCodeOptions,
     defectTypeOptions,
@@ -358,9 +359,7 @@ export function WorkOrderManagePage() {
     editingWorkOrder,
     openDetail,
     closeDetail,
-    openEdit,
     closeEdit,
-    reviewWorkOrder,
     pauseWorkOrder,
     resumeWorkOrder,
     cancelWorkOrder,
@@ -419,7 +418,7 @@ export function WorkOrderManagePage() {
     const seq = String(rawWorkOrders.length + 1).padStart(3, '0');
     return `HB-${datePart}-${seq}`;
   };
-  const createAutoHarnessCode = useMemo(() => buildAutoHarnessCode(createHarnessType), [createHarnessType, harnessCodeOptionsByType, rawWorkOrders.length]);
+  const createAutoHarnessCode = buildAutoHarnessCode(createHarnessType);
 
   const exportSelected = () => {
     if (selectedWorkOrders.length === 0) {
@@ -595,58 +594,68 @@ export function WorkOrderManagePage() {
       fixed: 'right',
       render: (_, record) => (
         <Space size={4} wrap>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => openDetail(record)}>
-            {t('workOrder.action.review')}
-          </Button>
-          <Button
-            type="link"
-            icon={<PauseCircleOutlined />}
-            onClick={() => pauseWorkOrder(record.id).catch(() => messageApi.error(t('workOrder.actionFailed')))}
-            disabled={record.status !== 'running'}
-          >
-            {t('workOrder.action.pause')}
-          </Button>
-          <Button
-            type="link"
-            icon={<PlayCircleOutlined />}
-            onClick={() => resumeWorkOrder(record.id).catch(() => messageApi.error(t('workOrder.actionFailed')))}
-            disabled={record.status !== 'paused'}
-          >
-            {t('workOrder.action.resume')}
-          </Button>
-          <Button
-            type="link"
-            icon={<StopOutlined />}
-            onClick={() => {
-              cancelWorkOrder(record.id)
-                .then(() => messageApi.success(t('workOrder.action.cancelDone')))
-                .catch(() => messageApi.error(t('workOrder.actionFailed')));
-            }}
-            disabled={record.status === 'finished' || record.status === 'cancelled'}
-          >
-            {t('workOrder.action.cancel')}
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: t('workOrder.deleteConfirmTitle'),
-                icon: <ExclamationCircleFilled />,
-                content: record.workOrderNo,
-                okText: t('workOrder.action.delete'),
-                cancelText: t('workOrder.modal.cancel'),
-                okButtonProps: { danger: true },
-                onOk: () =>
-                  removeWorkOrder(record.id).catch(() => {
-                    messageApi.error(t('workOrder.actionFailed'));
-                  }),
-              });
-            }}
-          >
-            {t('workOrder.action.delete')}
-          </Button>
+          <Permission menuKey={WORK_ORDER_MENU_KEY} action="detail">
+            <Button type="link" icon={<EyeOutlined />} onClick={() => openDetail(record)}>
+              {t('workOrder.action.review')}
+            </Button>
+          </Permission>
+          <Permission menuKey={WORK_ORDER_MENU_KEY} action="review">
+            <Button
+              type="link"
+              icon={<PauseCircleOutlined />}
+              onClick={() => pauseWorkOrder(record.id).catch(() => messageApi.error(t('workOrder.actionFailed')))}
+              disabled={record.status !== 'running'}
+            >
+              {t('workOrder.action.pause')}
+            </Button>
+          </Permission>
+          <Permission menuKey={WORK_ORDER_MENU_KEY} action="review">
+            <Button
+              type="link"
+              icon={<PlayCircleOutlined />}
+              onClick={() => resumeWorkOrder(record.id).catch(() => messageApi.error(t('workOrder.actionFailed')))}
+              disabled={record.status !== 'paused'}
+            >
+              {t('workOrder.action.resume')}
+            </Button>
+          </Permission>
+          <Permission menuKey={WORK_ORDER_MENU_KEY} action="cancel">
+            <Button
+              type="link"
+              icon={<StopOutlined />}
+              onClick={() => {
+                cancelWorkOrder(record.id)
+                  .then(() => messageApi.success(t('workOrder.action.cancelDone')))
+                  .catch(() => messageApi.error(t('workOrder.actionFailed')));
+              }}
+              disabled={record.status === 'finished' || record.status === 'cancelled'}
+            >
+              {t('workOrder.action.cancel')}
+            </Button>
+          </Permission>
+          <Permission menuKey={WORK_ORDER_MENU_KEY} action="delete">
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                Modal.confirm({
+                  title: t('workOrder.deleteConfirmTitle'),
+                  icon: <ExclamationCircleFilled />,
+                  content: record.workOrderNo,
+                  okText: t('workOrder.action.delete'),
+                  cancelText: t('workOrder.modal.cancel'),
+                  okButtonProps: { danger: true },
+                  onOk: () =>
+                    removeWorkOrder(record.id).catch(() => {
+                      messageApi.error(t('workOrder.actionFailed'));
+                    }),
+                });
+              }}
+            >
+              {t('workOrder.action.delete')}
+            </Button>
+          </Permission>
         </Space>
       ),
     },
@@ -673,28 +682,34 @@ export function WorkOrderManagePage() {
               </Col>
               <Col xs={24} lg={14}>
                 <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      createForm.resetFields();
-                      createForm.setFieldsValue({
-                        status: 'pending',
-                        qualityResult: 'pending',
-                        harnessCode: '',
-                      });
-                      setCreateOpen(true);
-                    }}
-                  >
-                    {t('workOrder.toolbar.create')}
-                  </Button>
-                  <Button
-                    icon={<UploadOutlined />}
-                    onClick={() => importInputRef.current?.click()}
-                  >
-                    {t('workOrder.toolbar.import')}
-                  </Button>
-                  <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
+                  <Permission menuKey={WORK_ORDER_MENU_KEY} action="create">
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        createForm.resetFields();
+                        createForm.setFieldsValue({
+                          status: 'pending',
+                          qualityResult: 'pending',
+                          harnessCode: '',
+                        });
+                        setCreateOpen(true);
+                      }}
+                    >
+                      {t('workOrder.toolbar.create')}
+                    </Button>
+                  </Permission>
+                  <Permission menuKey={WORK_ORDER_MENU_KEY} action="import">
+                    <Button
+                      icon={<UploadOutlined />}
+                      onClick={() => importInputRef.current?.click()}
+                    >
+                      {t('workOrder.toolbar.import')}
+                    </Button>
+                  </Permission>
+                  <Permission menuKey={WORK_ORDER_MENU_KEY} action="export">
+                    <Button onClick={exportSelected}>{t('workOrder.toolbar.export')}</Button>
+                  </Permission>
                 </Space>
               </Col>
             </Row>
@@ -1036,3 +1051,5 @@ export function WorkOrderManagePage() {
     </Space>
   );
 }
+
+

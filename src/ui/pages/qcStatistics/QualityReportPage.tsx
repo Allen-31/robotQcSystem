@@ -1,11 +1,13 @@
-import { DownloadOutlined, FileAddOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Row, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
+﻿import { DownloadOutlined, FileAddOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Row, Select, Space , Statistic, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { qualityStatsMock, type QualityStatRecord } from '../../../data/qcStatistics/qualityStatsMock';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { getCurrentUser } from '../../../logic/auth/authStore';
 import { getQualityReportsApi } from '../../../shared/api/qualityAnalyticsApi';
+import { qualityAnalyticsQueryKeys } from '../../../shared/api/queryKeys';
 import { SimpleBarChart } from '../../components/charts/SimpleCharts';
 
 type ReportType = 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -69,7 +71,7 @@ function filterByReportType(records: QualityStatRecord[], reportType: ReportType
   });
 }
 
-const ABNORMAL_TYPES = ['接线错误', '外观异常', '工艺偏差'] as const;
+const ABNORMAL_TYPES = ['Terminal Crimp Issue', 'Wire Harness Damage', 'Label Info Error'] as const;
 
 function buildAbnormalTypeCounts(defectCount: number): Record<string, number> {
   const first = Math.round(defectCount * 0.45);
@@ -95,7 +97,7 @@ function formatTypeSummary(typeCounts: Record<string, number>, locale: string): 
     .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1])
     .map(([type, count]) => `${type}:${count}`)
-    .join(locale === 'en-US' ? ', ' : '、');
+    .join(locale === 'en-US' ? ', ' : ', ');
 }
 
 function getDimensionValue(record: QualityStatRecord, dimension: ReportDimension, locale?: string): string {
@@ -103,7 +105,7 @@ function getDimensionValue(record: QualityStatRecord, dimension: ReportDimension
     return `WO-${record.date.replace(/-/g, '')}-${record.station}`;
   }
   if (dimension === 'project') {
-    return record.project ?? (locale === 'en-US' ? 'Uncategorized' : '未分类');
+    return record.project ?? (locale === 'en-US' ? 'Uncategorized' : 'Uncategorized');
   }
   return record[dimension];
 }
@@ -145,51 +147,54 @@ function downloadPdf(
   URL.revokeObjectURL(url);
 }
 
+const defaultReportHistory: ReportRecord[] = [
+  {
+    id: 'RPT-001',
+    reportNo: 'QCR-20260304-001',
+    reportType: 'daily',
+    periodLabel: '2026-03-04',
+    dimension: 'workshop',
+    creator: 'admin',
+    createdAt: '2026-03-04 09:30:15',
+    status: 'generated',
+  },
+];
 export function QualityReportPage() {
   const { locale, t } = useI18n();
   const [messageApi, contextHolder] = message.useMessage();
   const [reportType, setReportType] = useState<ReportType>('weekly');
   const [dimension, setDimension] = useState<ReportDimension>('workshop');
   const [reportMetric, setReportMetric] = useState<ReportMetric>('inspectionCount');
-  const defaultReportHistory: ReportRecord[] = [
-    {
-      id: 'RPT-001',
-      reportNo: 'QCR-20260304-001',
-      reportType: 'daily',
-      periodLabel: '2026-03-04',
-      dimension: 'workshop',
-      creator: 'admin',
-      createdAt: '2026-03-04 09:30:15',
-      status: 'generated',
-    },
-  ];
-  const [reportHistory, setReportHistory] = useState<ReportRecord[]>(defaultReportHistory);
-  const [reportsLoading, setReportsLoading] = useState(true);
 
-  useEffect(() => {
-    getQualityReportsApi({ pageNum: 1, pageSize: 100 })
-      .then((res) => {
-        const list = res.data?.list ?? [];
-        if (list.length > 0) {
-          setReportHistory(
-            list.map((item) => ({
-              id: item.id,
-              reportNo: item.reportNo,
-              reportType: item.reportType,
-              periodLabel: item.periodLabel,
-              dimension: item.dimension as ReportDimension,
-              creator: item.creator,
-              createdAt: item.createdAt,
-              status: item.status === 'generated' ? 'generated' : 'generated',
-            })),
-          );
-        }
-      })
-      .catch(() => {})
-      .finally(() => setReportsLoading(false));
-  }, []);
+  const [generatedReports, setGeneratedReports] = useState<ReportRecord[]>([]);
 
-  const label = useMemo(() => {
+  const reportsQuery = useQuery({
+    queryKey: qualityAnalyticsQueryKeys.reports({ pageNum: 1, pageSize: 100 }),
+    queryFn: () => getQualityReportsApi({ pageNum: 1, pageSize: 100 }),
+  });
+
+  const apiReportHistory = useMemo<ReportRecord[]>(() => {
+    const list = reportsQuery.data?.data?.list ?? [];
+    return list.map((item) => ({
+      id: item.id,
+      reportNo: item.reportNo,
+      reportType: item.reportType,
+      periodLabel: item.periodLabel,
+      dimension: item.dimension as ReportDimension,
+      creator: item.creator,
+      createdAt: item.createdAt,
+      status: item.status === 'generated' ? 'generated' : 'generated',
+    }));
+  }, [reportsQuery.data?.data?.list]);
+
+  const reportHistory = useMemo(
+    () => [...generatedReports, ...(apiReportHistory.length > 0 ? apiReportHistory : defaultReportHistory)],
+    [apiReportHistory, generatedReports],
+  );
+
+  const reportsLoading = reportsQuery.isLoading || reportsQuery.isFetching;
+
+      const label = useMemo(() => {
     if (locale === 'en-US') {
       return {
         reportType: 'Report Type',
@@ -226,36 +231,36 @@ export function QualityReportPage() {
     }
 
     return {
-      reportType: '报表类型',
-      reportDimension: '统计维度',
-      daily: '日报',
-      weekly: '周报',
-      monthly: '月报',
-      custom: '自定义',
-      workshop: '车间',
-      workstation: '质检区',
-      station: '质检台',
-      wireHarness: '线束',
-      workOrder: '工单',
-      inspector: '质检员',
-      project: '项目',
-      inspectionCount: '质检数量',
-      detectionRate: '检出率',
-      reinspectionRate: '复检率',
-      falseDetectionRate: '误检率',
-      avgDuration: '平均用时',
-      avgDurationUnit: '分钟',
-      abnormalSummary: '缺陷类型/次数',
-      detailTitle: '报表明细',
-      abnormalTitle: '缺陷分析',
-      historyTitle: '报表记录',
-      createReport: '生成报表',
-      exportReport: '导出 PDF',
-      detailChartTitle: '报表维度总览',
-      actionDownload: '下载 PDF',
-      reportDownloaded: '报表下载成功',
-      reportExported: '报表明细导出成功',
-      reportGenerated: '报表生成成功',
+      reportType: 'Report Type',
+      reportDimension: 'Dimension',
+      daily: 'Daily',
+      weekly: 'Weekly',
+      monthly: 'Monthly',
+      custom: 'Custom',
+      workshop: 'Workshop',
+      workstation: 'Inspection Zone',
+      station: 'Inspection Bench',
+      wireHarness: 'Wire Harness',
+      workOrder: 'Work Order',
+      inspector: 'Inspector',
+      project: 'Project',
+      inspectionCount: 'Inspection Count',
+      detectionRate: 'Detection Rate',
+      reinspectionRate: 'Reinspection Rate',
+      falseDetectionRate: 'False Detection Rate',
+      avgDuration: 'Avg Duration',
+      avgDurationUnit: 'min',
+      abnormalSummary: 'Abnormal Type/Count',
+      detailTitle: 'Report Detail',
+      abnormalTitle: 'Abnormal Detail',
+      historyTitle: 'Report History',
+      createReport: 'Generate Report',
+      exportReport: 'Export PDF',
+      detailChartTitle: 'Report Overview by Dimension',
+      actionDownload: 'Download PDF',
+      reportDownloaded: 'Report downloaded',
+      reportExported: 'Report detail exported',
+      reportGenerated: 'Report generated',
     };
   }, [locale]);
 
@@ -351,17 +356,17 @@ export function QualityReportPage() {
     { title: label.abnormalSummary, dataIndex: 'abnormalSummary', key: 'abnormalSummary', width: 280, sorter: (a, b) => a.abnormalCount - b.abnormalCount },
   ];
 
-  const abnormalColumns: ColumnsType<AggregatedRow> = [
+      const abnormalColumns: ColumnsType<AggregatedRow> = [
     { title: dimensionTextMap[dimension], dataIndex: 'dimensionValue', key: 'dimensionValue', width: 220 },
     {
-      title: locale === 'en-US' ? 'Defect Count' : '缺陷数量',
+      title: locale === 'en-US' ? 'Defect Count' : 'Defect Count',
       dataIndex: 'defectCount',
       key: 'defectCount',
       width: 130,
       sorter: (a, b) => a.defectCount - b.defectCount,
     },
     {
-      title: locale === 'en-US' ? 'Defect Rate' : '缺陷率',
+      title: locale === 'en-US' ? 'Defect Rate' : 'Defect Rate',
       dataIndex: 'detectionRate',
       key: 'detectionRate',
       width: 130,
@@ -369,7 +374,7 @@ export function QualityReportPage() {
       render: (value: number) => `${value}%`,
     },
     {
-      title: locale === 'en-US' ? 'Top Defect Type' : '主要缺陷类型',
+      title: locale === 'en-US' ? 'Top Defect Type' : 'Top Defect Type',
       dataIndex: 'topDefectType',
       key: 'topDefectType',
       width: 170,
@@ -377,7 +382,7 @@ export function QualityReportPage() {
       render: (value: string) => <Tag color="error">{value}</Tag>,
     },
     {
-      title: locale === 'en-US' ? 'Defect Distribution' : '缺陷类型分布',
+      title: locale === 'en-US' ? 'Defect Distribution' : 'Defect Distribution',
       dataIndex: 'abnormalSummary',
       key: 'abnormalSummary',
       width: 320,
@@ -386,7 +391,7 @@ export function QualityReportPage() {
   ];
 
   const historyColumns: ColumnsType<ReportRecord> = [
-    { title: locale === 'en-US' ? 'Report No' : '报表编号', dataIndex: 'reportNo', key: 'reportNo', width: 170 },
+    { title: locale === 'en-US' ? 'Report No' : 'Report No', dataIndex: 'reportNo', key: 'reportNo', width: 170 },
     {
       title: label.reportType,
       dataIndex: 'reportType',
@@ -394,13 +399,19 @@ export function QualityReportPage() {
       width: 120,
       render: (value: ReportType) => ({ daily: label.daily, weekly: label.weekly, monthly: label.monthly, custom: label.custom })[value],
     },
-    { title: locale === 'en-US' ? 'Period' : '周期', dataIndex: 'periodLabel', key: 'periodLabel', width: 130 },
+    { title: locale === 'en-US' ? 'Period' : 'Period', dataIndex: 'periodLabel', key: 'periodLabel', width: 130 },
     { title: label.reportDimension, dataIndex: 'dimension', key: 'dimension', width: 130, render: (value: ReportDimension) => dimensionTextMap[value] },
-    { title: locale === 'en-US' ? 'Creator' : '创建人', dataIndex: 'creator', key: 'creator', width: 100 },
-    { title: locale === 'en-US' ? 'Created At' : '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-    { title: locale === 'en-US' ? 'Status' : '状态', dataIndex: 'status', key: 'status', width: 100, render: () => <Tag color="success">{locale === 'en-US' ? 'Generated' : '已生成'}</Tag> },
+    { title: locale === 'en-US' ? 'Creator' : 'Creator', dataIndex: 'creator', key: 'creator', width: 100 },
+    { title: locale === 'en-US' ? 'Created At' : 'Created At', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
     {
-      title: locale === 'en-US' ? 'Action' : '操作',
+      title: locale === 'en-US' ? 'Status' : 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: () => <Tag color="success">{locale === 'en-US' ? 'Generated' : 'Generated'}</Tag>,
+    },
+    {
+      title: locale === 'en-US' ? 'Action' : 'Action',
       key: 'action',
       width: 140,
       fixed: 'right',
@@ -467,7 +478,7 @@ export function QualityReportPage() {
                   createdAt: nowText(),
                   status: 'generated',
                 };
-                setReportHistory((current) => [next, ...current]);
+                setGeneratedReports((current) => [next, ...current]);
                 messageApi.success(label.reportGenerated);
               }}
             >
@@ -477,7 +488,7 @@ export function QualityReportPage() {
               icon={<DownloadOutlined />}
               onClick={() => {
                 downloadPdf(aggregatedRows, `quality-report-${new Date().toISOString().slice(0, 10)}.pdf`, {
-                  title: locale === 'en-US' ? 'Quality Report Detail' : '质检报表明细',
+                  title: locale === 'en-US' ? 'Quality Report Detail' : 'Quality Report Detail',
                 });
                 messageApi.success(label.reportExported);
               }}
@@ -540,7 +551,7 @@ export function QualityReportPage() {
           <SimpleBarChart
             title={label.detailChartTitle}
             data={chartRows.map((item) => ({ name: item.dimensionValue, value: Number(item[reportMetric]) }))}
-            unit={reportMetric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' 分钟') : undefined}
+            unit={reportMetric === 'avgDurationMin' ? (locale === 'en-US' ? ' min' : ' min') : undefined}
           />
           <Table rowKey="key" columns={detailColumns} dataSource={aggregatedRows} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1300 }} />
         </Space>
@@ -556,3 +567,6 @@ export function QualityReportPage() {
     </Space>
   );
 }
+
+
+
